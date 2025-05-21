@@ -1,5 +1,7 @@
 "use client"
 
+import { DialogFooter } from "@/components/ui/dialog"
+
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,14 +10,7 @@ import { ArrowLeft, Trash2, Calendar, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 type ClothingItem = {
   id: string
@@ -167,8 +162,8 @@ export default function LooksPage() {
           <div className="p-4 mb-4 rounded-full bg-muted">
             <Calendar className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h2 className="text-xl font-semibold">No tienes looks guardados</h2>
-          <p className="mt-2 mb-6 text-muted-foreground">Genera algunas sugerencias y guarda tus looks favoritos</p>
+          <h2 className="text-xl font-semibold">No tenés looks guardados</h2>
+          <p className="mt-2 mb-6 text-muted-foreground">Generá algunas sugerencias y guardá tus looks favoritos</p>
           <Link href="/suggest">
             <Button className="gap-2">Generar sugerencias</Button>
           </Link>

@@ -531,10 +531,10 @@ export default function UploadPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="casual">Casual</SelectItem>
-                <SelectItem value="trabajo">Trabajo</SelectItem>
-                <SelectItem value="fiesta">Fiesta</SelectItem>
-                <SelectItem value="deporte">Deporte</SelectItem>
                 <SelectItem value="formal">Formal</SelectItem>
+                <SelectItem value="deporte">Deporte</SelectItem>
+                <SelectItem value="fiesta">Fiesta</SelectItem>
+                <SelectItem value="homewear">En casa</SelectItem>
               </SelectContent>
             </Select>
           </div>

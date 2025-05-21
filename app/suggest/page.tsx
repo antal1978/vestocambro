@@ -81,10 +81,10 @@ const CLIMATE_TYPES = [
 // Tipos de ocasiones disponibles
 const OCCASION_TYPES = [
   { value: "casual", label: "Casual", icon: Coffee },
-  { value: "trabajo", label: "Trabajo", icon: Briefcase },
-  { value: "fiesta", label: "Fiesta", icon: PartyPopper },
-  { value: "deporte", label: "Deporte", icon: Dumbbell },
   { value: "formal", label: "Formal", icon: Shirt },
+  { value: "deporte", label: "Deporte", icon: Dumbbell },
+  { value: "fiesta", label: "Fiesta", icon: PartyPopper },
+  { value: "homewear", label: "En casa", icon: Coffee },
 ]
 
 // Función para determinar la probabilidad de añadir un abrigo según el clima
@@ -192,17 +192,38 @@ const filterItemsByClimate = (items: ClothingItem[], targetClimate: string): Clo
 }
 
 // Esta función filtra y prioriza prendas según la ocasión objetivo
-const filterItemsByOccasion = (items: ClothingItem[], targetOccasion: string): ClothingItem[] => {
+const filterItemsByOccasion = (
+  items: ClothingItem[],
+  targetOccasion: string,
+  isUserSelected = false,
+): ClothingItem[] => {
   // Primero, intentar con prendas específicas para la ocasión objetivo
   const specificItems = items.filter((item) => item.occasion === targetOccasion)
 
+  // Si el usuario seleccionó explícitamente esta ocasión, ser más estricto
+  if (isUserSelected) {
+    // Si hay al menos una prenda específica, usar solo esas
+    if (specificItems.length > 0) {
+      return specificItems
+    }
+    // Si no hay ninguna prenda para esta ocasión, mostrar un mensaje (esto se manejará después)
+    return []
+  }
+
+  // Para generación automática, ser más flexible
   // Si hay suficientes prendas específicas, usarlas
   if (specificItems.length >= 2) {
     return specificItems
   }
 
-  // Si no hay suficientes, usar todas las prendas disponibles
-  return specificItems.length > 0 ? specificItems : items
+  // Si no hay suficientes, usar las específicas + prendas de ocasión "casual" como complemento
+  if (specificItems.length > 0) {
+    const casualItems = items.filter((item) => item.occasion === "casual")
+    return [...specificItems, ...casualItems]
+  }
+
+  // Si no hay ninguna específica, usar todas las disponibles
+  return items
 }
 
 // Nueva función para verificar si hay suficientes prendas para generar un look completo
@@ -362,16 +383,32 @@ export default function SuggestPage() {
 
           // Filtrar prendas por clima y ocasión
           const climateSuitableUpperBody = filterItemsByClimate(upperBodyItems, targetClimate)
-          const occasionSuitableUpperBody = filterItemsByOccasion(climateSuitableUpperBody, targetOccasion)
+          const occasionSuitableUpperBody = filterItemsByOccasion(
+            climateSuitableUpperBody,
+            targetOccasion,
+            selectedOccasion === targetOccasion,
+          )
 
           const climateSuitableLowerBody = filterItemsByClimate(lowerBodyItems, targetClimate)
-          const occasionSuitableLowerBody = filterItemsByOccasion(climateSuitableLowerBody, targetOccasion)
+          const occasionSuitableLowerBody = filterItemsByOccasion(
+            climateSuitableLowerBody,
+            targetOccasion,
+            selectedOccasion === targetOccasion,
+          )
 
           const climateSuitableOuterwear = filterItemsByClimate(outerwearItems, targetClimate)
-          const occasionSuitableOuterwear = filterItemsByOccasion(climateSuitableOuterwear, targetOccasion)
+          const occasionSuitableOuterwear = filterItemsByOccasion(
+            climateSuitableOuterwear,
+            targetOccasion,
+            selectedOccasion === targetOccasion,
+          )
 
           const climateSuitableFootwear = filterItemsByClimate(footwearItems, targetClimate)
-          const occasionSuitableFootwear = filterItemsByOccasion(climateSuitableFootwear, targetOccasion)
+          const occasionSuitableFootwear = filterItemsByOccasion(
+            climateSuitableFootwear,
+            targetOccasion,
+            selectedOccasion === targetOccasion,
+          )
 
           // Añadir prendas complementarias según la base, priorizando el clima adecuado
           if (isUpperBody && occasionSuitableLowerBody.length > 0) {
@@ -456,19 +493,55 @@ export default function SuggestPage() {
 
         // Filtrar prendas por clima
         const climateSuitableUpperBody = filterItemsByClimate(upperBodyItems, targetClimate)
-        const occasionSuitableUpperBody = filterItemsByOccasion(climateSuitableUpperBody, targetOccasion)
+        const occasionSuitableUpperBody = filterItemsByOccasion(
+          climateSuitableUpperBody,
+          targetOccasion,
+          selectedOccasion === targetOccasion,
+        )
 
         const climateSuitableLowerBody = filterItemsByClimate(lowerBodyItems, targetClimate)
-        const occasionSuitableLowerBody = filterItemsByOccasion(climateSuitableLowerBody, targetOccasion)
+        const occasionSuitableLowerBody = filterItemsByOccasion(
+          climateSuitableLowerBody,
+          targetOccasion,
+          selectedOccasion === targetOccasion,
+        )
 
         const climateSuitableFullBody = filterItemsByClimate(fullBodyItems, targetClimate)
-        const occasionSuitableFullBody = filterItemsByOccasion(climateSuitableFullBody, targetOccasion)
+        const occasionSuitableFullBody = filterItemsByOccasion(
+          climateSuitableFullBody,
+          targetOccasion,
+          selectedOccasion === targetOccasion,
+        )
 
         const climateSuitableOuterwear = filterItemsByClimate(outerwearItems, targetClimate)
-        const occasionSuitableOuterwear = filterItemsByOccasion(climateSuitableOuterwear, targetOccasion)
+        const occasionSuitableOuterwear = filterItemsByOccasion(
+          climateSuitableOuterwear,
+          targetOccasion,
+          selectedOccasion === targetOccasion,
+        )
 
         const climateSuitableFootwear = filterItemsByClimate(footwearItems, targetClimate)
-        const occasionSuitableFootwear = filterItemsByOccasion(climateSuitableFootwear, targetOccasion)
+        const occasionSuitableFootwear = filterItemsByOccasion(
+          climateSuitableFootwear,
+          targetOccasion,
+          selectedOccasion === targetOccasion,
+        )
+
+        // Después de filtrar todas las prendas, verificar si hay suficientes para la ocasión
+        const hasOccasionItems =
+          occasionSuitableUpperBody.length > 0 ||
+          occasionSuitableLowerBody.length > 0 ||
+          occasionSuitableFullBody.length > 0
+
+        if (!hasOccasionItems && selectedOccasion === targetOccasion) {
+          setIsLoading(false)
+          toast({
+            title: "No hay prendas suficientes",
+            description: `No tenés prendas etiquetadas para la ocasión "${targetOccasion}". Agregá más prendas o seleccioná otra ocasión.`,
+            variant: "warning",
+          })
+          return
+        }
 
         // Seleccionar prendas para el outfit
         const selectedItems: ClothingItem[] = []
@@ -573,16 +646,46 @@ export default function SuggestPage() {
 
         // Filtrar prendas por clima
         const climateSuitableUpperBody = filterItemsByClimate(upperBodyItems, targetClimate)
-        const occasionSuitableUpperBody = filterItemsByOccasion(climateSuitableUpperBody, targetOccasion)
+        const occasionSuitableUpperBody = filterItemsByOccasion(
+          climateSuitableUpperBody,
+          targetOccasion,
+          selectedOccasion === targetOccasion,
+        )
 
         const climateSuitableLowerBody = filterItemsByClimate(lowerBodyItems, targetClimate)
-        const occasionSuitableLowerBody = filterItemsByOccasion(climateSuitableLowerBody, targetOccasion)
+        const occasionSuitableLowerBody = filterItemsByOccasion(
+          climateSuitableLowerBody,
+          targetOccasion,
+          selectedOccasion === targetOccasion,
+        )
 
         const climateSuitableOuterwear = filterItemsByClimate(outerwearItems, targetClimate)
-        const occasionSuitableOuterwear = filterItemsByOccasion(climateSuitableOuterwear, targetOccasion)
+        const occasionSuitableOuterwear = filterItemsByOccasion(
+          climateSuitableOuterwear,
+          targetOccasion,
+          selectedOccasion === targetOccasion,
+        )
 
         const climateSuitableFootwear = filterItemsByClimate(footwearItems, targetClimate)
-        const occasionSuitableFootwear = filterItemsByOccasion(climateSuitableFootwear, targetOccasion)
+        const occasionSuitableFootwear = filterItemsByOccasion(
+          climateSuitableFootwear,
+          targetOccasion,
+          selectedOccasion === targetOccasion,
+        )
+
+        // Después de filtrar todas las prendas, verificar si hay suficientes para la ocasión
+        const hasOccasionItems =
+          (isUpperBody || occasionSuitableUpperBody.length > 0) && (isLowerBody || occasionSuitableLowerBody.length > 0)
+
+        if (!hasOccasionItems && selectedOccasion === targetOccasion && !isFullBody) {
+          setIsLoading(false)
+          toast({
+            title: "No hay prendas suficientes",
+            description: `No tenés prendas complementarias etiquetadas para la ocasión "${targetOccasion}". Agregá más prendas o seleccioná otra ocasión.`,
+            variant: "warning",
+          })
+          return
+        }
 
         // Añadir prendas complementarias según la base, priorizando el clima adecuado
         if (isUpperBody && occasionSuitableLowerBody.length > 0) {
@@ -720,7 +823,8 @@ export default function SuggestPage() {
     // Si hay un outfit generado, limpiar para evitar inconsistencias con el nuevo clima
     if (outfit.length > 0) {
       setOutfit([])
-      setMessage(`Seleccionado clima ${climate}. Presiona 'Generar sugerencia' para crear un look.`)
+      // Eliminar el mensaje que causa duplicación
+      setMessage("")
     }
   }
 
@@ -731,7 +835,8 @@ export default function SuggestPage() {
     // Si hay un outfit generado, limpiar para evitar inconsistencias con la nueva ocasión
     if (outfit.length > 0) {
       setOutfit([])
-      setMessage(`Seleccionada ocasión ${occasion}. Presiona 'Generar sugerencia' para crear un look.`)
+      // Eliminar el mensaje que causa duplicación
+      setMessage("")
     }
   }
 
@@ -898,7 +1003,9 @@ export default function SuggestPage() {
             <CardTitle className="text-center">
               {baseItem
                 ? `Look generado con tu ${baseItem.type} ${baseItem.color}${selectedClimate ? ` para clima ${selectedClimate}` : ""}${selectedOccasion ? ` y ocasión ${selectedOccasion}` : ""}`
-                : message}
+                : outfit.length > 0
+                  ? message
+                  : ""}
             </CardTitle>
           </CardHeader>
           <CardContent>

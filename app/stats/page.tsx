@@ -355,7 +355,7 @@ export default function StatsPage() {
                   <Shirt className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
                   <h3 className="mt-4 text-lg font-semibold">No hay datos de uso</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Comienza a registrar el uso de tus looks para ver estadísticas aquí
+                    Comenzá a registrar el uso de tus looks para ver estadísticas aquí
                   </p>
                 </div>
               )}
@@ -603,7 +603,7 @@ export default function StatsPage() {
                 <CheckCircle2 className="h-3 w-3 text-green-600" />
               </div>
               <span>
-                Intenta usar las prendas que nunca has utilizado. ¡Podrías descubrir combinaciones sorprendentes!
+                Intentá usar las prendas que nunca has utilizado. ¡Podrías descubrir combinaciones sorprendentes!
               </span>
             </li>
             <li className="flex items-start gap-2">
@@ -611,7 +611,7 @@ export default function StatsPage() {
                 <CheckCircle2 className="h-3 w-3 text-green-600" />
               </div>
               <span>
-                Rota tus prendas favoritas con otras menos usadas para equilibrar el desgaste y extender su vida útil.
+                Rotá tus prendas favoritas con otras menos usadas para equilibrar el desgaste y extender su vida útil.
               </span>
             </li>
             <li className="flex items-start gap-2">
@@ -619,7 +619,7 @@ export default function StatsPage() {
                 <CheckCircle2 className="h-3 w-3 text-green-600" />
               </div>
               <span>
-                Antes de desechar una prenda que ya no te gusta, considera donarla o transformarla en algo nuevo.
+                Antes de desechar una prenda que ya no te gusta, considerá donarla o transformarla en algo nuevo.
               </span>
             </li>
             <li className="flex items-start gap-2">
@@ -627,7 +627,7 @@ export default function StatsPage() {
                 <CheckCircle2 className="h-3 w-3 text-green-600" />
               </div>
               <span>
-                Antes de comprar algo nuevo, revisa estas estadísticas para identificar qué tipo de prendas ya tienes en
+                Antes de comprar algo nuevo, revisá estas estadísticas para identificar qué tipo de prendas ya tenés en
                 abundancia.
               </span>
             </li>
