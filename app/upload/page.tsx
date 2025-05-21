@@ -484,7 +484,7 @@ export default function UploadPage() {
             <Label htmlFor="type">Tipo de prenda</Label>
             <Select value={type} onValueChange={setType}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecciona el tipo" />
+                <SelectValue placeholder="Seleccionar el tipo" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="camiseta">Camiseta</SelectItem>
@@ -506,7 +506,7 @@ export default function UploadPage() {
             <Label htmlFor="color">Color</Label>
             <Select value={color} onValueChange={setColor}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecciona el color" />
+                <SelectValue placeholder="Seleccionar el color" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="negro">Negro</SelectItem>
@@ -527,7 +527,7 @@ export default function UploadPage() {
             <Label htmlFor="occasion">Ocasión</Label>
             <Select value={occasion} onValueChange={setOccasion}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecciona la ocasión" />
+                <SelectValue placeholder="Seleccionar la ocasión" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="casual">Casual</SelectItem>
@@ -543,7 +543,7 @@ export default function UploadPage() {
             <Label htmlFor="climate">Clima</Label>
             <Select value={climate} onValueChange={setClimate}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecciona el clima" />
+                <SelectValue placeholder="Seleccionar el clima" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="caluroso">Caluroso</SelectItem>

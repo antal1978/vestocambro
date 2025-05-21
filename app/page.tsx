@@ -20,8 +20,8 @@ export default function Home() {
                 <span className="gradient-text">reinventado</span>
               </h1>
               <p className="text-xl text-muted-foreground max-w-xl">
-                Laboratorio de looks - Organizá tus prendas, descubrí nuevas combinaciones y creá looks increíbles con
-                Vestok
+                Laboratorio de looks - Organizá tus prendas y creá nuevos looks con lo que ya tenés. Reutilizá,
+                reinventá, reestrená.
               </p>
               <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                 <Link href="/upload">
@@ -79,7 +79,7 @@ export default function Home() {
               <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-4">
                 <Wand2 className="w-6 h-6 text-primary-600 dark:text-primary-400" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Genera looks automáticos</h3>
+              <h3 className="text-xl font-bold mb-2">Generá looks automáticos</h3>
               <p className="text-muted-foreground">
                 Dejá que Vestok te sugiera combinaciones perfectas basadas en tus prendas favoritas.
               </p>
@@ -90,7 +90,7 @@ export default function Home() {
               <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-4">
                 <Heart className="w-6 h-6 text-primary-600 dark:text-primary-400" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Guarda tus looks favoritos</h3>
+              <h3 className="text-xl font-bold mb-2">Guardá tus looks favoritos</h3>
               <p className="text-muted-foreground">
                 Creá una colección de tus combinaciones preferidas para acceder a ellas rápidamente.
               </p>
