@@ -25,7 +25,7 @@ const sampleClothes: Omit<ClothingItem, "id">[] = [
   // Prendas parte superior
   {
     image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&h=300&fit=crop&q=80",
-    type: "camiseta",
+    type: "remera",
     color: "blanco",
     occasion: "casual",
     climate: "caluroso",
@@ -33,7 +33,7 @@ const sampleClothes: Omit<ClothingItem, "id">[] = [
   },
   {
     image: "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=300&h=300&fit=crop&q=80",
-    type: "camiseta",
+    type: "remera",
     color: "negro",
     occasion: "casual",
     climate: "caluroso",
@@ -41,10 +41,26 @@ const sampleClothes: Omit<ClothingItem, "id">[] = [
   },
   {
     image: "https://images.unsplash.com/photo-1581655353564-df123a1eb820?w=300&h=300&fit=crop&q=80",
-    type: "camiseta",
+    type: "remera",
     color: "azul",
     occasion: "casual",
     climate: "caluroso",
+    isOuterwear: false,
+  },
+  {
+    image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=300&h=300&fit=crop&q=80",
+    type: "sweater",
+    color: "gris",
+    occasion: "casual",
+    climate: "templado",
+    isOuterwear: false,
+  },
+  {
+    image: "https://images.unsplash.com/photo-1565084888279-aca607ecce0c?w=300&h=300&fit=crop&q=80",
+    type: "jean",
+    color: "azul",
+    occasion: "casual",
+    climate: "templado",
     isOuterwear: false,
   },
   {
@@ -375,7 +391,7 @@ export default function EjemplosPage() {
             <CardContent>
               <ul className="space-y-1">
                 <li className="flex justify-between">
-                  <span>Camisetas:</span> <Badge variant="outline">3</Badge>
+                  <span>Remeras:</span> <Badge variant="outline">3</Badge>
                 </li>
                 <li className="flex justify-between">
                   <span>Camisas:</span> <Badge variant="outline">3</Badge>

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Check, Sparkles, Shirt, Wand2, Heart } from "lucide-react"
+import { ArrowRight, Check, Sparkles, Shirt, Wand2, Heart, MessageSquare } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 
@@ -196,12 +196,24 @@ export default function Home() {
           <p className="text-xl opacity-90 max-w-2xl mx-auto mb-8">
             Comenzá a organizar tus prendas y descubrí nuevas combinaciones hoy mismo.
           </p>
-          <Link href="/upload">
-            <Button size="lg" variant="secondary" className="gap-2 btn-hover">
-              Comenzar ahora
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-          </Link>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link href="/upload">
+              <Button size="lg" variant="secondary" className="gap-2 btn-hover">
+                Comenzar ahora
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+            <Link href="/guia">
+              <Button
+                size="lg"
+                variant="outline"
+                className="gap-2 btn-hover bg-white/10 hover:bg-white/20 text-white border-white/30"
+              >
+                Ver guía de uso
+                <MessageSquare className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 

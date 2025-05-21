@@ -487,8 +487,10 @@ export default function UploadPage() {
                 <SelectValue placeholder="Seleccionar el tipo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="camiseta">Camiseta</SelectItem>
+                <SelectItem value="remera">Remera</SelectItem>
                 <SelectItem value="camisa">Camisa</SelectItem>
+                <SelectItem value="sweater">Sweater/Buzo</SelectItem>
+                <SelectItem value="jean">Jean</SelectItem>
                 <SelectItem value="pantalon">Pantalón</SelectItem>
                 <SelectItem value="falda">Falda</SelectItem>
                 <SelectItem value="vestido">Vestido</SelectItem>

@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Shirt, Home, Wand2, Heart, BarChart3, Menu, X } from "lucide-react"
+import { Shirt, Home, Wand2, Heart, BarChart3, Menu, X, MessageSquare } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
@@ -20,9 +20,10 @@ export function Navbar() {
   const navItems = [
     { path: "/", icon: Home, label: "Inicio" },
     { path: "/gallery", icon: Shirt, label: "Guardarropa" },
-    { path: "/suggest", icon: Wand2, label: "Sugerí Look" },
+    { path: "/suggest", icon: Wand2, label: "Sugerir Look" },
     { path: "/looks", icon: Heart, label: "Looks" },
     { path: "/stats", icon: BarChart3, label: "Estadísticas" },
+    { path: "/guia", icon: MessageSquare, label: "Guía" },
   ]
 
   return (

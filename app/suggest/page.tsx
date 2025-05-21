@@ -62,8 +62,8 @@ type UsageRecord = {
 
 // Categorías de prendas
 const CLOTHING_CATEGORIES = {
-  upperBody: ["camiseta", "camisa", "sweater", "cardigan", "blusa"],
-  lowerBody: ["pantalon", "falda", "shorts", "jeans"],
+  upperBody: ["remera", "camisa", "sweater", "buzo", "cardigan", "blusa"],
+  lowerBody: ["pantalon", "jean", "falda", "shorts", "jeans"],
   fullBody: ["vestido", "mono", "jumpsuit"],
   outerwear: ["campera", "tapado", "blazer", "abrigo"],
   footwear: ["calzado", "zapatos", "zapatillas", "botas"],
@@ -257,7 +257,7 @@ const hasEnoughClothesForOutfit = (
   const missingCategories = []
 
   if (!hasUpperBody && !hasFullBody) {
-    missingCategories.push("parte superior (camiseta, camisa, etc.)")
+    missingCategories.push("parte superior (remera, camisa, etc.)")
   }
 
   if (!hasLowerBody && !hasFullBody) {
