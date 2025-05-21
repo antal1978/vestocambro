@@ -22,6 +22,7 @@ import {
   Shirt,
   AlertCircle,
   Upload,
+  Eye,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -36,6 +37,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { OutfitVisualization } from "@/components/outfit-visualization"
 
 type ClothingItem = {
   id: string
@@ -251,7 +253,8 @@ const hasEnoughClothesForOutfit = (
   const hasFullBody = fullBodyItems.length > 0
 
   // Un outfit básico necesita: (parte superior + parte inferior) O una prenda completa
-  const hasBasicOutfit = (hasUpperBody && hasLowerBody) || hasFullBody
+  // O al menos 2 prendas de cualquier tipo (más flexible)
+  const hasBasicOutfit = (hasUpperBody && hasLowerBody) || hasFullBody || items.length >= 2
 
   // Determinar qué categorías faltan
   const missingCategories = []
@@ -292,6 +295,7 @@ export default function SuggestPage() {
   const [selectedClimate, setSelectedClimate] = useState<string>("templado")
   const [selectedOccasion, setSelectedOccasion] = useState<string>("casual")
   const [clothingStatus, setClothingStatus] = useState<ReturnType<typeof hasEnoughClothesForOutfit> | null>(null)
+  const [showOutfitVisualization, setShowOutfitVisualization] = useState(false)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -462,10 +466,36 @@ export default function SuggestPage() {
   // Función para generar un outfit básico
   const handleGenerateOutfit = useCallback(() => {
     // Verificar si hay suficientes prendas
+    console.log("Iniciando generación de outfit con", items.length, "prendas disponibles")
+
+    // Verificar si hay prendas cargadas
+    if (!items || items.length === 0) {
+      console.error("No hay prendas cargadas en el guardarropa")
+      toast({
+        title: "No hay prendas",
+        description: "No hay prendas en tu guardarropa. Por favor, añade algunas prendas primero.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Imprimir información de las prendas para depuración
+    console.log(
+      "Prendas disponibles:",
+      items.map((item) => `${item.type} ${item.color} (${item.climate}, ${item.occasion})`),
+    )
+
     const status = hasEnoughClothesForOutfit(items)
+    console.log("Estado de prendas:", status)
     setClothingStatus(status)
 
     if (!status.hasEnough) {
+      console.warn("No hay suficientes prendas para generar un outfit")
+      toast({
+        title: "Prendas insuficientes",
+        description: "No tienes suficientes prendas para generar un look completo.",
+        variant: "warning",
+      })
       return
     }
 
@@ -476,11 +506,15 @@ export default function SuggestPage() {
     // Simulamos un pequeño retraso para mostrar el estado de carga
     setTimeout(() => {
       try {
+        console.log("Generando outfit con clima:", selectedClimate, "y ocasión:", selectedOccasion)
+
         // Determinar el clima objetivo para este outfit (usando la selección del usuario si existe)
         const targetClimate = determineTargetClimate(null, items, selectedClimate)
+        console.log("Clima objetivo:", targetClimate)
 
         // Determinar la ocasión objetivo para este outfit
         const targetOccasion = determineTargetOccasion(null, items, selectedOccasion)
+        console.log("Ocasión objetivo:", targetOccasion)
 
         // Separar prendas por categoría
         const upperBodyItems = items.filter((item) => CLOTHING_CATEGORIES.upperBody.includes(item.type))
@@ -490,6 +524,14 @@ export default function SuggestPage() {
           (item) => CLOTHING_CATEGORIES.outerwear.includes(item.type) || item.isOuterwear,
         )
         const footwearItems = items.filter((item) => CLOTHING_CATEGORIES.footwear.includes(item.type))
+
+        console.log("Prendas por categoría:", {
+          upperBody: upperBodyItems.length,
+          lowerBody: lowerBodyItems.length,
+          fullBody: fullBodyItems.length,
+          outerwear: outerwearItems.length,
+          footwear: footwearItems.length,
+        })
 
         // Filtrar prendas por clima
         const climateSuitableUpperBody = filterItemsByClimate(upperBodyItems, targetClimate)
@@ -527,6 +569,14 @@ export default function SuggestPage() {
           selectedOccasion === targetOccasion,
         )
 
+        console.log("Prendas filtradas por clima y ocasión:", {
+          upperBody: occasionSuitableUpperBody.length,
+          lowerBody: occasionSuitableLowerBody.length,
+          fullBody: occasionSuitableFullBody.length,
+          outerwear: occasionSuitableOuterwear.length,
+          footwear: occasionSuitableFootwear.length,
+        })
+
         // Después de filtrar todas las prendas, verificar si hay suficientes para la ocasión
         const hasOccasionItems =
           occasionSuitableUpperBody.length > 0 ||
@@ -534,6 +584,7 @@ export default function SuggestPage() {
           occasionSuitableFullBody.length > 0
 
         if (!hasOccasionItems && selectedOccasion === targetOccasion) {
+          console.warn("No hay prendas para la ocasión seleccionada")
           setIsLoading(false)
           toast({
             title: "No hay prendas suficientes",
@@ -548,22 +599,42 @@ export default function SuggestPage() {
 
         // Decidir si usar vestido o conjunto de dos piezas
         const useFullBody = occasionSuitableFullBody.length > 0 && Math.random() > 0.7
+        console.log("¿Usar prenda completa?", useFullBody)
 
         if (useFullBody) {
           // Seleccionar vestido
           const randomIndex = Math.floor(Math.random() * occasionSuitableFullBody.length)
           selectedItems.push(occasionSuitableFullBody[randomIndex])
+          console.log(
+            "Prenda completa seleccionada:",
+            occasionSuitableFullBody[randomIndex].type,
+            occasionSuitableFullBody[randomIndex].color,
+          )
         } else {
           // Seleccionar parte superior
           if (occasionSuitableUpperBody.length > 0) {
             const randomIndex = Math.floor(Math.random() * occasionSuitableUpperBody.length)
             selectedItems.push(occasionSuitableUpperBody[randomIndex])
+            console.log(
+              "Parte superior seleccionada:",
+              occasionSuitableUpperBody[randomIndex].type,
+              occasionSuitableUpperBody[randomIndex].color,
+            )
+          } else {
+            console.warn("No hay prendas superiores disponibles para la selección")
           }
 
           // Seleccionar parte inferior
           if (occasionSuitableLowerBody.length > 0) {
             const randomIndex = Math.floor(Math.random() * occasionSuitableLowerBody.length)
             selectedItems.push(occasionSuitableLowerBody[randomIndex])
+            console.log(
+              "Parte inferior seleccionada:",
+              occasionSuitableLowerBody[randomIndex].type,
+              occasionSuitableLowerBody[randomIndex].color,
+            )
+          } else {
+            console.warn("No hay prendas inferiores disponibles para la selección")
           }
         }
 
@@ -571,11 +642,17 @@ export default function SuggestPage() {
         if (occasionSuitableOuterwear.length > 0 && !selectedItems.some((item) => item.isOuterwear)) {
           // Obtener probabilidad según el clima objetivo
           const probability = getOuterwearProbabilityByClimate(targetClimate)
+          console.log("Probabilidad de añadir abrigo:", probability)
 
           // Decidir si añadir abrigo basado en la probabilidad ajustada
           if (Math.random() < probability) {
             const randomIndex = Math.floor(Math.random() * occasionSuitableOuterwear.length)
             selectedItems.push(occasionSuitableOuterwear[randomIndex])
+            console.log(
+              "Abrigo seleccionado:",
+              occasionSuitableOuterwear[randomIndex].type,
+              occasionSuitableOuterwear[randomIndex].color,
+            )
           }
         }
 
@@ -583,6 +660,26 @@ export default function SuggestPage() {
         if (occasionSuitableFootwear.length > 0 && Math.random() > 0.3) {
           const randomIndex = Math.floor(Math.random() * occasionSuitableFootwear.length)
           selectedItems.push(occasionSuitableFootwear[randomIndex])
+          console.log(
+            "Calzado seleccionado:",
+            occasionSuitableFootwear[randomIndex].type,
+            occasionSuitableFootwear[randomIndex].color,
+          )
+        }
+
+        console.log("Outfit final generado con", selectedItems.length, "prendas")
+
+        // Verificar si se generó un outfit válido
+        if (selectedItems.length === 0) {
+          console.error("No se pudo generar un outfit válido")
+          toast({
+            title: "Error al generar look",
+            description:
+              "No se pudo crear un look con las prendas disponibles. Intenta con otra combinación de clima y ocasión.",
+            variant: "destructive",
+          })
+          setIsLoading(false)
+          return
         }
 
         // Actualizar estado
@@ -592,7 +689,7 @@ export default function SuggestPage() {
         console.error("Error al generar outfit:", error)
         toast({
           title: "Error",
-          description: "Ocurrió un error al generar el outfit.",
+          description: "Ocurrió un error al generar el outfit. Por favor, intenta de nuevo.",
           variant: "destructive",
         })
       } finally {
@@ -1093,21 +1190,23 @@ export default function SuggestPage() {
             )}
           </CardContent>
           <CardFooter className="flex flex-wrap justify-center gap-4">
-            <Button
-              onClick={handleGenerateOutfit}
-              className="gap-2 btn-hover"
-              disabled={isLoading || (clothingStatus && !clothingStatus.hasEnough)}
-            >
+            <Button onClick={handleGenerateOutfit} className="gap-2 btn-hover" disabled={isLoading}>
               <Wand2 className="w-4 h-4" />
               {isLoading ? "Generando..." : "Generar sugerencia"}
             </Button>
 
             {outfit.length > 0 && (
               <>
+                <Button onClick={() => setShowOutfitVisualization(true)} variant="default" className="gap-2 btn-hover">
+                  <Eye className="w-4 h-4" />
+                  Ver conjunto completo
+                </Button>
+
                 <Button onClick={handleSaveOutfit} variant="outline" className="gap-2 btn-hover">
                   <Save className="w-4 h-4" />
                   Guardar look
                 </Button>
+
                 <Button
                   onClick={handleRecordUsage}
                   variant="secondary"
@@ -1120,8 +1219,25 @@ export default function SuggestPage() {
               </>
             )}
           </CardFooter>
+          {/* Botón flotante para visualización en móviles */}
+          {outfit.length > 0 && (
+            <div className="fixed bottom-20 right-4 z-10 md:hidden">
+              <Button
+                onClick={() => setShowOutfitVisualization(true)}
+                size="lg"
+                className="rounded-full h-14 w-14 shadow-lg"
+              >
+                <Eye className="h-6 w-6" />
+              </Button>
+            </div>
+          )}
         </Card>
       </div>
+      <OutfitVisualization
+        items={outfit}
+        isOpen={showOutfitVisualization}
+        onClose={() => setShowOutfitVisualization(false)}
+      />
       <Toaster />
     </div>
   )
