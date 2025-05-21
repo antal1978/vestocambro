@@ -20,7 +20,7 @@ export function Navbar() {
   const navItems = [
     { path: "/", icon: Home, label: "Inicio" },
     { path: "/gallery", icon: Shirt, label: "Guardarropa" },
-    { path: "/suggest", icon: Wand2, label: "Sugerir Look" },
+    { path: "/suggest", icon: Wand2, label: "Sugerí Look" },
     { path: "/looks", icon: Heart, label: "Looks" },
     { path: "/stats", icon: BarChart3, label: "Estadísticas" },
   ]

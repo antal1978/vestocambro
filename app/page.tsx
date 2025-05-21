@@ -26,7 +26,7 @@ export default function Home() {
               <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                 <Link href="/upload">
                   <Button size="lg" className="gap-2 btn-hover bg-primary-600 hover:bg-primary-700">
-                    Comenzá ahora
+                    Comenzar ahora
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
@@ -57,7 +57,7 @@ export default function Home() {
       {/* Features Section */}
       <section className="py-16 bg-muted/50">
         <div className="container px-4 mx-auto">
-          <h2 className="section-title text-center">¿Qué puedes hacer con Vestok?</h2>
+          <h2 className="section-title text-center">¿Qué podés hacer con Vestok?</h2>
           <p className="section-subtitle text-center">
             Una forma inteligente de organizar tu ropa y crear combinaciones perfectas
           </p>
@@ -68,9 +68,9 @@ export default function Home() {
               <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-4">
                 <Shirt className="w-6 h-6 text-primary-600 dark:text-primary-400" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Organiza tu guardarropa</h3>
+              <h3 className="text-xl font-bold mb-2">Organizá tu guardarropa</h3>
               <p className="text-muted-foreground">
-                Cataloga todas tus prendas por tipo, color, ocasión y clima para tener un inventario completo.
+                Catalogá todas tus prendas por tipo, color, ocasión y clima para tener un inventario completo.
               </p>
             </div>
 
@@ -81,7 +81,7 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-bold mb-2">Genera looks automáticos</h3>
               <p className="text-muted-foreground">
-                Deja que Vestocambro te sugiera combinaciones perfectas basadas en tus prendas favoritas.
+                Dejá que Vestok te sugiera combinaciones perfectas basadas en tus prendas favoritas.
               </p>
             </div>
 
@@ -92,7 +92,7 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-bold mb-2">Guarda tus looks favoritos</h3>
               <p className="text-muted-foreground">
-                Crea una colección de tus combinaciones preferidas para acceder a ellas rápidamente.
+                Creá una colección de tus combinaciones preferidas para acceder a ellas rápidamente.
               </p>
             </div>
           </div>
@@ -102,7 +102,7 @@ export default function Home() {
       {/* Benefits Section */}
       <section className="py-16">
         <div className="container px-4 mx-auto">
-          <h2 className="section-title text-center">Beneficios de usar Vestocambro</h2>
+          <h2 className="section-title text-center">Beneficios de usar Vestok</h2>
           <div className="grid md:grid-cols-2 gap-8 mt-12">
             <div className="space-y-6">
               {/* Benefit 1 */}
@@ -111,7 +111,7 @@ export default function Home() {
                   <Check className="w-4 h-4 text-secondary-600 dark:text-secondary-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold mb-1">Ahorra tiempo cada mañana</h3>
+                  <h3 className="text-lg font-bold mb-1">Ahorrá tiempo cada mañana</h3>
                   <p className="text-muted-foreground">
                     Olvidate de pasar horas decidiendo qué ponerte. Encontrá el look perfecto en segundos.
                   </p>
@@ -124,7 +124,7 @@ export default function Home() {
                   <Check className="w-4 h-4 text-secondary-600 dark:text-secondary-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold mb-1">Aprovecha mejor tu guardarropa</h3>
+                  <h3 className="text-lg font-bold mb-1">Aprovechá mejor tu guardarropa</h3>
                   <p className="text-muted-foreground">
                     Descubrí prendas olvidadas y nuevas formas de combinarlas para sacarles el máximo partido.
                   </p>
@@ -137,7 +137,7 @@ export default function Home() {
                   <Check className="w-4 h-4 text-secondary-600 dark:text-secondary-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold mb-1">Compra con más conciencia</h3>
+                  <h3 className="text-lg font-bold mb-1">Comprá con más conciencia</h3>
                   <p className="text-muted-foreground">
                     Identificá qué tipo de prendas realmente necesitás y evitá compras innecesarias.
                   </p>
@@ -152,7 +152,7 @@ export default function Home() {
                   <Check className="w-4 h-4 text-secondary-600 dark:text-secondary-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold mb-1">Lleva un registro de uso</h3>
+                  <h3 className="text-lg font-bold mb-1">Llevá un registro de uso</h3>
                   <p className="text-muted-foreground">
                     Visualizá estadísticas sobre qué prendas usás más y cuáles podrías donar o vender.
                   </p>
@@ -165,7 +165,7 @@ export default function Home() {
                   <Check className="w-4 h-4 text-secondary-600 dark:text-secondary-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold mb-1">Planifica tus looks con anticipación</h3>
+                  <h3 className="text-lg font-bold mb-1">Planificá tus looks con anticipación</h3>
                   <p className="text-muted-foreground">
                     Prepará combinaciones para toda la semana o para ocasiones especiales con antelación.
                   </p>
@@ -178,7 +178,7 @@ export default function Home() {
                   <Check className="w-4 h-4 text-secondary-600 dark:text-secondary-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold mb-1">Accede desde cualquier dispositivo</h3>
+                  <h3 className="text-lg font-bold mb-1">Accedé desde cualquier dispositivo</h3>
                   <p className="text-muted-foreground">
                     Tu guardarropa virtual siempre contigo, en tu teléfono, tablet o computadora.
                   </p>
@@ -198,7 +198,7 @@ export default function Home() {
           </p>
           <Link href="/upload">
             <Button size="lg" variant="secondary" className="gap-2 btn-hover">
-              Comenzá ahora
+              Comenzar ahora
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>

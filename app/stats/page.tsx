@@ -485,9 +485,9 @@ export default function StatsPage() {
               ) : (
                 <div className="text-center py-8">
                   <Sparkles className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
-                  <h3 className="mt-4 text-lg font-semibold">¡Felicidades!</h3>
+                  <h3 className="mt-4 text-lg font-semibold">¡Felicitaciones!</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Has utilizado todas las prendas de tu guardarropa al menos una vez
+                    Usaste todas las prendas de tu guardarropa al menos una vez
                   </p>
                 </div>
               )}
@@ -602,9 +602,7 @@ export default function StatsPage() {
               <div className="rounded-full bg-green-100 p-1 mt-0.5">
                 <CheckCircle2 className="h-3 w-3 text-green-600" />
               </div>
-              <span>
-                Intentá usar las prendas que nunca has utilizado. ¡Podrías descubrir combinaciones sorprendentes!
-              </span>
+              <span>Intentá usar las prendas que nunca usaste. ¡Podrías descubrir combinaciones sorprendentes!</span>
             </li>
             <li className="flex items-start gap-2">
               <div className="rounded-full bg-green-100 p-1 mt-0.5">

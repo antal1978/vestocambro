@@ -127,7 +127,7 @@ export default function LooksPage() {
               </ul>
             </div>
             <p className="text-sm text-muted-foreground">
-              Puedes ver estadísticas detalladas de uso en la sección "Estadísticas".
+              Podés ver estadísticas detalladas de uso en la sección "Estadísticas".
             </p>
           </div>
           <DialogFooter>

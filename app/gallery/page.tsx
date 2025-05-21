@@ -255,7 +255,7 @@ export default function GalleryPage() {
               </ul>
             </div>
             <p className="text-sm text-muted-foreground">
-              Puedes ver estadísticas detalladas de uso en la sección "Estadísticas".
+              Podés ver estadísticas detalladas de uso en la sección "Estadísticas".
             </p>
           </div>
           <DialogFooter>
@@ -352,7 +352,7 @@ export default function GalleryPage() {
               <p className="text-sm">{getDisposalSuggestion(disposalReason)}</p>
             </div>
             <p className="text-sm text-muted-foreground">
-              Puedes ver el historial de prendas eliminadas en la sección "Estadísticas".
+              Podés ver el historial de prendas eliminadas en la sección "Estadísticas".
             </p>
           </div>
           <DialogFooter>
@@ -381,12 +381,12 @@ export default function GalleryPage() {
             <>
               <Button variant="outline" onClick={handleToggleSelectionMode} className="gap-2">
                 <CheckCircle2 className="w-4 h-4" />
-                Registrá uso manual
+                Registrar uso manual
               </Button>
               <Link href="/upload">
                 <Button variant="outline" className="gap-2">
                   <Plus className="w-4 h-4" />
-                  Añadí prenda
+                  Añadir prenda
                 </Button>
               </Link>
               {/* Se ha eliminado el botón de cargar ejemplos para mejorar la experiencia del usuario */}
@@ -400,7 +400,7 @@ export default function GalleryPage() {
                 <Link href="/suggest">
                   <Button className="gap-2">
                     <Wand2 className="w-4 h-4" />
-                    Sugerí un look
+                    Sugerir un look
                   </Button>
                 </Link>
               )}
@@ -422,13 +422,13 @@ export default function GalleryPage() {
             <Link href="/upload">
               <Button className="gap-2 btn-hover">
                 <Plus className="w-4 h-4" />
-                Añadí mi primera prenda
+                Añadir mi primera prenda
               </Button>
             </Link>
             <Link href="/ejemplos">
               <Button variant="outline" className="gap-2 btn-hover">
                 <Database className="w-4 h-4" />
-                Cargá prendas de ejemplo
+                Cargar prendas de ejemplo
               </Button>
             </Link>
           </div>

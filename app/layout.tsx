@@ -19,7 +19,7 @@ const montserrat = Montserrat({
 
 export const metadata = {
   title: "Vestok",
-  description: "Laboratorio de looks - Organiza tus prendas y crea looks increíbles",
+  description: "Laboratorio de looks - Organizá tus prendas y creá looks increíbles",
     generator: 'v0.dev'
 }
 

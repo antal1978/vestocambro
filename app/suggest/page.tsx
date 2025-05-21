@@ -283,7 +283,7 @@ export default function SuggestPage() {
   // Estados básicos
   const [items, setItems] = useState<ClothingItem[]>([])
   const [outfit, setOutfit] = useState<ClothingItem[]>([])
-  const [message, setMessage] = useState("Presiona 'Generar sugerencia' para crear un look")
+  const [message, setMessage] = useState("Presioná 'Generar sugerencia' para crear un look")
   const [isLoading, setIsLoading] = useState(false)
   const [showUsageDialog, setShowUsageDialog] = useState(false)
   const [usageUpdated, setUsageUpdated] = useState(false)
@@ -881,7 +881,7 @@ export default function SuggestPage() {
               </ul>
             </div>
             <p className="text-sm text-muted-foreground">
-              Puedes ver estadísticas detalladas de uso en la sección "Estadísticas".
+              Podés ver estadísticas detalladas de uso en la sección "Estadísticas".
             </p>
           </div>
           <DialogFooter>
@@ -918,13 +918,13 @@ export default function SuggestPage() {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Prendas insuficientes</AlertTitle>
             <AlertDescription>
-              <p className="mb-2">No tienes suficientes prendas para generar un look completo. Te faltan:</p>
+              <p className="mb-2">No tenés suficientes prendas para generar un look completo. Te faltan:</p>
               <ul className="list-disc pl-5 mb-3">
                 {clothingStatus.missingCategories.map((category, index) => (
                   <li key={index}>{category}</li>
                 ))}
               </ul>
-              <p className="mb-2">Actualmente tienes:</p>
+              <p className="mb-2">Actualmente tenés:</p>
               <ul className="list-disc pl-5 mb-3">
                 <li>{clothingStatus.upperBodyCount} prendas superiores</li>
                 <li>{clothingStatus.lowerBodyCount} prendas inferiores</li>
@@ -1086,8 +1086,8 @@ export default function SuggestPage() {
                 <Wand2 className="h-12 w-12 text-primary-500/50 mb-4" />
                 <p className="text-muted-foreground">
                   {selectedClimate && selectedOccasion
-                    ? `Seleccionado clima ${selectedClimate} y ocasión ${selectedOccasion}. Presiona el botón para generar un look.`
-                    : "Presiona el botón para generar un look con tus prendas"}
+                    ? `Seleccionado clima ${selectedClimate} y ocasión ${selectedOccasion}. Presioná el botón para generar un look.`
+                    : "Presioná el botón para generar un look con tus prendas"}
                 </p>
               </div>
             )}
@@ -1099,14 +1099,14 @@ export default function SuggestPage() {
               disabled={isLoading || (clothingStatus && !clothingStatus.hasEnough)}
             >
               <Wand2 className="w-4 h-4" />
-              {isLoading ? "Generando..." : "Generá sugerencia"}
+              {isLoading ? "Generando..." : "Generar sugerencia"}
             </Button>
 
             {outfit.length > 0 && (
               <>
                 <Button onClick={handleSaveOutfit} variant="outline" className="gap-2 btn-hover">
                   <Save className="w-4 h-4" />
-                  Guardá look
+                  Guardar look
                 </Button>
                 <Button
                   onClick={handleRecordUsage}
