@@ -2,6 +2,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
+import { useState } from "react"
 
 type ClothingItem = {
   id: string
@@ -20,6 +21,8 @@ type OutfitVisualizationProps = {
 }
 
 export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizationProps) {
+  const [showSilhouette, setShowSilhouette] = useState(true)
+
   // Clasificar prendas por categoría (evitando duplicados)
   // Primero identificamos los abrigos
   const outerwearItems = items.filter(
@@ -58,120 +61,138 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
           </Button>
         </DialogHeader>
 
-        <div className="p-6 bg-white">
-          {/* Visualización mejorada del outfit */}
-          <div id="outfit-grid" className="bg-gray-50 p-4 rounded-lg">
-            <div className="relative flex flex-col items-center">
-              {/* Maniquí o silueta (opcional) */}
-              <div className="absolute inset-0 opacity-10 pointer-events-none">
-                <svg viewBox="0 0 200 500" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+        <div className="p-6 bg-gradient-to-b from-white to-gray-50">
+          {/* Visualización mejorada del outfit estilo collage */}
+          <div className="relative bg-white rounded-lg p-6 shadow-sm overflow-hidden">
+            {/* Fondo con patrón sutil */}
+            <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white opacity-70"></div>
+
+            {/* Silueta de fondo (opcional y con toggle) */}
+            {showSilhouette && (
+              <div className="absolute inset-0 flex justify-center opacity-5 pointer-events-none">
+                <svg viewBox="0 0 200 500" className="h-full" xmlns="http://www.w3.org/2000/svg">
                   <path
                     d="M100,10 C120,10 135,25 135,45 C135,65 120,80 100,80 C80,80 65,65 65,45 C65,25 80,10 100,10 Z"
-                    fill="#888"
+                    fill="#333"
                   />
                   <path
                     d="M100,80 L100,200 M70,100 L130,100 M70,100 L60,200 M130,100 L140,200 M100,200 L70,350 M100,200 L130,350"
-                    stroke="#888"
+                    stroke="#333"
                     strokeWidth="2"
                     fill="none"
                   />
                 </svg>
               </div>
+            )}
 
-              {/* Abrigo (si existe) */}
-              {outerwearItems.length > 0 && (
-                <div className="relative w-full max-w-[300px] z-30">
-                  <div className="aspect-[3/4] relative">
-                    <img
-                      src={outerwearItems[0].image || "/placeholder.svg"}
-                      alt={outerwearItems[0].type}
-                      className="absolute inset-0 w-full h-full object-contain"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Prenda completa o parte superior */}
-              {fullBodyItems.length > 0 ? (
-                <div className="relative w-full max-w-[280px] -mt-16 z-20">
-                  <div className="aspect-[2/3] relative">
-                    <img
-                      src={fullBodyItems[0].image || "/placeholder.svg"}
-                      alt={fullBodyItems[0].type}
-                      className="absolute inset-0 w-full h-full object-contain"
-                    />
-                  </div>
-                </div>
-              ) : (
-                upperItems.length > 0 && (
-                  <div className="relative w-full max-w-[250px] -mt-8 z-20">
-                    <div className="aspect-square relative">
-                      <img
-                        src={upperItems[0].image || "/placeholder.svg"}
-                        alt={upperItems[0].type}
-                        className="absolute inset-0 w-full h-full object-contain"
-                      />
+            <div className="relative flex flex-col items-center min-h-[400px]">
+              {/* Contenedor principal para el collage */}
+              <div className="relative w-full flex flex-col items-center">
+                {/* Prenda superior o vestido */}
+                {(fullBodyItems.length > 0 || upperItems.length > 0) && (
+                  <div className={`relative z-20 ${fullBodyItems.length > 0 ? "w-[85%]" : "w-[75%]"} transition-all`}>
+                    <div className={`${fullBodyItems.length > 0 ? "aspect-[2/3]" : "aspect-square"} relative`}>
+                      <div className="absolute inset-0 rounded-xl overflow-hidden shadow-md transform transition-transform hover:scale-[1.02] hover:shadow-lg">
+                        <img
+                          src={fullBodyItems.length > 0 ? fullBodyItems[0].image : upperItems[0].image}
+                          alt={fullBodyItems.length > 0 ? fullBodyItems[0].type : upperItems[0].type}
+                          className="w-full h-full object-contain bg-white"
+                        />
+                      </div>
                     </div>
                   </div>
-                )
-              )}
+                )}
 
-              {/* Parte inferior (solo si no hay prenda completa) */}
-              {!fullBodyItems.length && lowerItems.length > 0 && (
-                <div className="relative w-full max-w-[240px] -mt-20 z-10">
-                  <div className="aspect-[2/3] relative">
-                    <img
-                      src={lowerItems[0].image || "/placeholder.svg"}
-                      alt={lowerItems[0].type}
-                      className="absolute inset-0 w-full h-full object-contain"
-                    />
+                {/* Parte inferior (solo si no hay prenda completa) */}
+                {!fullBodyItems.length && lowerItems.length > 0 && (
+                  <div className="relative w-[70%] -mt-[15%] z-10 transition-all">
+                    <div className="aspect-[3/4] relative">
+                      <div className="absolute inset-0 rounded-xl overflow-hidden shadow-md transform transition-transform hover:scale-[1.02] hover:shadow-lg">
+                        <img
+                          src={lowerItems[0].image || "/placeholder.svg"}
+                          alt={lowerItems[0].type}
+                          className="w-full h-full object-contain bg-white"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Calzado */}
-              {footwearItems.length > 0 && (
-                <div className="relative w-full max-w-[180px] -mt-16 z-0">
-                  <div className="aspect-square relative">
-                    <img
-                      src={footwearItems[0].image || "/placeholder.svg"}
-                      alt={footwearItems[0].type}
-                      className="absolute inset-0 w-full h-full object-contain"
-                    />
+                {/* Abrigo (si existe) - se muestra encima */}
+                {outerwearItems.length > 0 && (
+                  <div className="absolute top-[5%] w-[90%] z-30 transition-all">
+                    <div className="aspect-[3/4] relative">
+                      <div className="absolute inset-0 rounded-xl overflow-hidden shadow-md transform transition-transform hover:scale-[1.02] hover:shadow-lg">
+                        <img
+                          src={outerwearItems[0].image || "/placeholder.svg"}
+                          alt={outerwearItems[0].type}
+                          className="w-full h-full object-contain bg-white"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Accesorios */}
-              {accessoryItems.length > 0 && (
-                <div className="absolute top-0 right-0 w-1/4 max-w-[100px] z-40">
-                  <div className="aspect-square relative">
-                    <img
-                      src={accessoryItems[0].image || "/placeholder.svg"}
-                      alt={accessoryItems[0].type}
-                      className="absolute inset-0 w-full h-full object-contain"
-                    />
+                {/* Calzado */}
+                {footwearItems.length > 0 && (
+                  <div className="relative w-[50%] -mt-[10%] z-10 transition-all">
+                    <div className="aspect-square relative">
+                      <div className="absolute inset-0 rounded-xl overflow-hidden shadow-md transform transition-transform hover:scale-[1.02] hover:shadow-lg">
+                        <img
+                          src={footwearItems[0].image || "/placeholder.svg"}
+                          alt={footwearItems[0].type}
+                          className="w-full h-full object-contain bg-white"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+
+                {/* Accesorios */}
+                {accessoryItems.length > 0 && (
+                  <div className="absolute top-[5%] right-[5%] w-[30%] z-40 transition-all">
+                    <div className="aspect-square relative">
+                      <div className="absolute inset-0 rounded-xl overflow-hidden shadow-md transform transition-transform hover:scale-[1.02] hover:shadow-lg">
+                        <img
+                          src={accessoryItems[0].image || "/placeholder.svg"}
+                          alt={accessoryItems[0].type}
+                          className="w-full h-full object-contain bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+          </div>
+
+          {/* Controles y opciones */}
+          <div className="mt-4 flex justify-between items-center">
+            <Button variant="outline" size="sm" onClick={() => setShowSilhouette(!showSilhouette)} className="text-xs">
+              {showSilhouette ? "Ocultar silueta" : "Mostrar silueta"}
+            </Button>
+
+            <p className="text-xs text-muted-foreground">Toca cada prenda para verla en detalle</p>
           </div>
 
           {/* Lista de prendas incluidas */}
           <div className="mt-4 border-t pt-4">
             <h3 className="text-sm font-medium mb-2">Prendas en este conjunto:</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
+            <div className="flex flex-wrap gap-2">
               {items.map((item) => (
-                <li key={item.id} className="flex items-center gap-2">
+                <div
+                  key={item.id}
+                  className="flex items-center gap-1 bg-white rounded-full pl-1 pr-3 py-1 shadow-sm border text-xs"
+                >
                   <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                     <img src={item.image || "/placeholder.svg"} alt="" className="w-full h-full object-cover" />
                   </div>
                   <span className="capitalize">
                     {item.type} {item.color}
                   </span>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
 
           {/* Texto informativo */}
