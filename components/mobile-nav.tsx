@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Shirt, Wand2, Heart, MessageSquare } from "lucide-react"
+import { Home, Shirt, Wand2, Heart, MessageSquare, ShoppingBag, BarChart3 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -17,6 +17,8 @@ export function MobileNav() {
     { path: "/gallery", icon: Shirt, label: "Mi Armario" },
     { path: "/suggest", icon: Wand2, label: "Sugerir" },
     { path: "/looks", icon: Heart, label: "Looks" },
+    { path: "/probar-compra", icon: ShoppingBag, label: "Probar Compra" },
+    { path: "/stats", icon: BarChart3, label: "Estadísticas" },
     { path: "/guia", icon: MessageSquare, label: "Guía" },
   ]
 
