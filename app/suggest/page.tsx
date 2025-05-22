@@ -329,9 +329,10 @@ export default function SuggestPage() {
         }
       }
     } else {
+      // Cambiar "guardarropa" por "armario" en los mensajes
       toast({
         title: "No hay prendas",
-        description: "Necesitas añadir prendas a tu guardarropa primero.",
+        description: "Necesitas añadir prendas a tu armario primero.",
         variant: "warning",
       })
       router.push("/gallery")

@@ -28,7 +28,7 @@ export function Logo({ variant = "default", size = "md" }: LogoProps) {
         <span
           className={`font-heading font-bold ${textSizeClasses[size]} bg-clip-text text-transparent bg-gradient-to-r from-primary-700 to-primary-500 transition-colors duration-300`}
         >
-          Vestok
+          ARIN
         </span>
       )}
     </Link>

@@ -18,7 +18,7 @@ const montserrat = Montserrat({
 })
 
 export const metadata = {
-  title: "Vestok",
+  title: "ARIN",
   description: "Laboratorio de looks - Organizá tus prendas y creá looks increíbles",
     generator: 'v0.dev'
 }

@@ -15,7 +15,7 @@ export default function Home() {
           <div className="flex flex-col md:flex-row items-center gap-12">
             <div className="flex-1 text-center md:text-left space-y-6 animate-fade-in">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
-                Tu guardarropa
+                Tu armario
                 <br />
                 <span className="gradient-text">reinventado</span>
               </h1>
@@ -57,7 +57,7 @@ export default function Home() {
       {/* Features Section */}
       <section className="py-16 bg-muted/50">
         <div className="container px-4 mx-auto">
-          <h2 className="section-title text-center">¿Qué podés hacer con Vestok?</h2>
+          <h2 className="section-title text-center">¿Qué podés hacer con ARIN?</h2>
           <p className="section-subtitle text-center">
             Una forma inteligente de organizar tu ropa y crear combinaciones perfectas
           </p>
@@ -68,7 +68,7 @@ export default function Home() {
               <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-4">
                 <Shirt className="w-6 h-6 text-primary-600 dark:text-primary-400" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Organizá tu guardarropa</h3>
+              <h3 className="text-xl font-bold mb-2">Organizá tu armario</h3>
               <p className="text-muted-foreground">
                 Catalogá todas tus prendas por tipo, color, ocasión y clima para tener un inventario completo.
               </p>
@@ -192,7 +192,7 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-16 bg-gradient-to-br from-primary-500 to-primary-700 text-white">
         <div className="container px-4 mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">¿Listo para transformar tu guardarropa?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">¿Listo para transformar tu armario?</h2>
           <p className="text-xl opacity-90 max-w-2xl mx-auto mb-8">
             Comenzá a organizar tus prendas y descubrí nuevas combinaciones hoy mismo.
           </p>
@@ -220,7 +220,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="py-8 bg-muted/50">
         <div className="container px-4 mx-auto text-center">
-          <p className="text-muted-foreground">© {new Date().getFullYear()} Vestok. Todos los derechos reservados.</p>
+          <p className="text-muted-foreground">© {new Date().getFullYear()} ARIN. Todos los derechos reservados.</p>
         </div>
       </footer>
     </div>

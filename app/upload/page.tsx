@@ -160,7 +160,6 @@ export default function UploadPage() {
   // Función para tomar la foto
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) {
-      console.error("Referencias no disponibles para capturar foto")
       toast({
         title: "Error",
         description: "No se pudo capturar la foto. Error interno.",
@@ -175,7 +174,6 @@ export default function UploadPage() {
 
       // Verificar que el video esté reproduciendo
       if (video.readyState !== 4) {
-        console.warn("El video no está listo para capturar", video.readyState)
         toast({
           title: "Espera un momento",
           description: "La cámara aún se está inicializando.",
@@ -184,16 +182,24 @@ export default function UploadPage() {
         return
       }
 
-      // Configurar canvas con dimensiones del video
-      canvas.width = video.videoWidth || 640
-      canvas.height = video.videoHeight || 480
+      // Usar las dimensiones exactas del elemento de video para mantener la proporción
+      const videoWidth = video.videoWidth
+      const videoHeight = video.videoHeight
+      const videoAspectRatio = videoWidth / videoHeight
 
-      console.log(`Capturando foto: ${canvas.width}x${canvas.height}`)
+      // Configurar canvas con las mismas dimensiones y proporción que el video
+      canvas.width = videoWidth
+      canvas.height = videoHeight
 
-      // Dibujar el frame actual del video en el canvas
+      // Guardar la relación de aspecto para usarla en la vista previa
+      const aspectRatio = videoWidth / videoHeight
+      console.log(`Relación de aspecto de la cámara: ${aspectRatio}`)
+
+      console.log(`Capturando foto: ${canvas.width}x${canvas.height}, ratio: ${videoAspectRatio}`)
+
+      // Dibujar el frame actual del video en el canvas manteniendo la proporción exacta
       const context = canvas.getContext("2d")
       if (!context) {
-        console.error("No se pudo obtener el contexto 2D del canvas")
         toast({
           title: "Error",
           description: "No se pudo procesar la imagen.",
@@ -202,14 +208,19 @@ export default function UploadPage() {
         return
       }
 
+      // Limpiar el canvas antes de dibujar
+      context.fillStyle = "#FFFFFF"
+      context.fillRect(0, 0, canvas.width, canvas.height)
+
+      // Dibujar el video exactamente como se ve, sin recortes ni cambios de proporción
       context.drawImage(video, 0, 0, canvas.width, canvas.height)
 
-      // Convertir a base64
+      // Convertir a base64 con alta calidad para preservar detalles
       try {
-        const imageDataUrl = canvas.toDataURL("image/jpeg", 0.8)
+        const imageDataUrl = canvas.toDataURL("image/jpeg", 0.95)
 
-        // Comprimir la imagen
-        compressImage(imageDataUrl)
+        // Comprimir la imagen manteniendo la proporción original
+        compressImage(imageDataUrl, 1200, 0.9) // Aumentamos calidad y tamaño máximo
           .then((compressedImage) => {
             setImagePreview(compressedImage)
             setShowCamera(false)
@@ -252,7 +263,7 @@ export default function UploadPage() {
   }
 
   // Función para comprimir la imagen
-  const compressImage = (dataUrl: string, maxWidth = 800, quality = 0.8): Promise<string> => {
+  const compressImage = (dataUrl: string, maxWidth = 1200, quality = 0.9): Promise<string> => {
     return new Promise((resolve) => {
       const img = new Image()
       img.crossOrigin = "anonymous"
@@ -261,20 +272,26 @@ export default function UploadPage() {
         const canvas = document.createElement("canvas")
         let width = img.width
         let height = img.height
+        const aspectRatio = width / height
 
-        // Redimensionar si es necesario
+        // Redimensionar si es necesario, manteniendo la proporción exacta
         if (width > maxWidth) {
-          height = Math.floor((height * maxWidth) / width)
           width = maxWidth
+          height = Math.round(width / aspectRatio)
         }
 
         canvas.width = width
         canvas.height = height
         const ctx = canvas.getContext("2d")
         if (ctx) {
+          // Fondo blanco para asegurar consistencia
+          ctx.fillStyle = "#FFFFFF"
+          ctx.fillRect(0, 0, width, height)
+
+          // Dibujar la imagen manteniendo la proporción
           ctx.drawImage(img, 0, 0, width, height)
 
-          // Comprimir
+          // Comprimir con alta calidad
           resolve(canvas.toDataURL("image/jpeg", quality))
         } else {
           resolve(dataUrl) // Fallback si no se puede comprimir
@@ -345,7 +362,7 @@ export default function UploadPage() {
         // Show success message with more visible styling
         toast({
           title: "¡Prenda guardada correctamente!",
-          description: `Tu ${type} ${color} ha sido añadida a tu guardarropa`,
+          description: `Tu ${type} ${color} ha sido añadida a tu armario`,
           variant: "success", // Usar variante de éxito para destacar más
         })
 
@@ -399,49 +416,56 @@ export default function UploadPage() {
             {showCamera ? (
               // Vista de cámara
               <div className="relative w-full">
-                <div className="w-full h-64 bg-black rounded-md overflow-hidden">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      console.error("Error en elemento video:", e)
-                      setCameraError("Error al inicializar el video.")
-                    }}
-                  />
-                  {isCameraLoading && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
-                      <RotateCw className="w-8 h-8 animate-spin text-primary-500 mb-2" />
-                      <p className="text-white">Iniciando cámara...</p>
-                    </div>
-                  )}
-                  {cameraError && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="p-4 bg-destructive/10 text-destructive rounded-md max-w-xs text-center">
-                        <p className="text-sm font-medium">{cameraError}</p>
-                        <p className="text-xs mt-1">
-                          Asegúrate de que tu navegador tiene permisos para acceder a la cámara.
-                        </p>
+                <div className="w-full bg-black rounded-md overflow-hidden relative">
+                  <div className="pb-[56.25%]">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-contain"
+                      onError={(e) => {
+                        console.error("Error en elemento video:", e)
+                        setCameraError("Error al inicializar el video.")
+                      }}
+                    />
+                    {isCameraLoading && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
+                        <RotateCw className="w-8 h-8 animate-spin text-primary-500 mb-2" />
+                        <p className="text-white">Iniciando cámara...</p>
                       </div>
-                    </div>
-                  )}
-                </div>
-                <canvas ref={canvasRef} className="hidden" />
+                    )}
+                    {cameraError && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="p-4 bg-destructive/10 text-destructive rounded-md max-w-xs text-center">
+                          <p className="text-sm font-medium">{cameraError}</p>
+                          <p className="text-xs mt-1">
+                            Asegúrate de que tu navegador tiene permisos para acceder a la cámara.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <canvas ref={canvasRef} className="hidden" />
 
-                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
-                  <Button variant="destructive" size="icon" className="rounded-full shadow-lg" onClick={cancelCapture}>
-                    <X className="w-6 h-6" />
-                  </Button>
-                  <Button
-                    variant="default"
-                    size="icon"
-                    className="rounded-full shadow-lg"
-                    onClick={capturePhoto}
-                    disabled={isCameraLoading}
-                  >
-                    <Check className="w-6 h-6" />
-                  </Button>
+                  <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="rounded-full shadow-lg"
+                      onClick={cancelCapture}
+                    >
+                      <X className="w-6 h-6" />
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="icon"
+                      className="rounded-full shadow-lg"
+                      onClick={capturePhoto}
+                      disabled={isCameraLoading}
+                    >
+                      <Check className="w-6 h-6" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (

@@ -40,7 +40,7 @@ export default function GuiaPage() {
   return (
     <div className="container py-8">
       <div className="flex flex-col items-center justify-between gap-4 mb-8 md:flex-row">
-        <h1 className="text-2xl font-bold">Guía de Vestok</h1>
+        <h1 className="text-2xl font-bold">Guía de ARIN</h1>
         <Link href="/">
           <Button variant="outline" className="gap-2">
             <ArrowLeft className="w-4 h-4" />
@@ -52,16 +52,16 @@ export default function GuiaPage() {
       <div className="max-w-3xl mx-auto space-y-8">
         <Card>
           <CardHeader>
-            <CardTitle>¡Bienvenido a Vestok!</CardTitle>
+            <CardTitle>¡Bienvenido a ARIN!</CardTitle>
             <CardDescription>
-              Gracias por ayudarnos a probar esta aplicación. Esta guía te mostrará cómo usar Vestok y cómo reportar
+              Gracias por ayudarnos a probar esta aplicación. Esta guía te mostrará cómo usar ARIN y cómo reportar
               cualquier problema que encuentres.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p>
-              Vestok es una app para organizar tu guardarropa y crear looks con las prendas que ya tenés. Estamos en
-              fase de pruebas y tu feedback es muy valioso.
+              ARIN es una app para organizar tu armario y crear looks con las prendas que ya tenés. Estamos en fase de
+              pruebas y tu feedback es muy valioso.
             </p>
           </CardContent>
         </Card>
@@ -75,7 +75,7 @@ export default function GuiaPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <ol className="list-decimal pl-5 space-y-2">
-              <li>Tocá "Guardarropa" en el menú inferior</li>
+              <li>Tocá "Armario" en el menú inferior</li>
               <li>Tocá "Añadir prenda"</li>
               <li>Tomá una foto o seleccioná una imagen de tu prenda</li>
               <li>Completá los detalles: tipo, color, ocasión y clima</li>

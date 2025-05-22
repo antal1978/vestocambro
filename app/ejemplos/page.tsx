@@ -286,7 +286,7 @@ export default function EjemplosPage() {
 
       toast({
         title: "¡Prendas cargadas!",
-        description: `Se han añadido ${newItems.length} prendas de ejemplo a tu guardarropa.`,
+        description: `Se han añadido ${newItems.length} prendas de ejemplo a tu armario.`,
       })
     } catch (error) {
       toast({
@@ -305,7 +305,7 @@ export default function EjemplosPage() {
     setExistingItems([])
 
     toast({
-      title: "Guardarropa limpiado",
+      title: "Armario limpiado",
       description: "Se han eliminado todas las prendas y looks guardados.",
     })
   }
@@ -376,7 +376,7 @@ export default function EjemplosPage() {
             className="w-full sm:w-auto gap-2"
           >
             <Trash2 className="w-4 h-4" />
-            Limpiar guardarropa
+            Limpiar armario
           </Button>
         </CardFooter>
       </Card>

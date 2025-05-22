@@ -263,12 +263,12 @@ export default function StatsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalUsage}</div>
-            <p className="text-xs text-muted-foreground">Veces que has usado prendas de tu guardarropa</p>
+            <p className="text-xs text-muted-foreground">Veces que has usado prendas de tu armario</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Guardarropa utilizado</CardTitle>
+            <CardTitle className="text-sm font-medium">Armario utilizado</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
@@ -487,7 +487,7 @@ export default function StatsPage() {
                   <Sparkles className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
                   <h3 className="mt-4 text-lg font-semibold">¡Felicitaciones!</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Usaste todas las prendas de tu guardarropa al menos una vez
+                    Usaste todas las prendas de tu armario al menos una vez
                   </p>
                 </div>
               )}
@@ -516,7 +516,7 @@ export default function StatsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Prendas eliminadas</CardTitle>
-              <CardDescription>Historial de prendas que has eliminado de tu guardarropa</CardDescription>
+              <CardDescription>Historial de prendas que has eliminado de tu armario</CardDescription>
             </CardHeader>
             <CardContent>
               {disposals.length > 0 ? (
@@ -582,8 +582,8 @@ export default function StatsPage() {
                 <div className="text-center py-8">
                   <Recycle className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
                   <h3 className="mt-4 text-lg font-semibold">No has eliminado ninguna prenda</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Cuando elimines prendas de tu guardarropa, podrás ver estadísticas aquí
+                  <p className="text-sm text-muted-foreground">
+                    Podés ver el historial de prendas eliminadas en la sección "Estadísticas".
                   </p>
                 </div>
               )}
@@ -594,7 +594,7 @@ export default function StatsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Consejos para aprovechar tu guardarropa</CardTitle>
+          <CardTitle>Consejos para aprovechar tu armario</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-2">

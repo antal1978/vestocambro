@@ -725,7 +725,7 @@ export default function GalleryPage() {
       </Dialog>
 
       <div className="flex flex-col items-center justify-between gap-4 mb-8 md:flex-row">
-        <h1 className="text-2xl font-bold">Mi Guardarropa</h1>
+        <h1 className="text-2xl font-bold">Mi Armario</h1>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={startVirtualTryOn} className="gap-2">
             <Eye className="w-4 h-4" />
@@ -782,7 +782,7 @@ export default function GalleryPage() {
           <div className="p-4 mb-4 rounded-full bg-primary-100 dark:bg-primary-900/30">
             <Wand2 className="w-8 h-8 text-primary-600 dark:text-primary-400" />
           </div>
-          <h2 className="text-xl font-semibold">Tu guardarropa está vacío</h2>
+          <h2 className="text-xl font-semibold">Tu armario está vacío</h2>
           <p className="mt-2 mb-6 text-muted-foreground">
             Añadí algunas prendas para comenzar a crear looks increíbles
           </p>
