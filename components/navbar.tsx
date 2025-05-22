@@ -17,9 +17,10 @@ export function Navbar() {
     return pathname === path
   }
 
+  // Cambiar el nombre en la barra de navegación principal
   const navItems = [
     { path: "/", icon: Home, label: "Inicio" },
-    { path: "/gallery", icon: Shirt, label: "Guardarropa" },
+    { path: "/gallery", icon: Shirt, label: "Mi Armario" },
     { path: "/suggest", icon: Wand2, label: "Sugerir Look" },
     { path: "/looks", icon: Heart, label: "Looks" },
     { path: "/stats", icon: BarChart3, label: "Estadísticas" },

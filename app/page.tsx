@@ -180,7 +180,7 @@ export default function Home() {
                 <div>
                   <h3 className="text-lg font-bold mb-1">Accedé desde cualquier dispositivo</h3>
                   <p className="text-muted-foreground">
-                    Tu guardarropa virtual siempre contigo, en tu teléfono, tablet o computadora.
+                    Tu guardarropa virtual siempre con vos, en tu teléfono, tablet o computadora.
                   </p>
                 </div>
               </div>

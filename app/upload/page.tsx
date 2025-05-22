@@ -372,6 +372,18 @@ export default function UploadPage() {
     }, 600) // Pequeño retraso para mejor experiencia de usuario
   }
 
+  // Componente de tooltip reutilizable
+  const InfoTooltip = ({ text }: { text: string }) => (
+    <div className="relative ml-1 group">
+      <div className="flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-gray-400 rounded-full cursor-help">
+        ?
+      </div>
+      <div className="absolute z-10 invisible p-2 text-xs text-left text-white transition-all transform -translate-x-1/2 translate-y-2 bg-gray-800 rounded-md opacity-0 w-60 group-hover:visible group-hover:opacity-100 left-1/2 bottom-full">
+        {text}
+      </div>
+    </div>
+  )
+
   return (
     <div className="container max-w-md py-8 mx-auto">
       <h1 className="mb-6 text-2xl font-bold text-center">Añadir Nueva Prenda</h1>
@@ -505,7 +517,10 @@ export default function UploadPage() {
           </div>
 
           <div className="grid w-full gap-2">
-            <Label htmlFor="color">Color</Label>
+            <div className="flex items-center">
+              <Label htmlFor="color">Color</Label>
+              <InfoTooltip text="Si la prenda es estampada o tiene mezcla de colores, selecciona el color que predomina. Esto ayudará a la app a generar combinaciones más armoniosas." />
+            </div>
             <Select value={color} onValueChange={setColor}>
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar el color" />
@@ -556,19 +571,29 @@ export default function UploadPage() {
             </Select>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox id="isOuterwear" checked={isOuterwear} onCheckedChange={(checked) => setIsOuterwear(!!checked)} />
-            <Label
-              htmlFor="isOuterwear"
-              className="text-sm font-medium leading-none cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              ¿Es un abrigo?
-            </Label>
+          <div className="flex flex-col space-y-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="isOuterwear"
+                checked={isOuterwear}
+                onCheckedChange={(checked) => setIsOuterwear(!!checked)}
+              />
+              <Label
+                htmlFor="isOuterwear"
+                className="text-sm font-medium leading-none cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                ¿Es un abrigo?
+              </Label>
+              <InfoTooltip text="Marca esta opción si la prenda es para abrigarse (camperas, tapados, sweaters gruesos, etc.). Esto ayuda a la app a generar looks más adecuados según el clima seleccionado, incluyendo o excluyendo abrigos cuando sea necesario." />
+            </div>
+            <p className="text-xs text-muted-foreground ml-6">
+              Las prendas marcadas como abrigo se utilizarán principalmente en climas fríos o templados.
+            </p>
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">
           <Link href="/gallery">
-            <Button variant="outline">Ver galería</Button>
+            <Button variant="outline">Ver Mi Armario</Button>
           </Link>
           <Button onClick={handleSave} className="gap-2" disabled={!imagePreview || isSaving}>
             {isSaving ? (

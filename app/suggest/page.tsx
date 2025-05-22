@@ -93,11 +93,11 @@ const OCCASION_TYPES = [
 const getOuterwearProbabilityByClimate = (climate: string): number => {
   switch (climate) {
     case "frio":
-      return 0.9 // 90% de probabilidad en clima frío
+      return 1.0 // 100% de probabilidad en clima frío (modificado de 0.9)
     case "templado":
       return 0.5 // 50% de probabilidad en clima templado
     case "caluroso":
-      return 0.1 // 10% de probabilidad en clima caluroso
+      return 0.0 // 0% de probabilidad en clima caluroso (modificado de 0.1)
     case "todo-clima":
     default:
       return 0.5 // 50% por defecto
@@ -493,7 +493,7 @@ export default function SuggestPage() {
       console.warn("No hay suficientes prendas para generar un outfit")
       toast({
         title: "Prendas insuficientes",
-        description: "No tienes suficientes prendas para generar un look completo.",
+        description: "No tenés suficientes prendas para generar un look completo.",
         variant: "warning",
       })
       return
@@ -996,7 +996,7 @@ export default function SuggestPage() {
           <Link href="/gallery">
             <Button variant="outline" className="gap-2">
               <ArrowLeft className="w-4 h-4" />
-              Volver a la galería
+              Volver a Mi Armario
             </Button>
           </Link>
           <Link href="/looks">

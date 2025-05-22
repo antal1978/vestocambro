@@ -249,7 +249,7 @@ export default function StatsPage() {
             <Link href="/gallery">
               <Button variant="outline" className="gap-2">
                 <ArrowLeft className="w-4 h-4" />
-                Volver a la galería
+                Volver a Mi Armario
               </Button>
             </Link>
           )}

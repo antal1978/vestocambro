@@ -4,7 +4,8 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Wand2, Trash2, Plus, Database, BarChart3, CheckCircle2, Sparkles } from "lucide-react"
+import { Wand2, Trash2, Plus, Database, BarChart3, Sparkles, Eye, Save, ArrowLeftRight } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
@@ -17,9 +18,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 type ClothingItem = {
   id: string
@@ -50,15 +51,50 @@ type DisposalRecord = {
   notes?: string
 }
 
+// Definir las categorías de prendas
+type ClothingCategory = "upperBody" | "lowerBody" | "fullBody" | "outerwear" | "footwear" | "accessories"
+
+// Mapeo de tipos de prendas a categorías
+const CLOTHING_CATEGORIES: Record<ClothingCategory, string[]> = {
+  upperBody: ["remera", "camisa", "sweater", "buzo", "blusa", "cardigan"],
+  lowerBody: ["pantalon", "jean", "falda", "shorts", "jeans"],
+  fullBody: ["vestido", "mono", "jumpsuit"],
+  outerwear: ["campera", "tapado", "blazer", "abrigo"],
+  footwear: ["calzado", "zapatos", "zapatillas", "botas"],
+  accessories: ["accesorio", "bufanda", "gorro", "guantes", "cinturon"],
+}
+
+// Nombres de categorías para mostrar
+const CATEGORY_NAMES: Record<ClothingCategory, string> = {
+  upperBody: "Parte superior",
+  lowerBody: "Parte inferior",
+  fullBody: "Prenda completa",
+  outerwear: "Abrigo",
+  footwear: "Calzado",
+  accessories: "Accesorios",
+}
+
 export default function GalleryPage() {
   const [items, setItems] = useState<ClothingItem[]>([])
-  const [selectedItems, setSelectedItems] = useState<string[]>([])
-  const [showUsageDialog, setShowUsageDialog] = useState(false)
-  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [isVirtualTryOn, setIsVirtualTryOn] = useState(false)
   const [showDisposalDialog, setShowDisposalDialog] = useState(false)
   const [itemToDelete, setItemToDelete] = useState<ClothingItem | null>(null)
   const [disposalReason, setDisposalReason] = useState<DisposalReason>("donated")
   const [showDisposalSuccessDialog, setShowDisposalSuccessDialog] = useState(false)
+  const [categoryFilter, setCategoryFilter] = useState<string>("todas")
+  const [showVirtualTryOnDialog, setShowVirtualTryOnDialog] = useState(false)
+  const [currentLook, setCurrentLook] = useState<Record<ClothingCategory, ClothingItem | null>>({
+    upperBody: null,
+    lowerBody: null,
+    fullBody: null,
+    outerwear: null,
+    footwear: null,
+    accessories: null,
+  })
+  const [savedLook, setSavedLook] = useState<Record<ClothingCategory, ClothingItem | null> | null>(null)
+  const [activeCategory, setActiveCategory] = useState<ClothingCategory>("upperBody")
+  const [compareMode, setCompareMode] = useState(false)
+
   const router = useRouter()
   const { toast } = useToast()
 
@@ -129,63 +165,188 @@ export default function GalleryPage() {
     return usageRecord[itemId]?.count || 0
   }
 
-  const toggleItemSelection = (id: string) => {
-    if (selectedItems.includes(id)) {
-      setSelectedItems(selectedItems.filter((itemId) => itemId !== id))
-    } else {
-      setSelectedItems([...selectedItems, id])
+  // Determinar a qué categoría pertenece una prenda
+  const getItemCategory = (item: ClothingItem): ClothingCategory | null => {
+    for (const [category, types] of Object.entries(CLOTHING_CATEGORIES)) {
+      if (types.includes(item.type) || (category === "outerwear" && item.isOuterwear)) {
+        return category as ClothingCategory
+      }
     }
+    return null
   }
 
-  const handleToggleSelectionMode = () => {
-    setIsSelectionMode(!isSelectionMode)
-    setSelectedItems([]) // Limpiar selección al cambiar de modo
-  }
+  // Seleccionar una prenda para el look virtual
+  const selectItemForVirtualTryOn = (item: ClothingItem) => {
+    const category = getItemCategory(item)
+    if (!category) return
 
-  const handleRecordUsage = () => {
-    if (selectedItems.length === 0) {
+    // Si es una prenda completa y ya hay seleccionadas prendas superiores o inferiores, preguntar
+    if (category === "fullBody" && (currentLook.upperBody || currentLook.lowerBody)) {
       toast({
-        title: "No hay prendas seleccionadas",
-        description: "Por favor, selecciona al menos una prenda para registrar su uso.",
+        title: "Atención",
+        description: "Al seleccionar un vestido se eliminarán las prendas superiores e inferiores seleccionadas.",
+        variant: "warning",
+      })
+
+      // Actualizar el look actual
+      setCurrentLook({
+        ...currentLook,
+        upperBody: null,
+        lowerBody: null,
+        fullBody: item,
+      })
+
+      return
+    }
+
+    // Si se selecciona una prenda superior o inferior y ya hay un vestido, eliminar el vestido
+    if ((category === "upperBody" || category === "lowerBody") && currentLook.fullBody) {
+      toast({
+        title: "Atención",
+        description: "Al seleccionar esta prenda se eliminará el vestido seleccionado.",
+        variant: "warning",
+      })
+
+      // Actualizar el look actual
+      setCurrentLook({
+        ...currentLook,
+        fullBody: null,
+        [category]: item,
+      })
+
+      return
+    }
+
+    // Caso normal: actualizar la categoría correspondiente
+    setCurrentLook({
+      ...currentLook,
+      [category]: item,
+    })
+
+    toast({
+      title: "Prenda seleccionada",
+      description: `${item.type} ${item.color} añadida a tu look virtual.`,
+      variant: "success",
+    })
+  }
+
+  // Remover una prenda del look virtual
+  const removeItemFromVirtualTryOn = (category: ClothingCategory) => {
+    setCurrentLook({
+      ...currentLook,
+      [category]: null,
+    })
+  }
+
+  // Iniciar el modo de prueba virtual
+  const startVirtualTryOn = () => {
+    setIsVirtualTryOn(true)
+    setShowVirtualTryOnDialog(true)
+
+    // Inicializar el look actual vacío
+    setCurrentLook({
+      upperBody: null,
+      lowerBody: null,
+      fullBody: null,
+      outerwear: null,
+      footwear: null,
+      accessories: null,
+    })
+
+    // Establecer la primera categoría como activa
+    setActiveCategory("upperBody")
+  }
+
+  // Cancelar el modo de prueba virtual
+  const cancelVirtualTryOn = () => {
+    setIsVirtualTryOn(false)
+    setShowVirtualTryOnDialog(false)
+    setCompareMode(false)
+  }
+
+  // Guardar el look actual para comparar
+  const saveCurrentLook = () => {
+    // Verificar si hay al menos una prenda en el look actual
+    const hasItems = Object.values(currentLook).some((item) => item !== null)
+
+    if (!hasItems) {
+      toast({
+        title: "Look vacío",
+        description: "Selecciona al menos una prenda para guardar el look.",
         variant: "warning",
       })
       return
     }
 
-    // Obtener el registro de usos actual
-    const storedUsage = localStorage.getItem("clothingUsage")
-    const usageRecord: UsageRecord = storedUsage ? JSON.parse(storedUsage) : {}
-    const today = new Date().toISOString().split("T")[0] // Formato YYYY-MM-DD
+    // Guardar el look actual
+    setSavedLook({ ...currentLook })
 
-    // Incrementar el contador para cada prenda seleccionada
-    selectedItems.forEach((itemId) => {
-      if (!usageRecord[itemId]) {
-        usageRecord[itemId] = {
-          count: 0,
-          lastUsed: today,
-        }
-      }
-      usageRecord[itemId].count += 1
-      usageRecord[itemId].lastUsed = today
-    })
-
-    // Guardar el registro actualizado
-    localStorage.setItem("clothingUsage", JSON.stringify(usageRecord))
-
-    // Mostrar diálogo de confirmación
-    setShowUsageDialog(true)
-
-    // También mostrar un toast
     toast({
-      title: "¡Uso registrado!",
-      description: `Has actualizado el contador de uso de ${selectedItems.length} prendas.`,
+      title: "Look guardado",
+      description: "Ahora puedes crear otro look para comparar.",
       variant: "success",
-      icon: <CheckCircle2 className="h-5 w-5 text-green-600" />,
     })
+
+    // Limpiar el look actual para crear uno nuevo
+    setCurrentLook({
+      upperBody: null,
+      lowerBody: null,
+      fullBody: null,
+      outerwear: null,
+      footwear: null,
+      accessories: null,
+    })
+
+    // Activar el modo de comparación
+    setCompareMode(true)
   }
 
-  const getSelectedItems = () => {
-    return items.filter((item) => selectedItems.includes(item.id))
+  // Intercambiar entre el look guardado y el actual
+  const swapLooks = () => {
+    if (!savedLook) return
+
+    const temp = { ...currentLook }
+    setCurrentLook({ ...savedLook })
+    setSavedLook(temp)
+  }
+
+  // Filtrar items por categoría para el modo normal
+  const filterItemsByCategory = (items: ClothingItem[]): ClothingItem[] => {
+    if (categoryFilter === "todas") {
+      return items
+    }
+
+    // Mapeo de categorías a tipos de prendas
+    const categoryMap: Record<string, string[]> = {
+      "parte-superior": CLOTHING_CATEGORIES.upperBody,
+      "parte-inferior": CLOTHING_CATEGORIES.lowerBody,
+      vestidos: CLOTHING_CATEGORIES.fullBody,
+      abrigos: CLOTHING_CATEGORIES.outerwear,
+      calzado: CLOTHING_CATEGORIES.footwear,
+      accesorios: CLOTHING_CATEGORIES.accessories,
+    }
+
+    return items.filter(
+      (item) => categoryMap[categoryFilter]?.includes(item.type) || (categoryFilter === "abrigos" && item.isOuterwear),
+    )
+  }
+
+  // Filtrar items por categoría activa para el modo de prueba virtual
+  const getItemsForActiveCategory = (): ClothingItem[] => {
+    // Si la categoría activa es fullBody y ya hay prendas en upperBody o lowerBody, no mostrar prendas completas
+    if (activeCategory === "fullBody" && (currentLook.upperBody || currentLook.lowerBody)) {
+      return []
+    }
+
+    // Si la categoría activa es upperBody o lowerBody y ya hay una prenda completa, no mostrar prendas
+    if ((activeCategory === "upperBody" || activeCategory === "lowerBody") && currentLook.fullBody) {
+      return []
+    }
+
+    return items.filter((item) => {
+      const category = getItemCategory(item)
+      return category === activeCategory
+    })
   }
 
   const getDisposalReasonText = (reason: DisposalReason): string => {
@@ -229,46 +390,245 @@ export default function GalleryPage() {
     })
   }
 
+  // Renderizar el look virtual (actual o guardado)
+  const renderVirtualLook = (look: Record<ClothingCategory, ClothingItem | null>, title: string) => {
+    // Verificar si hay al menos una prenda en el look
+    const hasItems = Object.values(look).some((item) => item !== null)
+
+    if (!hasItems) {
+      return (
+        <div className="flex flex-col items-center justify-center p-6 bg-muted/30 rounded-lg border border-dashed h-full">
+          <p className="text-muted-foreground text-center">
+            {title} está vacío. Selecciona prendas para visualizar el look.
+          </p>
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-4">
+        <h3 className="font-medium text-center">{title}</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {/* Parte superior o prenda completa */}
+          <div className="col-span-2 aspect-square relative bg-white rounded-md overflow-hidden border">
+            {look.fullBody ? (
+              // Mostrar prenda completa
+              <img
+                src={look.fullBody.image || "/placeholder.svg"}
+                alt={look.fullBody.type}
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            ) : look.upperBody ? (
+              // Mostrar parte superior
+              <img
+                src={look.upperBody.image || "/placeholder.svg"}
+                alt={look.upperBody.type}
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-muted-foreground text-sm">Sin parte superior</p>
+              </div>
+            )}
+          </div>
+
+          {/* Parte inferior (solo si no hay prenda completa) */}
+          {!look.fullBody && (
+            <div className="col-span-2 aspect-square relative bg-white rounded-md overflow-hidden border">
+              {look.lowerBody ? (
+                <img
+                  src={look.lowerBody.image || "/placeholder.svg"}
+                  alt={look.lowerBody.type}
+                  className="absolute inset-0 w-full h-full object-contain"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted-foreground text-sm">Sin parte inferior</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Abrigo y calzado */}
+          <div className="aspect-square relative bg-white rounded-md overflow-hidden border">
+            {look.outerwear ? (
+              <img
+                src={look.outerwear.image || "/placeholder.svg"}
+                alt={look.outerwear.type}
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-muted-foreground text-sm">Sin abrigo</p>
+              </div>
+            )}
+          </div>
+
+          <div className="aspect-square relative bg-white rounded-md overflow-hidden border">
+            {look.footwear ? (
+              <img
+                src={look.footwear.image || "/placeholder.svg"}
+                alt={look.footwear.type}
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-muted-foreground text-sm">Sin calzado</p>
+              </div>
+            )}
+          </div>
+
+          {/* Accesorios */}
+          <div className="col-span-2 aspect-square relative bg-white rounded-md overflow-hidden border">
+            {look.accessories ? (
+              <img
+                src={look.accessories.image || "/placeholder.svg"}
+                alt={look.accessories.type}
+                className="absolute inset-0 w-full h-full object-contain"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-muted-foreground text-sm">Sin accesorios</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="container py-8">
-      <Dialog open={showUsageDialog} onOpenChange={setShowUsageDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+      {/* Diálogo de prueba virtual */}
+      <Dialog
+        open={showVirtualTryOnDialog}
+        onOpenChange={(open) => {
+          if (!open) cancelVirtualTryOn()
+          setShowVirtualTryOnDialog(open)
+        }}
+      >
+        <DialogContent className="sm:max-w-[90%] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>¡Uso registrado!</DialogTitle>
-            <DialogDescription>Has actualizado el contador de uso de estas prendas.</DialogDescription>
+            <DialogTitle>Prueba virtual de look</DialogTitle>
+            <DialogDescription>Selecciona una prenda de cada categoría para crear tu look virtual</DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <div className="rounded-lg bg-muted p-4 mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <h3 className="font-medium">Contador de usos actualizado</h3>
-              </div>
-              <ul className="space-y-2">
-                {getSelectedItems().map((item) => (
-                  <li key={item.id} className="flex justify-between items-center">
-                    <span className="capitalize">
-                      {item.type} {item.color}
-                    </span>
-                    <Badge variant="secondary">{getItemUsageCount(item.id)} usos</Badge>
-                  </li>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4">
+            {/* Panel izquierdo: Categorías y prendas */}
+            <div className="md:col-span-2 space-y-4">
+              <Tabs value={activeCategory} onValueChange={(value) => setActiveCategory(value as ClothingCategory)}>
+                <TabsList className="grid grid-cols-3 md:grid-cols-6">
+                  <TabsTrigger value="upperBody">Parte superior</TabsTrigger>
+                  <TabsTrigger value="lowerBody">Parte inferior</TabsTrigger>
+                  <TabsTrigger value="fullBody">Vestidos</TabsTrigger>
+                  <TabsTrigger value="outerwear">Abrigos</TabsTrigger>
+                  <TabsTrigger value="footwear">Calzado</TabsTrigger>
+                  <TabsTrigger value="accessories">Accesorios</TabsTrigger>
+                </TabsList>
+
+                {Object.entries(CLOTHING_CATEGORIES).map(([category, _]) => (
+                  <TabsContent key={category} value={category} className="mt-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {getItemsForActiveCategory().map((item) => (
+                        <Card
+                          key={item.id}
+                          className={`overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary-300 transition-all ${
+                            currentLook[category as ClothingCategory]?.id === item.id ? "ring-2 ring-primary-500" : ""
+                          }`}
+                          onClick={() => selectItemForVirtualTryOn(item)}
+                        >
+                          <div className="relative w-full aspect-square">
+                            <img
+                              src={item.image || "/placeholder.svg"}
+                              alt={item.type}
+                              className="object-cover w-full h-full"
+                            />
+                          </div>
+                          <CardContent className="p-2">
+                            <p className="text-sm font-medium capitalize truncate">
+                              {item.type} {item.color}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ))}
+
+                      {getItemsForActiveCategory().length === 0 && (
+                        <div className="col-span-full p-8 text-center">
+                          <p className="text-muted-foreground">
+                            {activeCategory === "fullBody" && (currentLook.upperBody || currentLook.lowerBody)
+                              ? "No puedes seleccionar un vestido si ya tienes prendas superiores o inferiores seleccionadas."
+                              : (activeCategory === "upperBody" || activeCategory === "lowerBody") &&
+                                  currentLook.fullBody
+                                ? "No puedes seleccionar esta categoría si ya tienes un vestido seleccionado."
+                                : "No hay prendas disponibles en esta categoría."}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
                 ))}
-              </ul>
+              </Tabs>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Podés ver estadísticas detalladas de uso en la sección "Estadísticas".
-            </p>
+
+            {/* Panel derecho: Visualización del look */}
+            <div className="space-y-4">
+              {compareMode ? (
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Look guardado */}
+                  <div className="space-y-4">{savedLook && renderVirtualLook(savedLook, "Look guardado")}</div>
+
+                  {/* Look actual */}
+                  <div className="space-y-4">{renderVirtualLook(currentLook, "Look actual")}</div>
+
+                  <Button onClick={swapLooks} variant="outline" className="col-span-2 gap-2">
+                    <ArrowLeftRight className="h-4 w-4" />
+                    Intercambiar looks
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {renderVirtualLook(currentLook, "Tu look virtual")}
+
+                  {/* Selección actual */}
+                  <div className="space-y-2 mt-4">
+                    <h3 className="text-sm font-medium">Prendas seleccionadas:</h3>
+                    <div className="space-y-1">
+                      {Object.entries(currentLook).map(([category, item]) => (
+                        <div key={category} className="flex justify-between items-center text-sm">
+                          <span>{CATEGORY_NAMES[category as ClothingCategory]}:</span>
+                          {item ? (
+                            <div className="flex items-center gap-2">
+                              <span className="capitalize">
+                                {item.type} {item.color}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => removeItemFromVirtualTryOn(category as ClothingCategory)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">No seleccionada</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button onClick={saveCurrentLook} variant="outline" className="w-full gap-2">
+                    <Save className="h-4 w-4" />
+                    Guardar look para comparar
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
+
           <DialogFooter>
-            <Link href="/stats">
-              <Button variant="outline">Ver estadísticas</Button>
-            </Link>
-            <Button
-              onClick={() => {
-                setShowUsageDialog(false)
-                setSelectedItems([])
-                setIsSelectionMode(false)
-              }}
-            >
+            <Button variant="outline" onClick={cancelVirtualTryOn}>
               Cerrar
             </Button>
           </DialogFooter>
@@ -367,45 +727,53 @@ export default function GalleryPage() {
       <div className="flex flex-col items-center justify-between gap-4 mb-8 md:flex-row">
         <h1 className="text-2xl font-bold">Mi Guardarropa</h1>
         <div className="flex flex-wrap gap-2">
-          {isSelectionMode ? (
-            <>
-              <Button variant="default" onClick={handleRecordUsage} className="gap-2">
-                <CheckCircle2 className="w-4 h-4" />
-                Registrar uso ({selectedItems.length})
+          <Button variant="outline" onClick={startVirtualTryOn} className="gap-2">
+            <Eye className="w-4 h-4" />
+            Probar look virtual
+          </Button>
+          <Link href="/upload">
+            <Button variant="outline" className="gap-2">
+              <Plus className="w-4 h-4" />
+              Añadir prenda
+            </Button>
+          </Link>
+          <Link href="/stats">
+            <Button variant="outline" className="gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Estadísticas
+            </Button>
+          </Link>
+          {items.length >= 2 && (
+            <Link href="/suggest">
+              <Button className="gap-2">
+                <Wand2 className="w-4 h-4" />
+                Sugerir un look
               </Button>
-              <Button variant="outline" onClick={handleToggleSelectionMode} className="gap-2">
-                Cancelar
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="outline" onClick={handleToggleSelectionMode} className="gap-2">
-                <CheckCircle2 className="w-4 h-4" />
-                Registrar uso manual
-              </Button>
-              <Link href="/upload">
-                <Button variant="outline" className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  Añadir prenda
-                </Button>
-              </Link>
-              {/* Se ha eliminado el botón de cargar ejemplos para mejorar la experiencia del usuario */}
-              <Link href="/stats">
-                <Button variant="outline" className="gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                  Estadísticas
-                </Button>
-              </Link>
-              {items.length >= 2 && (
-                <Link href="/suggest">
-                  <Button className="gap-2">
-                    <Wand2 className="w-4 h-4" />
-                    Sugerir un look
-                  </Button>
-                </Link>
-              )}
-            </>
+            </Link>
           )}
+        </div>
+      </div>
+
+      {/* Filtros */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2">
+          <Label htmlFor="category-filter" className="text-sm whitespace-nowrap">
+            Filtrar por categoría:
+          </Label>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[180px]" id="category-filter">
+              <SelectValue placeholder="Categoría" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas las prendas</SelectItem>
+              <SelectItem value="parte-superior">Parte superior</SelectItem>
+              <SelectItem value="parte-inferior">Parte inferior</SelectItem>
+              <SelectItem value="vestidos">Vestidos</SelectItem>
+              <SelectItem value="abrigos">Abrigos</SelectItem>
+              <SelectItem value="calzado">Calzado</SelectItem>
+              <SelectItem value="accesorios">Accesorios</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -435,29 +803,11 @@ export default function GalleryPage() {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {items.map((item) => (
-            <Card
-              key={item.id}
-              className={`overflow-hidden card-hover ${isSelectionMode && selectedItems.includes(item.id) ? "ring-2 ring-primary-500" : ""}`}
-            >
+          {filterItemsByCategory(items).map((item) => (
+            <Card key={item.id} className="overflow-hidden card-hover">
               <div className="relative w-full h-48">
-                {isSelectionMode && (
-                  <div className="absolute top-2 left-2 z-10">
-                    <Checkbox
-                      checked={selectedItems.includes(item.id)}
-                      onCheckedChange={() => toggleItemSelection(item.id)}
-                      className="h-5 w-5 bg-white/90"
-                    />
-                  </div>
-                )}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.image || "/placeholder.svg"}
-                  alt={item.type}
-                  className="object-cover w-full h-full"
-                  onClick={() => isSelectionMode && toggleItemSelection(item.id)}
-                  style={{ cursor: isSelectionMode ? "pointer" : "default" }}
-                />
+                <img src={item.image || "/placeholder.svg"} alt={item.type} className="object-cover w-full h-full" />
                 {getItemUsageCount(item.id) > 0 && (
                   <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
                     {getItemUsageCount(item.id)} usos
@@ -486,27 +836,18 @@ export default function GalleryPage() {
                 </div>
               </CardContent>
               <CardFooter className="p-4 pt-0 flex justify-between">
-                {!isSelectionMode && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 px-3 py-1 h-auto text-xs whitespace-normal text-center"
-                      onClick={() => handleGenerateLookWithItem(item)}
-                    >
-                      <Sparkles className="w-3 h-3 flex-shrink-0" />
-                      <span>Crear look</span>
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(item)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </>
-                )}
-                {isSelectionMode && (
-                  <Button variant="ghost" size="sm" className="ml-auto" onClick={() => toggleItemSelection(item.id)}>
-                    {selectedItems.includes(item.id) ? "Deseleccionar" : "Seleccionar"}
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 px-3 py-1 h-auto text-xs whitespace-normal text-center"
+                  onClick={() => handleGenerateLookWithItem(item)}
+                >
+                  <Sparkles className="w-3 h-3 flex-shrink-0" />
+                  <span>Crear look</span>
+                </Button>
+                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(item)}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </CardFooter>
             </Card>
           ))}

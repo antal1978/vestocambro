@@ -14,7 +14,7 @@ export function MobileNav() {
 
   const navItems = [
     { path: "/", icon: Home, label: "Inicio" },
-    { path: "/gallery", icon: Shirt, label: "Guardarropa" },
+    { path: "/gallery", icon: Shirt, label: "Mi Armario" },
     { path: "/suggest", icon: Wand2, label: "Sugerir" },
     { path: "/looks", icon: Heart, label: "Looks" },
     { path: "/guia", icon: MessageSquare, label: "Guía" },
