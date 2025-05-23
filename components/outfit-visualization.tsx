@@ -37,6 +37,12 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
   const [processingMessage, setProcessingMessage] = useState("")
   const [processingComplete, setProcessingComplete] = useState(false)
 
+  const [expandedImage, setExpandedImage] = useState<{
+    image: string
+    type: string
+    color: string
+  } | null>(null)
+
   // Clasificar prendas por categoría (evitando duplicados)
   // Primero identificamos los abrigos
   const outerwearItems = items.filter(
@@ -84,7 +90,6 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
         const ctx = canvas.getContext("2d")
 
         if (!ctx) {
-          // Si no se puede obtener el contexto, devolvemos la imagen original
           resolve(imageUrl)
           return
         }
@@ -96,91 +101,225 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
         const data = imageData.data
 
-        // Algoritmo mejorado para eliminar fondos
-        // Primero detectamos el color predominante en los bordes (asumiendo que es el fondo)
-        const borderPixels: number[][] = []
+        // Algoritmo avanzado de detección de fondo
+        const width = canvas.width
+        const height = canvas.height
 
-        // Muestrear píxeles de los bordes
-        const borderWidth = 10
-        // Borde superior e inferior
-        for (let x = 0; x < canvas.width; x++) {
-          for (let y = 0; y < borderWidth; y++) {
-            const idx = (y * canvas.width + x) * 4
-            borderPixels.push([data[idx], data[idx + 1], data[idx + 2]])
-          }
-          for (let y = canvas.height - borderWidth; y < canvas.height; y++) {
-            const idx = (y * canvas.width + x) * 4
-            borderPixels.push([data[idx], data[idx + 1], data[idx + 2]])
+        // 1. Muestrear múltiples regiones del borde para mejor detección
+        const borderSamples: number[][] = []
+        const cornerSamples: number[][] = []
+
+        // Tamaño de muestra adaptativo
+        const sampleSize = Math.max(3, Math.min(width, height) * 0.02)
+        const cornerSize = Math.max(8, Math.min(width, height) * 0.05)
+
+        // Muestrear esquinas con mayor peso
+        for (let i = 0; i < cornerSize; i++) {
+          for (let j = 0; j < cornerSize; j++) {
+            // Esquina superior izquierda
+            let idx = (j * width + i) * 4
+            cornerSamples.push([data[idx], data[idx + 1], data[idx + 2]])
+
+            // Esquina superior derecha
+            idx = (j * width + (width - 1 - i)) * 4
+            cornerSamples.push([data[idx], data[idx + 1], data[idx + 2]])
+
+            // Esquina inferior izquierda
+            idx = ((height - 1 - j) * width + i) * 4
+            cornerSamples.push([data[idx], data[idx + 1], data[idx + 2]])
+
+            // Esquina inferior derecha
+            idx = ((height - 1 - j) * width + (width - 1 - i)) * 4
+            cornerSamples.push([data[idx], data[idx + 1], data[idx + 2]])
           }
         }
-        // Bordes izquierdo y derecho
-        for (let y = borderWidth; y < canvas.height - borderWidth; y++) {
-          for (let x = 0; x < borderWidth; x++) {
-            const idx = (y * canvas.width + x) * 4
-            borderPixels.push([data[idx], data[idx + 1], data[idx + 2]])
-          }
-          for (let x = canvas.width - borderWidth; x < canvas.width; x++) {
-            const idx = (y * canvas.width + x) * 4
-            borderPixels.push([data[idx], data[idx + 1], data[idx + 2]])
+
+        // Muestrear bordes
+        for (let i = 0; i < width; i += Math.max(1, Math.floor(width / 50))) {
+          for (let j = 0; j < sampleSize; j++) {
+            // Borde superior
+            let idx = (j * width + i) * 4
+            borderSamples.push([data[idx], data[idx + 1], data[idx + 2]])
+
+            // Borde inferior
+            idx = ((height - 1 - j) * width + i) * 4
+            borderSamples.push([data[idx], data[idx + 1], data[idx + 2]])
           }
         }
 
-        // Calcular el color promedio del borde (probable fondo)
+        for (let j = 0; j < height; j += Math.max(1, Math.floor(height / 50))) {
+          for (let i = 0; i < sampleSize; i++) {
+            // Borde izquierdo
+            let idx = (j * width + i) * 4
+            borderSamples.push([data[idx], data[idx + 1], data[idx + 2]])
+
+            // Borde derecho
+            idx = (j * width + (width - 1 - i)) * 4
+            borderSamples.push([data[idx], data[idx + 1], data[idx + 2]])
+          }
+        }
+
+        // 2. Análisis estadístico del color de fondo
+        const allSamples = [...cornerSamples, ...cornerSamples, ...borderSamples] // Doble peso a esquinas
+
+        // Calcular color promedio
         let avgR = 0,
           avgG = 0,
           avgB = 0
-        borderPixels.forEach((pixel) => {
-          avgR += pixel[0]
-          avgG += pixel[1]
-          avgB += pixel[2]
+        allSamples.forEach(([r, g, b]) => {
+          avgR += r
+          avgG += g
+          avgB += b
         })
-        avgR = Math.round(avgR / borderPixels.length)
-        avgG = Math.round(avgG / borderPixels.length)
-        avgB = Math.round(avgB / borderPixels.length)
+        avgR = Math.round(avgR / allSamples.length)
+        avgG = Math.round(avgG / allSamples.length)
+        avgB = Math.round(avgB / allSamples.length)
 
-        // Determinar si el fondo es claro u oscuro
+        // Calcular desviación estándar
+        let varR = 0,
+          varG = 0,
+          varB = 0
+        allSamples.forEach(([r, g, b]) => {
+          varR += Math.pow(r - avgR, 2)
+          varG += Math.pow(g - avgG, 2)
+          varB += Math.pow(b - avgB, 2)
+        })
+        const stdR = Math.sqrt(varR / allSamples.length)
+        const stdG = Math.sqrt(varG / allSamples.length)
+        const stdB = Math.sqrt(varB / allSamples.length)
+        const avgStd = (stdR + stdG + stdB) / 3
+
+        // 3. Determinar características del fondo
         const brightness = (avgR + avgG + avgB) / 3
         const isLightBackground = brightness > 127
+        const isVeryLight = brightness > 200
+        const isVeryDark = brightness < 50
+        const isUniform = avgStd < 15
 
-        // Umbral de tolerancia para considerar un píxel como parte del fondo
-        const tolerance = isLightBackground ? 35 : 25
+        // 4. Calcular tolerancia adaptativa
+        let baseTolerance = 30
+        if (isVeryLight) baseTolerance = 70
+        else if (isLightBackground) baseTolerance = 50
+        else if (isVeryDark) baseTolerance = 25
 
-        // Procesar todos los píxeles
+        // Ajustar por uniformidad del fondo
+        if (!isUniform) baseTolerance += avgStd * 0.8
+
+        // 5. Algoritmo de eliminación de fondo mejorado
+        const processedData = new Uint8ClampedArray(data)
+
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i]
           const g = data[i + 1]
           const b = data[i + 2]
 
-          // Calcular la diferencia de color con el fondo promedio
-          const diffR = Math.abs(r - avgR)
-          const diffG = Math.abs(g - avgG)
-          const diffB = Math.abs(b - avgB)
-          const colorDiff = Math.sqrt(diffR * diffR + diffG * diffG + diffB * diffB)
+          // Calcular múltiples métricas de similitud
+          const euclideanDist = Math.sqrt(Math.pow(r - avgR, 2) + Math.pow(g - avgG, 2) + Math.pow(b - avgB, 2))
 
-          // Si el color es similar al fondo, hacerlo transparente
-          if (colorDiff < tolerance) {
-            data[i + 3] = 0 // Totalmente transparente
-          }
-          // Para los píxeles cercanos al umbral, aplicar transparencia parcial para suavizar bordes
-          else if (colorDiff < tolerance * 1.5) {
-            const alpha = Math.round((255 * (colorDiff - tolerance)) / (tolerance * 0.5))
-            data[i + 3] = alpha
+          const manhattanDist = Math.abs(r - avgR) + Math.abs(g - avgG) + Math.abs(b - avgB)
+          const maxChannelDiff = Math.max(Math.abs(r - avgR), Math.abs(g - avgG), Math.abs(b - avgB))
+
+          // Calcular saturación del píxel
+          const pixelBrightness = (r + g + b) / 3
+          const saturation = Math.max(
+            Math.abs(r - pixelBrightness),
+            Math.abs(g - pixelBrightness),
+            Math.abs(b - pixelBrightness),
+          )
+
+          // Algoritmo específico para fondos claros
+          if (isLightBackground) {
+            // Para fondos claros, usar múltiples criterios
+            const brightnessSimilarity = Math.abs(pixelBrightness - brightness)
+            const isLowSaturation = saturation < 20
+            const isColorSimilar = euclideanDist < baseTolerance
+            const isBrightnessSimilar = brightnessSimilarity < 30
+
+            if (isVeryLight) {
+              // Para fondos muy claros (blancos), ser más agresivo
+              if (
+                (isColorSimilar && isLowSaturation) ||
+                (isBrightnessSimilar && isLowSaturation && maxChannelDiff < 40)
+              ) {
+                processedData[i + 3] = 0
+              } else if (euclideanDist < baseTolerance * 1.3) {
+                // Transición suave
+                const alpha = Math.round((euclideanDist / baseTolerance) * 255)
+                processedData[i + 3] = Math.min(255, Math.max(0, alpha))
+              }
+            } else {
+              // Para fondos claros normales
+              if (isColorSimilar && (isLowSaturation || isBrightnessSimilar)) {
+                processedData[i + 3] = 0
+              } else if (euclideanDist < baseTolerance * 1.2) {
+                const alpha = Math.round(((euclideanDist - baseTolerance * 0.7) / (baseTolerance * 0.5)) * 255)
+                processedData[i + 3] = Math.min(255, Math.max(0, alpha))
+              }
+            }
+          } else {
+            // Para fondos oscuros, usar el algoritmo optimizado original
+            if (euclideanDist < baseTolerance) {
+              processedData[i + 3] = 0
+            } else if (euclideanDist < baseTolerance * 1.4) {
+              const alpha = Math.round(((euclideanDist - baseTolerance) / (baseTolerance * 0.4)) * 255)
+              processedData[i + 3] = Math.min(255, Math.max(0, alpha))
+            }
           }
         }
 
-        // Actualizamos el canvas con la imagen procesada
-        ctx.putImageData(imageData, 0, 0)
+        // 6. Post-procesamiento: suavizado de bordes
+        const finalData = new Uint8ClampedArray(processedData)
 
-        // Simulamos un tiempo de procesamiento
+        // Aplicar filtro de mediana para reducir ruido
+        for (let y = 1; y < height - 1; y++) {
+          for (let x = 1; x < width - 1; x++) {
+            const idx = (y * width + x) * 4 + 3
+
+            if (processedData[idx] > 0 && processedData[idx] < 255) {
+              const neighbors = []
+              for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                  const nIdx = ((y + dy) * width + (x + dx)) * 4 + 3
+                  neighbors.push(processedData[nIdx])
+                }
+              }
+              neighbors.sort((a, b) => a - b)
+              finalData[idx] = neighbors[4] // Mediana
+            }
+          }
+        }
+
+        // 7. Aplicar erosión suave para limpiar bordes
+        const erodedData = new Uint8ClampedArray(finalData)
+        for (let y = 1; y < height - 1; y++) {
+          for (let x = 1; x < width - 1; x++) {
+            const idx = (y * width + x) * 4 + 3
+
+            if (finalData[idx] < 128) {
+              // Solo para píxeles semi-transparentes
+              let minAlpha = 255
+              for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                  const nIdx = ((y + dy) * width + (x + dx)) * 4 + 3
+                  minAlpha = Math.min(minAlpha, finalData[nIdx])
+                }
+              }
+              erodedData[idx] = Math.min(finalData[idx], minAlpha + 20)
+            }
+          }
+        }
+
+        // Aplicar los datos finales
+        const finalImageData = new ImageData(erodedData, width, height)
+        ctx.putImageData(finalImageData, 0, 0)
+
         setTimeout(() => {
-          // Convertimos el canvas a una URL de datos
           const processedImageUrl = canvas.toDataURL("image/png")
           resolve(processedImageUrl)
         }, processingTime)
       }
 
       img.onerror = () => {
-        // Si hay un error, devolvemos la imagen original
         resolve(imageUrl)
       }
     })
@@ -294,6 +433,19 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
     return item.image
   }
 
+  const handleImageClick = (item: ClothingItem) => {
+    const imageToShow = getImageToShow(item)
+    setExpandedImage({
+      image: imageToShow,
+      type: item.type,
+      color: item.color,
+    })
+  }
+
+  const closeExpandedImage = () => {
+    setExpandedImage(null)
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
@@ -329,7 +481,10 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
                 {upperItems.length > 0 && !fullBodyItems.length && (
                   <div className="relative z-20 w-[70%] max-w-[250px]">
                     <div className="aspect-square relative">
-                      <div className="absolute inset-0 rounded-lg overflow-hidden shadow-sm">
+                      <div
+                        className="absolute inset-0 rounded-lg overflow-hidden shadow-sm cursor-pointer"
+                        onClick={() => handleImageClick(upperItems[0])}
+                      >
                         <img
                           src={getImageToShow(upperItems[0]) || "/placeholder.svg"}
                           alt={upperItems[0].type}
@@ -355,7 +510,10 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
                 {fullBodyItems.length > 0 && (
                   <div className="relative z-20 w-[70%] max-w-[250px]">
                     <div className="aspect-[3/4] relative">
-                      <div className="absolute inset-0 rounded-lg overflow-hidden shadow-sm">
+                      <div
+                        className="absolute inset-0 rounded-lg overflow-hidden shadow-sm cursor-pointer"
+                        onClick={() => handleImageClick(fullBodyItems[0])}
+                      >
                         <img
                           src={getImageToShow(fullBodyItems[0]) || "/placeholder.svg"}
                           alt={fullBodyItems[0].type}
@@ -381,7 +539,10 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
                 {!fullBodyItems.length && lowerItems.length > 0 && (
                   <div className="relative w-[70%] max-w-[250px] z-10">
                     <div className="aspect-[3/4] relative">
-                      <div className="absolute inset-0 rounded-lg overflow-hidden shadow-sm">
+                      <div
+                        className="absolute inset-0 rounded-lg overflow-hidden shadow-sm cursor-pointer"
+                        onClick={() => handleImageClick(lowerItems[0])}
+                      >
                         <img
                           src={getImageToShow(lowerItems[0]) || "/placeholder.svg"}
                           alt={lowerItems[0].type}
@@ -409,7 +570,10 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
                   {outerwearItems.length > 0 && (
                     <div className="relative w-[45%] max-w-[150px] z-30">
                       <div className="aspect-square relative">
-                        <div className="absolute inset-0 rounded-lg overflow-hidden shadow-sm">
+                        <div
+                          className="absolute inset-0 rounded-lg overflow-hidden shadow-sm cursor-pointer"
+                          onClick={() => handleImageClick(outerwearItems[0])}
+                        >
                           <img
                             src={getImageToShow(outerwearItems[0]) || "/placeholder.svg"}
                             alt={outerwearItems[0].type}
@@ -435,7 +599,10 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
                   {footwearItems.length > 0 && (
                     <div className="relative w-[45%] max-w-[150px] z-10">
                       <div className="aspect-square relative">
-                        <div className="absolute inset-0 rounded-lg overflow-hidden shadow-sm">
+                        <div
+                          className="absolute inset-0 rounded-lg overflow-hidden shadow-sm cursor-pointer"
+                          onClick={() => handleImageClick(footwearItems[0])}
+                        >
                           <img
                             src={getImageToShow(footwearItems[0]) || "/placeholder.svg"}
                             alt={footwearItems[0].type}
@@ -462,7 +629,10 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
                 {accessoryItems.length > 0 && (
                   <div className="relative w-[40%] max-w-[120px] z-40 mt-2">
                     <div className="aspect-square relative">
-                      <div className="absolute inset-0 rounded-lg overflow-hidden shadow-sm">
+                      <div
+                        className="absolute inset-0 rounded-lg overflow-hidden shadow-sm cursor-pointer"
+                        onClick={() => handleImageClick(accessoryItems[0])}
+                      >
                         <img
                           src={getImageToShow(accessoryItems[0]) || "/placeholder.svg"}
                           alt={accessoryItems[0].type}
@@ -517,6 +687,35 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
             Captura de pantalla para compartir este look.
           </p>
         </div>
+        {/* Diálogo para mostrar imagen ampliada */}
+        {expandedImage && (
+          <Dialog open={!!expandedImage} onOpenChange={closeExpandedImage}>
+            <DialogContent className="sm:max-w-[80%] p-0 overflow-hidden bg-white">
+              <DialogHeader className="p-4 pb-0">
+                <DialogTitle className="capitalize">
+                  {expandedImage.type} {expandedImage.color}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="relative p-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={closeExpandedImage}
+                  className="absolute top-2 right-2 z-10 bg-black/50 hover:bg-black/70 text-white"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <div className="max-h-[70vh] overflow-auto">
+                  <img
+                    src={expandedImage.image || "/placeholder.svg"}
+                    alt={`${expandedImage.type} ${expandedImage.color}`}
+                    className="w-full h-auto object-contain"
+                  />
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </DialogContent>
     </Dialog>
   )
