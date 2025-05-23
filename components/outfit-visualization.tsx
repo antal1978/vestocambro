@@ -65,7 +65,7 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
       !outerwearIds.includes(item.id) && ["accesorio", "bufanda", "gorro", "cinturon", "guantes"].includes(item.type),
   )
 
-  // Función para procesar una imagen y eliminar el fondo
+  // Función mejorada para procesar una imagen y eliminar el fondo
   const processImage = async (imageUrl: string, itemId: string): Promise<string> => {
     return new Promise((resolve) => {
       // Simulamos un tiempo de procesamiento para la demo
@@ -96,21 +96,75 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
         const data = imageData.data
 
-        // Algoritmo simple para eliminar fondos blancos/claros
-        // Este es un algoritmo básico que funciona bien con fondos claros
+        // Algoritmo mejorado para eliminar fondos
+        // Primero detectamos el color predominante en los bordes (asumiendo que es el fondo)
+        const borderPixels: number[][] = []
+
+        // Muestrear píxeles de los bordes
+        const borderWidth = 10
+        // Borde superior e inferior
+        for (let x = 0; x < canvas.width; x++) {
+          for (let y = 0; y < borderWidth; y++) {
+            const idx = (y * canvas.width + x) * 4
+            borderPixels.push([data[idx], data[idx + 1], data[idx + 2]])
+          }
+          for (let y = canvas.height - borderWidth; y < canvas.height; y++) {
+            const idx = (y * canvas.width + x) * 4
+            borderPixels.push([data[idx], data[idx + 1], data[idx + 2]])
+          }
+        }
+        // Bordes izquierdo y derecho
+        for (let y = borderWidth; y < canvas.height - borderWidth; y++) {
+          for (let x = 0; x < borderWidth; x++) {
+            const idx = (y * canvas.width + x) * 4
+            borderPixels.push([data[idx], data[idx + 1], data[idx + 2]])
+          }
+          for (let x = canvas.width - borderWidth; x < canvas.width; x++) {
+            const idx = (y * canvas.width + x) * 4
+            borderPixels.push([data[idx], data[idx + 1], data[idx + 2]])
+          }
+        }
+
+        // Calcular el color promedio del borde (probable fondo)
+        let avgR = 0,
+          avgG = 0,
+          avgB = 0
+        borderPixels.forEach((pixel) => {
+          avgR += pixel[0]
+          avgG += pixel[1]
+          avgB += pixel[2]
+        })
+        avgR = Math.round(avgR / borderPixels.length)
+        avgG = Math.round(avgG / borderPixels.length)
+        avgB = Math.round(avgB / borderPixels.length)
+
+        // Determinar si el fondo es claro u oscuro
+        const brightness = (avgR + avgG + avgB) / 3
+        const isLightBackground = brightness > 127
+
+        // Umbral de tolerancia para considerar un píxel como parte del fondo
+        const tolerance = isLightBackground ? 35 : 25
+
+        // Procesar todos los píxeles
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i]
           const g = data[i + 1]
           const b = data[i + 2]
 
-          // Si el pixel es claro (cercano al blanco), lo hacemos transparente
-          if (r > 240 && g > 240 && b > 240) {
-            data[i + 3] = 0 // Canal alfa (transparencia)
-          }
+          // Calcular la diferencia de color con el fondo promedio
+          const diffR = Math.abs(r - avgR)
+          const diffG = Math.abs(g - avgG)
+          const diffB = Math.abs(b - avgB)
+          const colorDiff = Math.sqrt(diffR * diffR + diffG * diffG + diffB * diffB)
 
-          // Para bordes más suaves, hacemos semi-transparentes los píxeles casi blancos
-          else if (r > 220 && g > 220 && b > 220) {
-            data[i + 3] = 128 // Semi-transparente
+          // Si el color es similar al fondo, hacerlo transparente
+          if (colorDiff < tolerance) {
+            data[i + 3] = 0 // Totalmente transparente
+          }
+          // Para los píxeles cercanos al umbral, aplicar transparencia parcial para suavizar bordes
+          else if (colorDiff < tolerance * 1.5) {
+            const alpha = Math.round((255 * (colorDiff - tolerance)) / (tolerance * 0.5))
+            data[i + 3] = alpha
           }
         }
 
@@ -211,7 +265,7 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
         }
 
         // Cuando terminamos de procesar todas las imágenes
-        setProcessingMessage("✅ ¡Perfecto! Tu look está listo")
+        setProcessingMessage("✅ ¡Perfecto! Fondos eliminados y look listo")
         setProcessingComplete(true)
 
         // Después de un breve momento, ocultamos el indicador de procesamiento
@@ -242,7 +296,7 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
         <DialogHeader className="p-6 pb-2 flex flex-row items-center justify-between">
           <DialogTitle>Tu conjunto completo</DialogTitle>
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
@@ -264,111 +318,167 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
           )}
 
           {/* Visualización mejorada del outfit estilo collage */}
-          <div className="relative bg-white rounded-lg p-6 shadow-sm overflow-hidden">
+          <div className="relative bg-white rounded-lg p-4 shadow-sm overflow-hidden">
             {/* Fondo con patrón sutil */}
             <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white opacity-70"></div>
 
-            <div className="relative flex flex-col items-center min-h-[400px]">
-              {/* Contenedor principal para el collage */}
-              <div className="relative w-full flex flex-col items-center">
-                {/* Prenda superior o vestido */}
-                {(fullBodyItems.length > 0 || upperItems.length > 0) && (
-                  <div className={`relative z-20 ${fullBodyItems.length > 0 ? "w-[85%]" : "w-[75%]"} transition-all`}>
-                    <div className={`${fullBodyItems.length > 0 ? "aspect-[2/3]" : "aspect-square"} relative`}>
-                      <div className="absolute inset-0 rounded-xl overflow-hidden shadow-md transform transition-transform hover:scale-[1.02] hover:shadow-lg">
+            <div className="relative flex flex-col items-center">
+              {/* Contenedor principal para el collage - reducido en altura y con mejor organización */}
+              <div className="relative w-full flex flex-col items-center gap-2">
+                {/* Prenda superior */}
+                {upperItems.length > 0 && !fullBodyItems.length && (
+                  <div className="relative z-20 w-[70%] max-w-[250px]">
+                    <div className="aspect-square relative">
+                      <div className="absolute inset-0 rounded-lg overflow-hidden shadow-sm">
                         <img
-                          src={
-                            fullBodyItems.length > 0 ? getImageToShow(fullBodyItems[0]) : getImageToShow(upperItems[0])
-                          }
-                          alt={fullBodyItems.length > 0 ? fullBodyItems[0].type : upperItems[0].type}
-                          className="w-full h-full object-contain bg-transparent"
+                          src={getImageToShow(upperItems[0]) || "/placeholder.svg"}
+                          alt={upperItems[0].type}
+                          className="w-full h-full object-contain bg-gray-50"
                         />
-                        {processedImages[fullBodyItems.length > 0 ? fullBodyItems[0].id : upperItems[0].id]
-                          ?.isProcessing && (
+                        {processedImages[upperItems[0].id]?.isProcessing && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/10">
                             <Loader2 className="h-8 w-8 text-white animate-spin" />
                           </div>
                         )}
+                        {processedImages[upperItems[0].id]?.isProcessed &&
+                          processedImages[upperItems[0].id]?.processedImage && (
+                            <div className="absolute bottom-1 right-1 bg-green-500 text-white text-[10px] px-1 py-0.5 rounded-sm">
+                              Procesada
+                            </div>
+                          )}
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Parte inferior (solo si no hay prenda completa) */}
-                {!fullBodyItems.length && lowerItems.length > 0 && (
-                  <div className="relative w-[70%] -mt-[15%] z-10 transition-all">
+                {/* Prenda completa (vestido) - si existe */}
+                {fullBodyItems.length > 0 && (
+                  <div className="relative z-20 w-[70%] max-w-[250px]">
                     <div className="aspect-[3/4] relative">
-                      <div className="absolute inset-0 rounded-xl overflow-hidden shadow-md transform transition-transform hover:scale-[1.02] hover:shadow-lg">
+                      <div className="absolute inset-0 rounded-lg overflow-hidden shadow-sm">
+                        <img
+                          src={getImageToShow(fullBodyItems[0]) || "/placeholder.svg"}
+                          alt={fullBodyItems[0].type}
+                          className="w-full h-full object-contain bg-gray-50"
+                        />
+                        {processedImages[fullBodyItems[0].id]?.isProcessing && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                            <Loader2 className="h-8 w-8 text-white animate-spin" />
+                          </div>
+                        )}
+                        {processedImages[fullBodyItems[0].id]?.isProcessed &&
+                          processedImages[fullBodyItems[0].id]?.processedImage && (
+                            <div className="absolute bottom-1 right-1 bg-green-500 text-white text-[10px] px-1 py-0.5 rounded-sm">
+                              Procesada
+                            </div>
+                          )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Parte inferior */}
+                {!fullBodyItems.length && lowerItems.length > 0 && (
+                  <div className="relative w-[70%] max-w-[250px] z-10">
+                    <div className="aspect-[3/4] relative">
+                      <div className="absolute inset-0 rounded-lg overflow-hidden shadow-sm">
                         <img
                           src={getImageToShow(lowerItems[0]) || "/placeholder.svg"}
                           alt={lowerItems[0].type}
-                          className="w-full h-full object-contain bg-transparent"
+                          className="w-full h-full object-contain bg-gray-50"
                         />
                         {processedImages[lowerItems[0].id]?.isProcessing && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/10">
                             <Loader2 className="h-8 w-8 text-white animate-spin" />
                           </div>
                         )}
+                        {processedImages[lowerItems[0].id]?.isProcessed &&
+                          processedImages[lowerItems[0].id]?.processedImage && (
+                            <div className="absolute bottom-1 right-1 bg-green-500 text-white text-[10px] px-1 py-0.5 rounded-sm">
+                              Procesada
+                            </div>
+                          )}
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Abrigo (si existe) - se muestra encima */}
-                {outerwearItems.length > 0 && (
-                  <div className="absolute top-[5%] w-[90%] z-30 transition-all">
-                    <div className="aspect-[3/4] relative">
-                      <div className="absolute inset-0 rounded-xl overflow-hidden shadow-md transform transition-transform hover:scale-[1.02] hover:shadow-lg">
-                        <img
-                          src={getImageToShow(outerwearItems[0]) || "/placeholder.svg"}
-                          alt={outerwearItems[0].type}
-                          className="w-full h-full object-contain bg-transparent"
-                        />
-                        {processedImages[outerwearItems[0].id]?.isProcessing && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-                            <Loader2 className="h-8 w-8 text-white animate-spin" />
-                          </div>
-                        )}
+                {/* Fila para abrigo y calzado */}
+                <div className="flex justify-center gap-2 w-full mt-2">
+                  {/* Abrigo */}
+                  {outerwearItems.length > 0 && (
+                    <div className="relative w-[45%] max-w-[150px] z-30">
+                      <div className="aspect-square relative">
+                        <div className="absolute inset-0 rounded-lg overflow-hidden shadow-sm">
+                          <img
+                            src={getImageToShow(outerwearItems[0]) || "/placeholder.svg"}
+                            alt={outerwearItems[0].type}
+                            className="w-full h-full object-contain bg-gray-50"
+                          />
+                          {processedImages[outerwearItems[0].id]?.isProcessing && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                              <Loader2 className="h-8 w-8 text-white animate-spin" />
+                            </div>
+                          )}
+                          {processedImages[outerwearItems[0].id]?.isProcessed &&
+                            processedImages[outerwearItems[0].id]?.processedImage && (
+                              <div className="absolute bottom-1 right-1 bg-green-500 text-white text-[10px] px-1 py-0.5 rounded-sm">
+                                Procesada
+                              </div>
+                            )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Calzado */}
-                {footwearItems.length > 0 && (
-                  <div className="relative w-[50%] -mt-[10%] z-10 transition-all">
-                    <div className="aspect-square relative">
-                      <div className="absolute inset-0 rounded-xl overflow-hidden shadow-md transform transition-transform hover:scale-[1.02] hover:shadow-lg">
-                        <img
-                          src={getImageToShow(footwearItems[0]) || "/placeholder.svg"}
-                          alt={footwearItems[0].type}
-                          className="w-full h-full object-contain bg-transparent"
-                        />
-                        {processedImages[footwearItems[0].id]?.isProcessing && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-                            <Loader2 className="h-8 w-8 text-white animate-spin" />
-                          </div>
-                        )}
+                  {/* Calzado */}
+                  {footwearItems.length > 0 && (
+                    <div className="relative w-[45%] max-w-[150px] z-10">
+                      <div className="aspect-square relative">
+                        <div className="absolute inset-0 rounded-lg overflow-hidden shadow-sm">
+                          <img
+                            src={getImageToShow(footwearItems[0]) || "/placeholder.svg"}
+                            alt={footwearItems[0].type}
+                            className="w-full h-full object-contain bg-gray-50"
+                          />
+                          {processedImages[footwearItems[0].id]?.isProcessing && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                              <Loader2 className="h-8 w-8 text-white animate-spin" />
+                            </div>
+                          )}
+                          {processedImages[footwearItems[0].id]?.isProcessed &&
+                            processedImages[footwearItems[0].id]?.processedImage && (
+                              <div className="absolute bottom-1 right-1 bg-green-500 text-white text-[10px] px-1 py-0.5 rounded-sm">
+                                Procesada
+                              </div>
+                            )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Accesorios */}
                 {accessoryItems.length > 0 && (
-                  <div className="absolute top-[5%] right-[5%] w-[30%] z-40 transition-all">
+                  <div className="relative w-[40%] max-w-[120px] z-40 mt-2">
                     <div className="aspect-square relative">
-                      <div className="absolute inset-0 rounded-xl overflow-hidden shadow-md transform transition-transform hover:scale-[1.02] hover:shadow-lg">
+                      <div className="absolute inset-0 rounded-lg overflow-hidden shadow-sm">
                         <img
                           src={getImageToShow(accessoryItems[0]) || "/placeholder.svg"}
                           alt={accessoryItems[0].type}
-                          className="w-full h-full object-contain bg-transparent"
+                          className="w-full h-full object-contain bg-gray-50"
                         />
                         {processedImages[accessoryItems[0].id]?.isProcessing && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/10">
                             <Loader2 className="h-8 w-8 text-white animate-spin" />
                           </div>
                         )}
+                        {processedImages[accessoryItems[0].id]?.isProcessed &&
+                          processedImages[accessoryItems[0].id]?.processedImage && (
+                            <div className="absolute bottom-1 right-1 bg-green-500 text-white text-[10px] px-1 py-0.5 rounded-sm">
+                              Procesada
+                            </div>
+                          )}
                       </div>
                     </div>
                   </div>
@@ -383,7 +493,7 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
           </div>
 
           {/* Lista de prendas incluidas */}
-          <div className="mt-4 border-t pt-4">
+          <div className="mt-4 border-t pt-4 pb-2">
             <h3 className="text-sm font-medium mb-2">Prendas en este conjunto:</h3>
             <div className="flex flex-wrap gap-2">
               {items.map((item) => (
@@ -391,7 +501,7 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
                   key={item.id}
                   className="flex items-center gap-1 bg-white rounded-full pl-1 pr-3 py-1 shadow-sm border text-xs"
                 >
-                  <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+                  <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                     <img src={item.image || "/placeholder.svg"} alt="" className="w-full h-full object-cover" />
                   </div>
                   <span className="capitalize">
@@ -402,9 +512,9 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
             </div>
           </div>
 
-          {/* Texto informativo */}
-          <p className="text-sm text-muted-foreground text-center mt-4">
-            Para compartir este look, puedes tomar una captura de pantalla y enviarla por WhatsApp u otra aplicación.
+          {/* Texto informativo - más corto */}
+          <p className="text-xs text-muted-foreground text-center mt-2 mb-2">
+            Captura de pantalla para compartir este look.
           </p>
         </div>
       </DialogContent>
