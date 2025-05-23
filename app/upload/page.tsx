@@ -8,12 +8,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Camera, Upload, Save, X, RotateCw, Check } from "lucide-react"
+import { Camera, Upload, Save, X, RotateCw, Info, Crop, FlipHorizontal } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import Link from "next/link"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 type ClothingItem = {
   id: string
@@ -36,10 +37,12 @@ export default function UploadPage() {
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [isCameraLoading, setIsCameraLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [showGuides, setShowGuides] = useState(true)
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment")
+  const [showInstructions, setShowInstructions] = useState(true)
 
   // Verificar compatibilidad del navegador al cargar
   useEffect(() => {
-    // Verificar si el navegador soporta la API MediaDevices
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       console.warn("Este navegador no soporta la API MediaDevices")
       setCameraError("Tu navegador no soporta el acceso a la cámara. Intenta con Chrome, Firefox o Safari recientes.")
@@ -65,7 +68,6 @@ export default function UploadPage() {
 
   // Función mejorada para iniciar la cámara
   const startCamera = async () => {
-    // Verificar si el navegador soporta la API MediaDevices
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setCameraError("Tu navegador no soporta el acceso a la cámara. Intenta con Chrome, Firefox o Safari recientes.")
       toast({
@@ -76,38 +78,33 @@ export default function UploadPage() {
       return
     }
 
-    // Mostrar la UI de cámara y establecer estado de carga
     setShowCamera(true)
     setIsCameraLoading(true)
     setCameraError(null)
 
-    // Detener cualquier stream anterior
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop())
       streamRef.current = null
     }
 
-    // Pequeño retraso para asegurar que el elemento de video se ha renderizado
     setTimeout(async () => {
       try {
         console.log("Solicitando acceso a la cámara...")
 
-        // Verificar que el elemento de video existe
         if (!videoRef.current) {
           throw new Error("Elemento de video no disponible. Intenta de nuevo.")
         }
 
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: "environment", // Usar cámara trasera si está disponible
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            facingMode: facingMode,
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 },
           },
         })
 
         console.log("Acceso a la cámara concedido:", stream)
 
-        // Verificar nuevamente que el elemento de video existe
         if (!videoRef.current) {
           throw new Error("Elemento de video no disponible después de obtener el stream.")
         }
@@ -126,7 +123,6 @@ export default function UploadPage() {
       } catch (err) {
         console.error("Error al acceder a la cámara:", err)
 
-        // Mensaje de error más específico
         let errorMessage = "No se pudo acceder a la cámara."
         if (err instanceof Error) {
           errorMessage = err.message
@@ -154,10 +150,24 @@ export default function UploadPage() {
       } finally {
         setIsCameraLoading(false)
       }
-    }, 100) // Pequeño retraso para asegurar que el componente se ha renderizado
+    }, 100)
   }
 
-  // Función para tomar la foto
+  // Función para cambiar entre cámara frontal y trasera
+  const switchCamera = () => {
+    const newFacingMode = facingMode === "user" ? "environment" : "user"
+    setFacingMode(newFacingMode)
+
+    // Reiniciar la cámara con la nueva configuración
+    if (showCamera) {
+      cancelCapture()
+      setTimeout(() => {
+        startCamera()
+      }, 100)
+    }
+  }
+
+  // Función mejorada para tomar la foto
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) {
       toast({
@@ -172,7 +182,6 @@ export default function UploadPage() {
       const video = videoRef.current
       const canvas = canvasRef.current
 
-      // Verificar que el video esté reproduciendo
       if (video.readyState !== 4) {
         toast({
           title: "Espera un momento",
@@ -182,22 +191,16 @@ export default function UploadPage() {
         return
       }
 
-      // Usar las dimensiones exactas del elemento de video para mantener la proporción
+      // Configurar canvas con las dimensiones originales del video
       const videoWidth = video.videoWidth
       const videoHeight = video.videoHeight
-      const videoAspectRatio = videoWidth / videoHeight
 
-      // Configurar canvas con las mismas dimensiones y proporción que el video
+      // Mantener la proporción original
       canvas.width = videoWidth
       canvas.height = videoHeight
 
-      // Guardar la relación de aspecto para usarla en la vista previa
-      const aspectRatio = videoWidth / videoHeight
-      console.log(`Relación de aspecto de la cámara: ${aspectRatio}`)
+      console.log(`Capturando foto: ${canvas.width}x${canvas.height}`)
 
-      console.log(`Capturando foto: ${canvas.width}x${canvas.height}, ratio: ${videoAspectRatio}`)
-
-      // Dibujar el frame actual del video en el canvas manteniendo la proporción exacta
       const context = canvas.getContext("2d")
       if (!context) {
         toast({
@@ -208,32 +211,30 @@ export default function UploadPage() {
         return
       }
 
-      // Limpiar el canvas antes de dibujar
+      // Fondo blanco para mejor contraste
       context.fillStyle = "#FFFFFF"
       context.fillRect(0, 0, canvas.width, canvas.height)
 
-      // Dibujar el video exactamente como se ve, sin recortes ni cambios de proporción
+      // Dibujar la imagen completa sin recortar
       context.drawImage(video, 0, 0, canvas.width, canvas.height)
 
-      // Convertir a base64 con alta calidad para preservar detalles
       try {
-        const imageDataUrl = canvas.toDataURL("image/jpeg", 0.95)
+        const imageDataUrl = canvas.toDataURL("image/jpeg", 0.92)
 
-        // Comprimir la imagen manteniendo la proporción original
-        compressImage(imageDataUrl, 1200, 0.9) // Aumentamos calidad y tamaño máximo
+        compressImage(imageDataUrl, 1000, 0.9)
           .then((compressedImage) => {
             setImagePreview(compressedImage)
             setShowCamera(false)
 
-            // Detener la cámara
             if (streamRef.current) {
               streamRef.current.getTracks().forEach((track) => track.stop())
               streamRef.current = null
             }
 
             toast({
-              title: "Foto capturada",
-              description: "La foto se ha tomado correctamente.",
+              title: "¡Foto capturada!",
+              description: "La foto se ha tomado correctamente. Puedes continuar completando los detalles.",
+              variant: "success",
             })
           })
           .catch((err) => {
@@ -262,8 +263,8 @@ export default function UploadPage() {
     }
   }
 
-  // Función para comprimir la imagen
-  const compressImage = (dataUrl: string, maxWidth = 1200, quality = 0.9): Promise<string> => {
+  // Función mejorada para procesar la imagen manteniendo la integridad visual
+  const compressImage = (dataUrl: string, maxWidth = 1000, quality = 0.92): Promise<string> => {
     return new Promise((resolve) => {
       const img = new Image()
       img.crossOrigin = "anonymous"
@@ -288,7 +289,7 @@ export default function UploadPage() {
           ctx.fillStyle = "#FFFFFF"
           ctx.fillRect(0, 0, width, height)
 
-          // Dibujar la imagen manteniendo la proporción
+          // Dibujar la imagen manteniendo la proporción original
           ctx.drawImage(img, 0, 0, width, height)
 
           // Comprimir con alta calidad
@@ -300,7 +301,6 @@ export default function UploadPage() {
     })
   }
 
-  // Función para cancelar la captura
   const cancelCapture = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop())
@@ -315,37 +315,36 @@ export default function UploadPage() {
       const reader = new FileReader()
       reader.onloadend = () => {
         const result = reader.result as string
-        // Comprimir la imagen antes de guardarla
         compressImage(result).then((compressedImage) => {
           setImagePreview(compressedImage)
+          toast({
+            title: "Imagen cargada",
+            description: "La imagen se ha cargado correctamente.",
+            variant: "success",
+          })
         })
       }
       reader.readAsDataURL(file)
     }
   }
 
-  // Función para guardar la prenda
   const handleSave = () => {
     if (!imagePreview || !type || !color || !occasion || !climate) {
       toast({
         title: "Información incompleta",
-        description: "Por favor completa todos los campos",
+        description: "Por favor completa todos los campos obligatorios",
         variant: "destructive",
       })
       return
     }
 
-    // Activar indicador de carga
     setIsSaving(true)
 
-    // Simular un pequeño retraso para que el usuario perciba que algo está sucediendo
     setTimeout(() => {
       try {
-        // Get existing items from localStorage
         const existingItems = localStorage.getItem("clothingItems")
         const items: ClothingItem[] = existingItems ? JSON.parse(existingItems) : []
 
-        // Add new item
         const newItem: ClothingItem = {
           id: Date.now().toString(),
           image: imagePreview,
@@ -356,14 +355,12 @@ export default function UploadPage() {
           isOuterwear,
         }
 
-        // Save to localStorage
         localStorage.setItem("clothingItems", JSON.stringify([...items, newItem]))
 
-        // Show success message with more visible styling
         toast({
           title: "¡Prenda guardada correctamente!",
           description: `Tu ${type} ${color} ha sido añadida a tu armario`,
-          variant: "success", // Usar variante de éxito para destacar más
+          variant: "success",
         })
 
         // Reset form
@@ -386,10 +383,9 @@ export default function UploadPage() {
       } finally {
         setIsSaving(false)
       }
-    }, 600) // Pequeño retraso para mejor experiencia de usuario
+    }, 600)
   }
 
-  // Componente de tooltip reutilizable
   const InfoTooltip = ({ text }: { text: string }) => (
     <div className="relative ml-1 group">
       <div className="flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-gray-400 rounded-full cursor-help">
@@ -405,6 +401,32 @@ export default function UploadPage() {
     <div className="container max-w-md py-8 mx-auto">
       <h1 className="mb-6 text-2xl font-bold text-center">Añadir Nueva Prenda</h1>
 
+      {/* Instrucciones mejoradas */}
+      {showInstructions && (
+        <Alert className="mb-6 border-blue-200 bg-blue-50">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800">
+            <div className="space-y-2">
+              <p className="font-medium">Consejos para mejores fotos:</p>
+              <ul className="text-sm space-y-1 ml-4">
+                <li>• Coloca la prenda sobre una superficie plana y clara</li>
+                <li>• Asegúrate de tener buena iluminación</li>
+                <li>• Centra la prenda en el recuadro guía</li>
+                <li>• Evita sombras y reflejos</li>
+              </ul>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowInstructions(false)}
+                className="text-blue-600 p-0 h-auto"
+              >
+                Ocultar consejos
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Detalles de la prenda</CardTitle>
@@ -414,20 +436,45 @@ export default function UploadPage() {
             <Label htmlFor="picture">Foto de la prenda</Label>
 
             {showCamera ? (
-              // Vista de cámara
               <div className="relative w-full">
                 <div className="w-full bg-black rounded-md overflow-hidden relative">
-                  <div className="pb-[56.25%]">
+                  <div className="pb-[100%] relative">
+                    {" "}
+                    {/* Proporción cuadrada */}
                     <video
                       ref={videoRef}
                       autoPlay
                       playsInline
-                      className="absolute inset-0 w-full h-full object-contain"
+                      className="absolute inset-0 w-full h-full object-cover"
                       onError={(e) => {
                         console.error("Error en elemento video:", e)
                         setCameraError("Error al inicializar el video.")
                       }}
                     />
+                    {/* Guías de encuadre mejoradas */}
+                    {showGuides && (
+                      <div className="absolute inset-0 pointer-events-none">
+                        {/* Marco principal */}
+                        <div className="absolute inset-4 border-2 border-white/70 rounded-lg">
+                          {/* Líneas de guía en las esquinas */}
+                          <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-primary-400 rounded-tl-lg"></div>
+                          <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-primary-400 rounded-tr-lg"></div>
+                          <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-primary-400 rounded-bl-lg"></div>
+                          <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-primary-400 rounded-br-lg"></div>
+
+                          {/* Líneas centrales */}
+                          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white/30 transform -translate-y-0.5"></div>
+                          <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-white/30 transform -translate-x-0.5"></div>
+                        </div>
+
+                        {/* Texto de ayuda */}
+                        <div className="absolute bottom-20 left-0 right-0 text-center">
+                          <div className="bg-black/70 text-white text-sm px-3 py-1 rounded-full mx-auto inline-block">
+                            Centra tu prenda en el recuadro
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     {isCameraLoading && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
                         <RotateCw className="w-8 h-8 animate-spin text-primary-500 mb-2" />
@@ -447,7 +494,20 @@ export default function UploadPage() {
                   </div>
                   <canvas ref={canvasRef} className="hidden" />
 
-                  <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+                  {/* Controles de cámara mejorados */}
+                  <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-4">
+                    {/* Botón para cambiar cámara */}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full shadow-lg bg-white/90 hover:bg-white"
+                      onClick={switchCamera}
+                      disabled={isCameraLoading}
+                    >
+                      <FlipHorizontal className="w-5 h-5" />
+                    </Button>
+
+                    {/* Botón cancelar */}
                     <Button
                       variant="destructive"
                       size="icon"
@@ -456,28 +516,38 @@ export default function UploadPage() {
                     >
                       <X className="w-6 h-6" />
                     </Button>
+
+                    {/* Botón capturar */}
                     <Button
                       variant="default"
                       size="icon"
-                      className="rounded-full shadow-lg"
+                      className="rounded-full shadow-lg w-16 h-16"
                       onClick={capturePhoto}
                       disabled={isCameraLoading}
                     >
-                      <Check className="w-6 h-6" />
+                      <Camera className="w-8 h-8" />
+                    </Button>
+
+                    {/* Botón toggle guías */}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full shadow-lg bg-white/90 hover:bg-white"
+                      onClick={() => setShowGuides(!showGuides)}
+                    >
+                      <Crop className="w-5 h-5" />
                     </Button>
                   </div>
                 </div>
               </div>
             ) : (
-              // Vista de selección de imagen
               <div className="flex flex-col items-center gap-4">
                 {imagePreview ? (
-                  <div className="relative w-full h-64 overflow-hidden rounded-md">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <div className="relative w-full aspect-square overflow-hidden rounded-md border-2 border-dashed border-gray-300">
                     <img
                       src={imagePreview || "/placeholder.svg"}
                       alt="Vista previa"
-                      className="object-contain w-full h-full"
+                      className="object-cover w-full h-full"
                     />
                     <Button
                       variant="destructive"
@@ -489,9 +559,12 @@ export default function UploadPage() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-md border-muted-foreground/25">
-                    <Camera className="w-10 h-10 mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Selecciona una imagen o toma una foto</p>
+                  <div className="flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed rounded-md border-muted-foreground/25 bg-muted/10">
+                    <Camera className="w-12 h-12 mb-3 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground text-center mb-2">
+                      Toma una foto o selecciona una imagen
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 text-center">Recomendado: formato cuadrado</p>
                   </div>
                 )}
                 <div className="flex gap-2 w-full justify-center">
@@ -517,7 +590,7 @@ export default function UploadPage() {
           </div>
 
           <div className="grid w-full gap-2">
-            <Label htmlFor="type">Tipo de prenda</Label>
+            <Label htmlFor="type">Tipo de prenda *</Label>
             <Select value={type} onValueChange={setType}>
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar el tipo" />
@@ -542,7 +615,7 @@ export default function UploadPage() {
 
           <div className="grid w-full gap-2">
             <div className="flex items-center">
-              <Label htmlFor="color">Color</Label>
+              <Label htmlFor="color">Color *</Label>
               <InfoTooltip text="Si la prenda es estampada o tiene mezcla de colores, selecciona el color que predomina. Esto ayudará a la app a generar combinaciones más armoniosas." />
             </div>
             <Select value={color} onValueChange={setColor}>
@@ -565,7 +638,7 @@ export default function UploadPage() {
           </div>
 
           <div className="grid w-full gap-2">
-            <Label htmlFor="occasion">Ocasión</Label>
+            <Label htmlFor="occasion">Ocasión *</Label>
             <Select value={occasion} onValueChange={setOccasion}>
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar la ocasión" />
@@ -581,7 +654,7 @@ export default function UploadPage() {
           </div>
 
           <div className="grid w-full gap-2">
-            <Label htmlFor="climate">Clima</Label>
+            <Label htmlFor="climate">Clima *</Label>
             <Select value={climate} onValueChange={setClimate}>
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar el clima" />
@@ -608,7 +681,7 @@ export default function UploadPage() {
               >
                 ¿Es un abrigo?
               </Label>
-              <InfoTooltip text="Marca esta opción si la prenda es para abrigarse (camperas, tapados, sweaters gruesos, etc.). Esto ayuda a la app a generar looks más adecuados según el clima seleccionado, incluyendo o excluyendo abrigos cuando sea necesario." />
+              <InfoTooltip text="Marca esta opción si la prenda es para abrigarse (camperas, tapados, sweaters gruesos, etc.). Esto ayuda a la app a generar looks más adecuados según el clima seleccionado." />
             </div>
             <p className="text-xs text-muted-foreground ml-6">
               Las prendas marcadas como abrigo se utilizarán principalmente en climas fríos o templados.

@@ -20,6 +20,15 @@ const montserrat = Montserrat({
 export const metadata = {
   title: "ARIN",
   description: "Laboratorio de looks - Organizá tus prendas y creá looks increíbles",
+  // Añadimos metadatos para mejorar la experiencia web
+  manifest: "/manifest.json",
+  themeColor: "#8b5cf6",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "ARIN",
+  },
     generator: 'v0.dev'
 }
 

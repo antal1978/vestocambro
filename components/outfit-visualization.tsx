@@ -2,7 +2,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
-import { useState } from "react"
 
 type ClothingItem = {
   id: string
@@ -21,8 +20,6 @@ type OutfitVisualizationProps = {
 }
 
 export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizationProps) {
-  const [showSilhouette, setShowSilhouette] = useState(true)
-
   // Clasificar prendas por categoría (evitando duplicados)
   // Primero identificamos los abrigos
   const outerwearItems = items.filter(
@@ -66,24 +63,6 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
           <div className="relative bg-white rounded-lg p-6 shadow-sm overflow-hidden">
             {/* Fondo con patrón sutil */}
             <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white opacity-70"></div>
-
-            {/* Silueta de fondo (opcional y con toggle) */}
-            {showSilhouette && (
-              <div className="absolute inset-0 flex justify-center opacity-5 pointer-events-none">
-                <svg viewBox="0 0 200 500" className="h-full" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M100,10 C120,10 135,25 135,45 C135,65 120,80 100,80 C80,80 65,65 65,45 C65,25 80,10 100,10 Z"
-                    fill="#333"
-                  />
-                  <path
-                    d="M100,80 L100,200 M70,100 L130,100 M70,100 L60,200 M130,100 L140,200 M100,200 L70,350 M100,200 L130,350"
-                    stroke="#333"
-                    strokeWidth="2"
-                    fill="none"
-                  />
-                </svg>
-              </div>
-            )}
 
             <div className="relative flex flex-col items-center min-h-[400px]">
               {/* Contenedor principal para el collage */}
@@ -167,11 +146,7 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
           </div>
 
           {/* Controles y opciones */}
-          <div className="mt-4 flex justify-between items-center">
-            <Button variant="outline" size="sm" onClick={() => setShowSilhouette(!showSilhouette)} className="text-xs">
-              {showSilhouette ? "Ocultar silueta" : "Mostrar silueta"}
-            </Button>
-
+          <div className="mt-4 text-center">
             <p className="text-xs text-muted-foreground">Toca cada prenda para verla en detalle</p>
           </div>
 

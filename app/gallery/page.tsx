@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Wand2, Trash2, Plus, Database, BarChart3, Sparkles, Eye, Save, ArrowLeftRight } from "lucide-react"
+import { Wand2, Trash2, Plus, Database, BarChart3, Sparkles, Eye, Save, ArrowLeftRight, X } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -94,6 +94,7 @@ export default function GalleryPage() {
   const [savedLook, setSavedLook] = useState<Record<ClothingCategory, ClothingItem | null> | null>(null)
   const [activeCategory, setActiveCategory] = useState<ClothingCategory>("upperBody")
   const [compareMode, setCompareMode] = useState(false)
+  const [expandedImage, setExpandedImage] = useState<string | null>(null)
 
   const router = useRouter()
   const { toast } = useToast()
@@ -497,6 +498,14 @@ export default function GalleryPage() {
     )
   }
 
+  const handleImageClick = (imageUrl: string) => {
+    setExpandedImage(imageUrl)
+  }
+
+  const closeExpandedImage = () => {
+    setExpandedImage(null)
+  }
+
   return (
     <div className="container py-8">
       {/* Diálogo de prueba virtual */}
@@ -805,9 +814,16 @@ export default function GalleryPage() {
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {filterItemsByCategory(items).map((item) => (
             <Card key={item.id} className="overflow-hidden card-hover">
-              <div className="relative w-full h-48">
+              <div
+                className="relative w-full aspect-square overflow-hidden rounded-md cursor-pointer"
+                onClick={() => handleImageClick(item.image || "/placeholder.svg")}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.image || "/placeholder.svg"} alt={item.type} className="object-cover w-full h-full" />
+                <img
+                  src={item.image || "/placeholder.svg"}
+                  alt={item.type}
+                  className="object-contain w-full h-full bg-white"
+                />
                 {getItemUsageCount(item.id) > 0 && (
                   <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
                     {getItemUsageCount(item.id)} usos
@@ -852,6 +868,30 @@ export default function GalleryPage() {
             </Card>
           ))}
         </div>
+      )}
+      {expandedImage && (
+        <Dialog open={!!expandedImage} onOpenChange={closeExpandedImage}>
+          <DialogContent className="sm:max-w-[80%] p-0 overflow-hidden bg-white">
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={closeExpandedImage}
+                className="absolute top-2 right-2 z-10 bg-black/50 hover:bg-black/70 text-white"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <div className="max-h-[80vh] overflow-auto p-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={expandedImage || "/placeholder.svg"}
+                  alt="Prenda ampliada"
+                  className="w-full h-auto object-contain"
+                />
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
       <Toaster />
     </div>
