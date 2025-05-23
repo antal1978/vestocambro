@@ -598,17 +598,30 @@ export default function UploadPage() {
               <SelectContent>
                 <SelectItem value="remera">Remera</SelectItem>
                 <SelectItem value="camisa">Camisa</SelectItem>
+                <SelectItem value="blusa">Blusa</SelectItem>
                 <SelectItem value="sweater">Sweater/Buzo</SelectItem>
+                <SelectItem value="cardigan">Cardigan</SelectItem>
+                <SelectItem value="chaleco">Chaleco</SelectItem>
                 <SelectItem value="jean">Jean</SelectItem>
                 <SelectItem value="pantalon">Pantalón</SelectItem>
                 <SelectItem value="falda">Falda</SelectItem>
+                <SelectItem value="short">Short</SelectItem>
                 <SelectItem value="vestido">Vestido</SelectItem>
+                <SelectItem value="mono">Mono/Jumpsuit</SelectItem>
                 <SelectItem value="campera">Campera</SelectItem>
                 <SelectItem value="tapado">Tapado</SelectItem>
                 <SelectItem value="blazer">Blazer</SelectItem>
-                <SelectItem value="cardigan">Cardigan</SelectItem>
+                <SelectItem value="abrigo">Abrigo</SelectItem>
                 <SelectItem value="calzado">Calzado</SelectItem>
-                <SelectItem value="accesorio">Accesorio</SelectItem>
+                <SelectItem value="bufanda">Bufanda</SelectItem>
+                <SelectItem value="gorra">Gorra</SelectItem>
+                <SelectItem value="gorro">Gorro</SelectItem>
+                <SelectItem value="aros">Aros</SelectItem>
+                <SelectItem value="pañuelo">Pañuelo</SelectItem>
+                <SelectItem value="cartera">Cartera</SelectItem>
+                <SelectItem value="cinturon">Cinturón</SelectItem>
+                <SelectItem value="guantes">Guantes</SelectItem>
+                <SelectItem value="accesorio">Otro accesorio</SelectItem>
               </SelectContent>
             </Select>
           </div>

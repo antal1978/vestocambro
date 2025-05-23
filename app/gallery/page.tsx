@@ -56,12 +56,12 @@ type ClothingCategory = "upperBody" | "lowerBody" | "fullBody" | "outerwear" | "
 
 // Mapeo de tipos de prendas a categorías
 const CLOTHING_CATEGORIES: Record<ClothingCategory, string[]> = {
-  upperBody: ["remera", "camisa", "sweater", "buzo", "blusa", "cardigan"],
-  lowerBody: ["pantalon", "jean", "falda", "shorts", "jeans"],
+  upperBody: ["remera", "camisa", "sweater", "buzo", "blusa", "cardigan", "chaleco"],
+  lowerBody: ["pantalon", "jean", "falda", "short", "shorts", "jeans"],
   fullBody: ["vestido", "mono", "jumpsuit"],
   outerwear: ["campera", "tapado", "blazer", "abrigo"],
   footwear: ["calzado", "zapatos", "zapatillas", "botas"],
-  accessories: ["accesorio", "bufanda", "gorro", "guantes", "cinturon"],
+  accessories: ["accesorio", "bufanda", "gorra", "gorro", "guantes", "cinturon", "aros", "pañuelo", "cartera"],
 }
 
 // Nombres de categorías para mostrar

@@ -241,6 +241,123 @@ const sampleClothes: Omit<ClothingItem, "id">[] = [
     climate: "frio",
     isOuterwear: false,
   },
+  // Nuevas categorías - Chalecos
+  {
+    image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=300&h=300&fit=crop&q=80",
+    type: "chaleco",
+    color: "negro",
+    occasion: "formal",
+    climate: "templado",
+    isOuterwear: false,
+  },
+  {
+    image: "https://images.unsplash.com/photo-1588359348347-9bc6cbbb689e?w=300&h=300&fit=crop&q=80",
+    type: "chaleco",
+    color: "gris",
+    occasion: "casual",
+    climate: "templado",
+    isOuterwear: false,
+  },
+
+  // Shorts
+  {
+    image: "https://images.unsplash.com/photo-1565084888279-aca607ecce0c?w=300&h=300&fit=crop&q=80",
+    type: "short",
+    color: "azul",
+    occasion: "casual",
+    climate: "caluroso",
+    isOuterwear: false,
+  },
+  {
+    image: "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=300&h=300&fit=crop&q=80",
+    type: "short",
+    color: "negro",
+    occasion: "deporte",
+    climate: "caluroso",
+    isOuterwear: false,
+  },
+
+  // Accesorios específicos - Gorras
+  {
+    image: "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?w=300&h=300&fit=crop&q=80",
+    type: "gorra",
+    color: "negro",
+    occasion: "casual",
+    climate: "caluroso",
+    isOuterwear: false,
+  },
+  {
+    image: "https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=300&h=300&fit=crop&q=80",
+    type: "gorra",
+    color: "azul",
+    occasion: "deporte",
+    climate: "caluroso",
+    isOuterwear: false,
+  },
+
+  // Bufandas
+  {
+    image: "https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=300&h=300&fit=crop&q=80",
+    type: "bufanda",
+    color: "rojo",
+    occasion: "casual",
+    climate: "frio",
+    isOuterwear: false,
+  },
+  {
+    image: "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?w=300&h=300&fit=crop&q=80",
+    type: "bufanda",
+    color: "gris",
+    occasion: "formal",
+    climate: "frio",
+    isOuterwear: false,
+  },
+
+  // Aros
+  {
+    image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=300&h=300&fit=crop&q=80",
+    type: "aros",
+    color: "dorado",
+    occasion: "fiesta",
+    climate: "todo-clima",
+    isOuterwear: false,
+  },
+  {
+    image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=300&h=300&fit=crop&q=80",
+    type: "aros",
+    color: "plateado",
+    occasion: "formal",
+    climate: "todo-clima",
+    isOuterwear: false,
+  },
+
+  // Carteras
+  {
+    image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&h=300&fit=crop&q=80",
+    type: "cartera",
+    color: "negro",
+    occasion: "formal",
+    climate: "todo-clima",
+    isOuterwear: false,
+  },
+  {
+    image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&h=300&fit=crop&q=80",
+    type: "cartera",
+    color: "marron",
+    occasion: "casual",
+    climate: "todo-clima",
+    isOuterwear: false,
+  },
+
+  // Pañuelos
+  {
+    image: "https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=300&h=300&fit=crop&q=80",
+    type: "pañuelo",
+    color: "rojo",
+    occasion: "casual",
+    climate: "caluroso",
+    isOuterwear: false,
+  },
 ]
 
 export default function EjemplosPage() {
@@ -413,6 +530,27 @@ export default function EjemplosPage() {
                 </li>
                 <li className="flex justify-between">
                   <span>Accesorios:</span> <Badge variant="outline">2</Badge>
+                </li>
+                <li className="flex justify-between">
+                  <span>Chalecos:</span> <Badge variant="outline">2</Badge>
+                </li>
+                <li className="flex justify-between">
+                  <span>Shorts:</span> <Badge variant="outline">2</Badge>
+                </li>
+                <li className="flex justify-between">
+                  <span>Gorras:</span> <Badge variant="outline">2</Badge>
+                </li>
+                <li className="flex justify-between">
+                  <span>Bufandas:</span> <Badge variant="outline">2</Badge>
+                </li>
+                <li className="flex justify-between">
+                  <span>Aros:</span> <Badge variant="outline">2</Badge>
+                </li>
+                <li className="flex justify-between">
+                  <span>Carteras:</span> <Badge variant="outline">2</Badge>
+                </li>
+                <li className="flex justify-between">
+                  <span>Pañuelos:</span> <Badge variant="outline">1</Badge>
                 </li>
               </ul>
             </CardContent>

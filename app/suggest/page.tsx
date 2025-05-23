@@ -1,28 +1,23 @@
 "use client"
 
-import React from "react"
-
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
-  Wand2,
-  ArrowLeft,
-  Save,
-  Heart,
-  CheckCircle2,
   Thermometer,
   Snowflake,
   Sun,
   Coffee,
-  Briefcase,
   PartyPopper,
   Dumbbell,
   Shirt,
-  AlertCircle,
-  Upload,
+  Wand2,
+  Save,
   Eye,
+  ArrowLeft,
+  Heart,
+  Loader2,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -36,7 +31,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { OutfitVisualization } from "@/components/outfit-visualization"
 
 type ClothingItem = {
@@ -62,14 +56,16 @@ type UsageRecord = {
   }
 }
 
-// Categorías de prendas
+// Categorías de prendas actualizadas con todas las nuevas categorías
 const CLOTHING_CATEGORIES = {
-  upperBody: ["remera", "camisa", "sweater", "buzo", "cardigan", "blusa"],
-  lowerBody: ["pantalon", "jean", "falda", "shorts", "jeans"],
+  upperBodyBase: ["remera", "camisa", "blusa"], // Prendas base que van debajo
+  upperBodyLayer: ["sweater", "buzo"], // Prendas que pueden ir solas
+  layerNeedsBase: ["cardigan", "chaleco"], // Prendas abiertas que necesitan base
+  lowerBody: ["pantalon", "jean", "falda", "short", "shorts", "jeans"], // Incluye short
   fullBody: ["vestido", "mono", "jumpsuit"],
   outerwear: ["campera", "tapado", "blazer", "abrigo"],
   footwear: ["calzado", "zapatos", "zapatillas", "botas"],
-  accessories: ["accesorio", "bufanda", "gorro", "guantes", "cinturon"],
+  accessories: ["accesorio", "bufanda", "gorra", "gorro", "guantes", "cinturon", "aros", "pañuelo", "cartera"],
 }
 
 // Tipos de clima disponibles
@@ -88,6 +84,14 @@ const OCCASION_TYPES = [
   { value: "fiesta", label: "Fiesta", icon: PartyPopper },
   { value: "homewear", label: "En casa", icon: Coffee },
 ]
+
+// Mapeo mejorado de accesorios específicos por clima con lógica inteligente
+const CLIMATE_SPECIFIC_ACCESSORIES: Record<string, string[]> = {
+  caluroso: ["gorra", "aros", "pañuelo", "cartera"], // Solo accesorios apropiados para calor
+  templado: ["cartera", "aros", "cinturon", "pañuelo"], // Accesorios neutros
+  frio: ["bufanda", "gorro", "guantes", "cartera", "cinturon"], // Accesorios para abrigarse
+  "todo-clima": ["cartera", "aros", "cinturon"], // Accesorios universales
+}
 
 // Función para determinar la probabilidad de añadir un abrigo según el clima
 const getOuterwearProbabilityByClimate = (climate: string): number => {
@@ -228,43 +232,123 @@ const filterItemsByOccasion = (
   return items
 }
 
-// Nueva función para verificar si hay suficientes prendas para generar un look completo
+// Función mejorada para filtrar accesorios con lógica inteligente
+const filterAccessoriesByClimate = (accessories: ClothingItem[], targetClimate: string): ClothingItem[] => {
+  const climateSpecificTypes = CLIMATE_SPECIFIC_ACCESSORIES[targetClimate] || []
+  const todoClimaTypes = CLIMATE_SPECIFIC_ACCESSORIES["todo-clima"] || []
+
+  console.log(`Filtrando accesorios para clima: ${targetClimate}`)
+  console.log(`Tipos específicos para este clima:`, climateSpecificTypes)
+  console.log(
+    `Accesorios disponibles:`,
+    accessories.map((item) => `${item.type} (${item.climate})`),
+  )
+
+  // Filtrar accesorios que son apropiados para el clima objetivo
+  const climateAppropriate = accessories.filter((item) => {
+    // Prioridad 1: Si el accesorio tiene un tipo específico apropiado para el clima
+    if (climateSpecificTypes.includes(item.type)) {
+      console.log(`✓ ${item.type} es apropiado para clima ${targetClimate}`)
+      return true
+    }
+
+    // Prioridad 2: Si es un accesorio universal (todo-clima)
+    if (todoClimaTypes.includes(item.type)) {
+      console.log(`✓ ${item.type} es universal (todo-clima)`)
+      return true
+    }
+
+    // Prioridad 3: Para el tipo genérico "accesorio", usar la lógica de clima del item
+    if (item.type === "accesorio") {
+      const isAppropriate = item.climate === targetClimate || item.climate === "todo-clima"
+      console.log(
+        `${isAppropriate ? "✓" : "✗"} Accesorio genérico con clima ${item.climate} ${isAppropriate ? "es" : "no es"} apropiado`,
+      )
+      return isAppropriate
+    }
+
+    // Prioridad 4: Verificar incompatibilidades específicas
+    // No usar accesorios de frío en clima caluroso
+    if (targetClimate === "caluroso" && ["bufanda", "gorro", "guantes"].includes(item.type)) {
+      console.log(`✗ ${item.type} no es apropiado para clima caluroso`)
+      return false
+    }
+
+    // No usar accesorios de calor en clima frío
+    if (targetClimate === "frio" && ["gorra"].includes(item.type)) {
+      console.log(`✗ ${item.type} no es apropiado para clima frío`)
+      return false
+    }
+
+    console.log(`? ${item.type} no tiene regla específica, se excluye por seguridad`)
+    return false
+  })
+
+  console.log(
+    `Accesorios filtrados:`,
+    climateAppropriate.map((item) => item.type),
+  )
+  return climateAppropriate
+}
+
+// Función para obtener probabilidad de accesorio según el clima
+const getAccessoryProbabilityByClimate = (targetClimate: string): number => {
+  switch (targetClimate) {
+    case "frio":
+      return 0.7 // 70% de probabilidad en clima frío (más accesorios necesarios)
+    case "templado":
+      return 0.4 // 40% de probabilidad en clima templado
+    case "caluroso":
+      return 0.3 // 30% de probabilidad en clima caluroso (menos accesorios)
+    case "todo-clima":
+    default:
+      return 0.4 // 40% por defecto
+  }
+}
+
 const hasEnoughClothesForOutfit = (
   items: ClothingItem[],
 ): {
   hasEnough: boolean
   missingCategories: string[]
-  upperBodyCount: number
+  upperBodyBaseCount: number
+  upperBodyLayerCount: number
+  layerNeedsBaseCount: number
   lowerBodyCount: number
   fullBodyCount: number
   outerwearCount: number
   footwearCount: number
 } => {
-  // Contar prendas por categoría
-  const upperBodyItems = items.filter((item) => CLOTHING_CATEGORIES.upperBody.includes(item.type))
+  // Contar prendas por categoría actualizada
+  const upperBodyBaseItems = items.filter((item) => CLOTHING_CATEGORIES.upperBodyBase.includes(item.type))
+  const upperBodyLayerItems = items.filter((item) => CLOTHING_CATEGORIES.upperBodyLayer.includes(item.type))
+  const layerNeedsBaseItems = items.filter((item) => CLOTHING_CATEGORIES.layerNeedsBase.includes(item.type))
   const lowerBodyItems = items.filter((item) => CLOTHING_CATEGORIES.lowerBody.includes(item.type))
   const fullBodyItems = items.filter((item) => CLOTHING_CATEGORIES.fullBody.includes(item.type))
   const outerwearItems = items.filter((item) => CLOTHING_CATEGORIES.outerwear.includes(item.type) || item.isOuterwear)
   const footwearItems = items.filter((item) => CLOTHING_CATEGORIES.footwear.includes(item.type))
 
   // Verificar si hay suficientes prendas para un outfit básico
-  const hasUpperBody = upperBodyItems.length > 0
+  const hasUpperBodyBase = upperBodyBaseItems.length > 0
+  const hasUpperBodyLayer = upperBodyLayerItems.length > 0
+  const hasLayerNeedsBase = layerNeedsBaseItems.length > 0
   const hasLowerBody = lowerBodyItems.length > 0
   const hasFullBody = fullBodyItems.length > 0
 
-  // Un outfit básico necesita: (parte superior + parte inferior) O una prenda completa
-  // O al menos 2 prendas de cualquier tipo (más flexible)
-  const hasBasicOutfit = (hasUpperBody && hasLowerBody) || hasFullBody || items.length >= 2
+  // Un outfit básico necesita:
+  // - (prenda base + parte inferior) O (prenda layer + parte inferior) O prenda completa
+  // - Si hay cardigan o chaleco, debe haber prenda base
+  const hasBasicOutfit = ((hasUpperBodyBase || hasUpperBodyLayer) && hasLowerBody) || hasFullBody || items.length >= 2
 
   // Determinar qué categorías faltan
   const missingCategories = []
 
-  if (!hasUpperBody && !hasFullBody) {
-    missingCategories.push("parte superior (remera, camisa, etc.)")
+  if (!hasUpperBodyBase && !hasUpperBodyLayer && !hasFullBody) {
+    missingCategories.push("parte superior (remera, camisa, sweater, etc.)")
   }
 
   if (!hasLowerBody && !hasFullBody) {
-    missingCategories.push("parte inferior (pantalón, falda, etc.)")
+    missingCategories.push("parte inferior (pantalón, falda, short, etc.)")
   }
 
   if (missingCategories.length === 0 && !hasBasicOutfit) {
@@ -274,7 +358,9 @@ const hasEnoughClothesForOutfit = (
   return {
     hasEnough: hasBasicOutfit,
     missingCategories,
-    upperBodyCount: upperBodyItems.length,
+    upperBodyBaseCount: upperBodyBaseItems.length,
+    upperBodyLayerCount: upperBodyLayerItems.length,
+    layerNeedsBaseCount: layerNeedsBaseItems.length,
     lowerBodyCount: lowerBodyItems.length,
     fullBodyCount: fullBodyItems.length,
     outerwearCount: outerwearItems.length,
@@ -296,6 +382,7 @@ export default function SuggestPage() {
   const [selectedOccasion, setSelectedOccasion] = useState<string>("casual")
   const [clothingStatus, setClothingStatus] = useState<ReturnType<typeof hasEnoughClothesForOutfit> | null>(null)
   const [showOutfitVisualization, setShowOutfitVisualization] = useState(false)
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -319,6 +406,7 @@ export default function SuggestPage() {
       if (baseItemId) {
         const baseItem = parsedItems.find((item: ClothingItem) => item.id === baseItemId)
         if (baseItem) {
+          setBaseItem(baseItem)
           setSelectedClimate(baseItem.climate) // Establecer el clima de la prenda base como seleccionado
           setSelectedOccasion(baseItem.occasion) // Establecer la ocasión de la prenda base como seleccionada
 
@@ -359,7 +447,9 @@ export default function SuggestPage() {
           const selectedItems: ClothingItem[] = [baseItem]
 
           // Determinar qué tipo de prenda es la base
-          const isUpperBody = CLOTHING_CATEGORIES.upperBody.includes(baseItem.type)
+          const isUpperBodyBase = CLOTHING_CATEGORIES.upperBodyBase.includes(baseItem.type)
+          const isUpperBodyLayer = CLOTHING_CATEGORIES.upperBodyLayer.includes(baseItem.type)
+          const isLayerNeedsBase = CLOTHING_CATEGORIES.layerNeedsBase.includes(baseItem.type)
           const isLowerBody = CLOTHING_CATEGORIES.lowerBody.includes(baseItem.type)
           const isFullBody = CLOTHING_CATEGORIES.fullBody.includes(baseItem.type)
           const isOuterwear = CLOTHING_CATEGORIES.outerwear.includes(baseItem.type) || baseItem.isOuterwear
@@ -372,8 +462,14 @@ export default function SuggestPage() {
           const targetOccasion = determineTargetOccasion(baseItem, allItems, selectedOccasion)
 
           // Filtrar prendas por categoría y excluir la prenda base
-          const upperBodyItems = allItems.filter(
-            (item) => CLOTHING_CATEGORIES.upperBody.includes(item.type) && item.id !== baseItem.id,
+          const upperBodyBaseItems = allItems.filter(
+            (item) => CLOTHING_CATEGORIES.upperBodyBase.includes(item.type) && item.id !== baseItem.id,
+          )
+          const upperBodyLayerItems = allItems.filter(
+            (item) => CLOTHING_CATEGORIES.upperBodyLayer.includes(item.type) && item.id !== baseItem.id,
+          )
+          const layerNeedsBaseItems = allItems.filter(
+            (item) => CLOTHING_CATEGORIES.layerNeedsBase.includes(item.type) && item.id !== baseItem.id,
           )
           const lowerBodyItems = allItems.filter(
             (item) => CLOTHING_CATEGORIES.lowerBody.includes(item.type) && item.id !== baseItem.id,
@@ -386,10 +482,24 @@ export default function SuggestPage() {
             (item) => CLOTHING_CATEGORIES.footwear.includes(item.type) && item.id !== baseItem.id,
           )
 
-          // Filtrar prendas por clima y ocasión
-          const climateSuitableUpperBody = filterItemsByClimate(upperBodyItems, targetClimate)
-          const occasionSuitableUpperBody = filterItemsByOccasion(
-            climateSuitableUpperBody,
+          // Filtrar prendas por clima
+          const climateSuitableUpperBase = filterItemsByClimate(upperBodyBaseItems, targetClimate)
+          const occasionSuitableUpperBase = filterItemsByOccasion(
+            climateSuitableUpperBase,
+            targetOccasion,
+            selectedOccasion === targetOccasion,
+          )
+
+          const climateSuitableUpperLayer = filterItemsByClimate(upperBodyLayerItems, targetClimate)
+          const occasionSuitableUpperLayer = filterItemsByOccasion(
+            climateSuitableUpperLayer,
+            targetOccasion,
+            selectedOccasion === targetOccasion,
+          )
+
+          const climateSuitableLayerNeedsBase = filterItemsByClimate(layerNeedsBaseItems, targetClimate)
+          const occasionSuitableLayerNeedsBase = filterItemsByOccasion(
+            climateSuitableLayerNeedsBase,
             targetOccasion,
             selectedOccasion === targetOccasion,
           )
@@ -415,56 +525,46 @@ export default function SuggestPage() {
             selectedOccasion === targetOccasion,
           )
 
-          // Añadir prendas complementarias según la base, priorizando el clima adecuado
-          if (isUpperBody && occasionSuitableLowerBody.length > 0) {
-            // Si la base es parte superior, añadir parte inferior
-            const randomIndex = Math.floor(Math.random() * occasionSuitableLowerBody.length)
-            selectedItems.push(occasionSuitableLowerBody[randomIndex])
-          } else if (isLowerBody && occasionSuitableUpperBody.length > 0) {
-            // Si la base es parte inferior, añadir parte superior
-            const randomIndex = Math.floor(Math.random() * occasionSuitableUpperBody.length)
-            selectedItems.push(occasionSuitableUpperBody[randomIndex])
+          // Agregar una prenda de parte superior si es necesario
+          if (isLowerBody && occasionSuitableUpperBase.length > 0) {
+            selectedItems.push(occasionSuitableUpperBase[0])
+          } else if (isLowerBody && occasionSuitableUpperLayer.length > 0) {
+            selectedItems.push(occasionSuitableUpperLayer[0])
           }
 
-          // Si no es un abrigo, considerar añadir uno según el clima
-          if (!isOuterwear && occasionSuitableOuterwear.length > 0) {
-            // Obtener probabilidad según el clima
-            const probability = getOuterwearProbabilityByClimate(targetClimate)
-
-            // Decidir si añadir abrigo basado en la probabilidad ajustada
-            if (Math.random() < probability) {
-              const randomIndex = Math.floor(Math.random() * occasionSuitableOuterwear.length)
-              selectedItems.push(occasionSuitableOuterwear[randomIndex])
-            }
+          // Agregar una prenda de parte inferior si es necesario
+          if ((isUpperBodyBase || isUpperBodyLayer || isLayerNeedsBase) && occasionSuitableLowerBody.length > 0) {
+            selectedItems.push(occasionSuitableLowerBody[0])
           }
 
-          // Si no es calzado y hay calzado disponible, añadir uno con 70% de probabilidad
-          if (!isFootwear && occasionSuitableFootwear.length > 0 && Math.random() > 0.3) {
-            const randomIndex = Math.floor(Math.random() * occasionSuitableFootwear.length)
-            selectedItems.push(occasionSuitableFootwear[randomIndex])
+          // Agregar un abrigo si es necesario y apropiado
+          if (
+            !isOuterwear &&
+            occasionSuitableOuterwear.length > 0 &&
+            Math.random() < getOuterwearProbabilityByClimate(targetClimate)
+          ) {
+            selectedItems.push(occasionSuitableOuterwear[0])
           }
 
-          // Actualizar estado
+          // Agregar calzado si es necesario
+          if (!isFootwear && occasionSuitableFootwear.length > 0) {
+            selectedItems.push(occasionSuitableFootwear[0])
+          }
+
           setOutfit(selectedItems)
-          setMessage(
-            `¡Look generado con tu ${baseItem.type} ${baseItem.color} para clima ${targetClimate} y ocasión ${targetOccasion}!`,
-          )
+          setMessage(`¡Tu look ha sido generado con ${baseItem.type} ${baseItem.color} como base!`)
         } catch (error) {
-          console.error("Error al generar outfit:", error)
-          toast({
-            title: "Error",
-            description: "Ocurrió un error al generar el outfit.",
-            variant: "destructive",
-          })
+          console.error("Error generating outfit:", error)
+          setMessage("Hubo un error al generar el look. Por favor, intenta nuevamente.")
         } finally {
           setIsLoading(false)
         }
-      }, 500)
+      }, 1000)
     },
-    [toast, selectedClimate, selectedOccasion],
+    [selectedClimate, selectedOccasion],
   )
 
-  // Función para generar un outfit básico
+  // Función para generar un outfit completo sin una prenda base específica
   const handleGenerateOutfit = useCallback(() => {
     // Verificar si hay suficientes prendas
     console.log("Iniciando generación de outfit con", items.length, "prendas disponibles")
@@ -517,27 +617,47 @@ export default function SuggestPage() {
         const targetOccasion = determineTargetOccasion(null, items, selectedOccasion)
         console.log("Ocasión objetivo:", targetOccasion)
 
-        // Separar prendas por categoría
-        const upperBodyItems = items.filter((item) => CLOTHING_CATEGORIES.upperBody.includes(item.type))
+        // Separar prendas por categoría actualizada
+        const upperBodyBaseItems = items.filter((item) => CLOTHING_CATEGORIES.upperBodyBase.includes(item.type))
+        const upperBodyLayerItems = items.filter((item) => CLOTHING_CATEGORIES.upperBodyLayer.includes(item.type))
+        const layerNeedsBaseItems = items.filter((item) => CLOTHING_CATEGORIES.layerNeedsBase.includes(item.type))
         const lowerBodyItems = items.filter((item) => CLOTHING_CATEGORIES.lowerBody.includes(item.type))
         const fullBodyItems = items.filter((item) => CLOTHING_CATEGORIES.fullBody.includes(item.type))
         const outerwearItems = items.filter(
           (item) => CLOTHING_CATEGORIES.outerwear.includes(item.type) || item.isOuterwear,
         )
         const footwearItems = items.filter((item) => CLOTHING_CATEGORIES.footwear.includes(item.type))
+        const accessoryItems = items.filter((item) => CLOTHING_CATEGORIES.accessories.includes(item.type))
 
         console.log("Prendas por categoría:", {
-          upperBody: upperBodyItems.length,
+          upperBodyBase: upperBodyBaseItems.length,
+          upperBodyLayer: upperBodyLayerItems.length,
+          layerNeedsBase: layerNeedsBaseItems.length,
           lowerBody: lowerBodyItems.length,
           fullBody: fullBodyItems.length,
           outerwear: outerwearItems.length,
           footwear: footwearItems.length,
+          accessories: accessoryItems.length,
         })
 
         // Filtrar prendas por clima
-        const climateSuitableUpperBody = filterItemsByClimate(upperBodyItems, targetClimate)
-        const occasionSuitableUpperBody = filterItemsByOccasion(
-          climateSuitableUpperBody,
+        const climateSuitableUpperBase = filterItemsByClimate(upperBodyBaseItems, targetClimate)
+        const occasionSuitableUpperBase = filterItemsByOccasion(
+          climateSuitableUpperBase,
+          targetOccasion,
+          selectedOccasion === targetOccasion,
+        )
+
+        const climateSuitableUpperLayer = filterItemsByClimate(upperBodyLayerItems, targetClimate)
+        const occasionSuitableUpperLayer = filterItemsByOccasion(
+          climateSuitableUpperLayer,
+          targetOccasion,
+          selectedOccasion === targetOccasion,
+        )
+
+        const climateSuitableLayerNeedsBase = filterItemsByClimate(layerNeedsBaseItems, targetClimate)
+        const occasionSuitableLayerNeedsBase = filterItemsByOccasion(
+          climateSuitableLayerNeedsBase,
           targetOccasion,
           selectedOccasion === targetOccasion,
         )
@@ -570,17 +690,30 @@ export default function SuggestPage() {
           selectedOccasion === targetOccasion,
         )
 
+        // Filtrar accesorios por clima específico
+        const climateSuitableAccessories = filterAccessoriesByClimate(accessoryItems, targetClimate)
+        const occasionSuitableAccessories = filterItemsByOccasion(
+          climateSuitableAccessories,
+          targetOccasion,
+          selectedOccasion === targetOccasion,
+        )
+
         console.log("Prendas filtradas por clima y ocasión:", {
-          upperBody: occasionSuitableUpperBody.length,
+          upperBodyBase: occasionSuitableUpperBase.length,
+          upperBodyLayer: occasionSuitableUpperLayer.length,
+          layerNeedsBase: occasionSuitableLayerNeedsBase.length,
           lowerBody: occasionSuitableLowerBody.length,
           fullBody: occasionSuitableFullBody.length,
           outerwear: occasionSuitableOuterwear.length,
           footwear: occasionSuitableFootwear.length,
+          accessories: occasionSuitableAccessories.length,
         })
 
         // Después de filtrar todas las prendas, verificar si hay suficientes para la ocasión
         const hasOccasionItems =
-          occasionSuitableUpperBody.length > 0 ||
+          occasionSuitableUpperBase.length > 0 ||
+          occasionSuitableUpperLayer.length > 0 ||
+          occasionSuitableLayerNeedsBase.length > 0 ||
           occasionSuitableLowerBody.length > 0 ||
           occasionSuitableFullBody.length > 0
 
@@ -612,17 +745,42 @@ export default function SuggestPage() {
             occasionSuitableFullBody[randomIndex].color,
           )
         } else {
-          // Seleccionar parte superior
-          if (occasionSuitableUpperBody.length > 0) {
-            const randomIndex = Math.floor(Math.random() * occasionSuitableUpperBody.length)
-            selectedItems.push(occasionSuitableUpperBody[randomIndex])
-            console.log(
-              "Parte superior seleccionada:",
-              occasionSuitableUpperBody[randomIndex].type,
-              occasionSuitableUpperBody[randomIndex].color,
-            )
+          // Decidir si usar cardigan o chaleco (30% de probabilidad si hay disponibles)
+          const useLayerNeedsBase = occasionSuitableLayerNeedsBase.length > 0 && Math.random() < 0.3
+
+          if (useLayerNeedsBase) {
+            // Si usamos cardigan o chaleco, necesitamos una prenda base
+            const randomLayerIndex = Math.floor(Math.random() * occasionSuitableLayerNeedsBase.length)
+            selectedItems.push(occasionSuitableLayerNeedsBase[randomLayerIndex])
+
+            // Seleccionar prenda base apropiada según la ocasión
+            let baseItems = occasionSuitableUpperBase
+
+            if (targetOccasion === "formal") {
+              // Para ocasiones formales, preferir camisas y blusas
+              const formalBaseItems = baseItems.filter((item) => item.type === "camisa" || item.type === "blusa")
+              if (formalBaseItems.length > 0) {
+                baseItems = formalBaseItems
+              }
+            } else if (targetOccasion === "casual") {
+              // Para ocasiones casuales, preferir remeras
+              const casualBaseItems = baseItems.filter((item) => item.type === "remera")
+              if (casualBaseItems.length > 0) {
+                baseItems = casualBaseItems
+              }
+            }
+
+            if (baseItems.length > 0) {
+              const randomBaseIndex = Math.floor(Math.random() * baseItems.length)
+              selectedItems.push(baseItems[randomBaseIndex])
+            }
           } else {
-            console.warn("No hay prendas superiores disponibles para la selección")
+            // Si no usamos cardigan o chaleco, seleccionar prenda superior normal
+            const allUpperItems = [...occasionSuitableUpperBase, ...occasionSuitableUpperLayer]
+            if (allUpperItems.length > 0) {
+              const randomIndex = Math.floor(Math.random() * allUpperItems.length)
+              selectedItems.push(allUpperItems[randomIndex])
+            }
           }
 
           // Seleccionar parte inferior
@@ -668,6 +826,27 @@ export default function SuggestPage() {
           )
         }
 
+        // Añadir accesorio específico para el clima con probabilidad inteligente
+        if (occasionSuitableAccessories.length > 0) {
+          const accessoryProbability = getAccessoryProbabilityByClimate(targetClimate)
+          console.log(`Probabilidad de añadir accesorio para clima ${targetClimate}:`, accessoryProbability)
+
+          if (Math.random() < accessoryProbability) {
+            const randomIndex = Math.floor(Math.random() * occasionSuitableAccessories.length)
+            selectedItems.push(occasionSuitableAccessories[randomIndex])
+            console.log(
+              "Accesorio seleccionado:",
+              occasionSuitableAccessories[randomIndex].type,
+              occasionSuitableAccessories[randomIndex].color,
+              `(apropiado para clima ${targetClimate})`,
+            )
+          } else {
+            console.log(`No se añadió accesorio (probabilidad: ${accessoryProbability})`)
+          }
+        } else {
+          console.log(`No hay accesorios apropiados para clima ${targetClimate}`)
+        }
+
         console.log("Outfit final generado con", selectedItems.length, "prendas")
 
         // Verificar si se generó un outfit válido
@@ -696,173 +875,74 @@ export default function SuggestPage() {
       } finally {
         setIsLoading(false)
       }
-    }, 500)
+    }, 1000)
   }, [items, toast, selectedClimate, selectedOccasion])
 
-  const handleGenerateWithItem = (item: ClothingItem) => {
-    // Verificar si hay suficientes prendas
-    const status = hasEnoughClothesForOutfit(items)
-    setClothingStatus(status)
-
-    if (!status.hasEnough) {
+  // Función para guardar el outfit actual
+  const handleSaveOutfit = () => {
+    if (outfit.length === 0) {
+      toast({
+        title: "No hay look para guardar",
+        description: "Genera un look primero antes de guardarlo.",
+        variant: "warning",
+      })
       return
     }
 
-    setIsLoading(true)
-    setUsageUpdated(false)
-    setBaseItem(item)
-    // Actualizar el clima seleccionado al clima de la prenda base
-    setSelectedClimate(item.climate)
-    // Actualizar la ocasión seleccionada a la ocasión de la prenda base
-    setSelectedOccasion(item.occasion)
+    // Obtener outfits guardados
+    const storedOutfits = localStorage.getItem("savedOutfits")
+    const outfits: Outfit[] = storedOutfits ? JSON.parse(storedOutfits) : []
 
-    setTimeout(() => {
-      try {
-        // Comenzar con la prenda seleccionada
-        const selectedItems: ClothingItem[] = [item]
-
-        // Determinar qué tipo de prenda es la base
-        const isUpperBody = CLOTHING_CATEGORIES.upperBody.includes(item.type)
-        const isLowerBody = CLOTHING_CATEGORIES.lowerBody.includes(item.type)
-        const isFullBody = CLOTHING_CATEGORIES.fullBody.includes(item.type)
-        const isOuterwear = CLOTHING_CATEGORIES.outerwear.includes(item.type) || item.isOuterwear
-        const isFootwear = CLOTHING_CATEGORIES.footwear.includes(item.type)
-
-        // Determinar el clima objetivo basado en la prenda base o la selección del usuario
-        const targetClimate = determineTargetClimate(item, items, selectedClimate)
-
-        // Determinar la ocasión objetivo basada en la prenda base o la selección del usuario
-        const targetOccasion = determineTargetOccasion(item, items, selectedOccasion)
-
-        // Filtrar prendas por categoría, excluyendo la prenda base
-        const upperBodyItems = items.filter((i) => CLOTHING_CATEGORIES.upperBody.includes(i.type) && i.id !== item.id)
-        const lowerBodyItems = items.filter((i) => CLOTHING_CATEGORIES.lowerBody.includes(i.type) && i.id !== item.id)
-        const outerwearItems = items.filter(
-          (i) => (CLOTHING_CATEGORIES.outerwear.includes(i.type) || i.isOuterwear) && i.id !== item.id,
-        )
-        const footwearItems = items.filter((i) => CLOTHING_CATEGORIES.footwear.includes(i.type) && i.id !== item.id)
-
-        // Filtrar prendas por clima
-        const climateSuitableUpperBody = filterItemsByClimate(upperBodyItems, targetClimate)
-        const occasionSuitableUpperBody = filterItemsByOccasion(
-          climateSuitableUpperBody,
-          targetOccasion,
-          selectedOccasion === targetOccasion,
-        )
-
-        const climateSuitableLowerBody = filterItemsByClimate(lowerBodyItems, targetClimate)
-        const occasionSuitableLowerBody = filterItemsByOccasion(
-          climateSuitableLowerBody,
-          targetOccasion,
-          selectedOccasion === targetOccasion,
-        )
-
-        const climateSuitableOuterwear = filterItemsByClimate(outerwearItems, targetClimate)
-        const occasionSuitableOuterwear = filterItemsByOccasion(
-          climateSuitableOuterwear,
-          targetOccasion,
-          selectedOccasion === targetOccasion,
-        )
-
-        const climateSuitableFootwear = filterItemsByClimate(footwearItems, targetClimate)
-        const occasionSuitableFootwear = filterItemsByOccasion(
-          climateSuitableFootwear,
-          targetOccasion,
-          selectedOccasion === targetOccasion,
-        )
-
-        // Después de filtrar todas las prendas, verificar si hay suficientes para la ocasión
-        const hasOccasionItems =
-          (isUpperBody || occasionSuitableUpperBody.length > 0) && (isLowerBody || occasionSuitableLowerBody.length > 0)
-
-        if (!hasOccasionItems && selectedOccasion === targetOccasion && !isFullBody) {
-          setIsLoading(false)
-          toast({
-            title: "No hay prendas suficientes",
-            description: `No tenés prendas complementarias etiquetadas para la ocasión "${targetOccasion}". Agregá más prendas o seleccioná otra ocasión.`,
-            variant: "warning",
-          })
-          return
-        }
-
-        // Añadir prendas complementarias según la base, priorizando el clima adecuado
-        if (isUpperBody && occasionSuitableLowerBody.length > 0) {
-          // Si la base es parte superior, añadir parte inferior
-          const randomIndex = Math.floor(Math.random() * occasionSuitableLowerBody.length)
-          selectedItems.push(occasionSuitableLowerBody[randomIndex])
-        } else if (isLowerBody && occasionSuitableUpperBody.length > 0) {
-          // Si la base es parte inferior, añadir parte superior
-          const randomIndex = Math.floor(Math.random() * occasionSuitableUpperBody.length)
-          selectedItems.push(occasionSuitableUpperBody[randomIndex])
-        }
-
-        // Si no es un abrigo, considerar añadir uno según el clima
-        if (!isOuterwear && occasionSuitableOuterwear.length > 0) {
-          // Obtener probabilidad según el clima
-          const probability = getOuterwearProbabilityByClimate(targetClimate)
-
-          // Decidir si añadir abrigo basado en la probabilidad ajustada
-          if (Math.random() < probability) {
-            const randomIndex = Math.floor(Math.random() * occasionSuitableOuterwear.length)
-            selectedItems.push(occasionSuitableOuterwear[randomIndex])
-          }
-        }
-
-        // Si no es calzado y hay calzado disponible, añadir uno con 70% de probabilidad
-        if (!isFootwear && occasionSuitableFootwear.length > 0 && Math.random() > 0.3) {
-          const randomIndex = Math.floor(Math.random() * occasionSuitableFootwear.length)
-          selectedItems.push(occasionSuitableFootwear[randomIndex])
-        }
-
-        // Actualizar estado
-        setOutfit(selectedItems)
-        setMessage(
-          `¡Look generado con tu ${item.type} ${item.color} para clima ${targetClimate} y ocasión ${targetOccasion}!`,
-        )
-      } catch (error) {
-        console.error("Error al generar outfit con prenda base:", error)
-        toast({
-          title: "Error",
-          description: "Ocurrió un error al generar el outfit.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }, 500)
-  }
-
-  // Función para guardar el outfit
-  const handleSaveOutfit = () => {
-    if (outfit.length === 0) return
-
-    // Obtener outfits existentes
-    const existingOutfits = localStorage.getItem("savedOutfits")
-    const outfits: Outfit[] = existingOutfits ? JSON.parse(existingOutfits) : []
-
-    // Añadir nuevo outfit
+    // Crear nuevo outfit
     const newOutfit: Outfit = {
       id: Date.now().toString(),
       items: outfit,
       date: new Date().toLocaleDateString(),
     }
 
-    // Guardar en localStorage
+    // Guardar outfit
     localStorage.setItem("savedOutfits", JSON.stringify([...outfits, newOutfit]))
 
-    // Mostrar mensaje de éxito
+    // Actualizar registro de uso
+    const storedUsage = localStorage.getItem("clothingUsage")
+    const usageRecord: UsageRecord = storedUsage ? JSON.parse(storedUsage) : {}
+
+    // Actualizar el contador para cada prenda
+    outfit.forEach((item) => {
+      if (!usageRecord[item.id]) {
+        usageRecord[item.id] = {
+          count: 0,
+          lastUsed: new Date().toISOString(),
+        }
+      }
+    })
+
+    // Guardar el registro actualizado
+    localStorage.setItem("clothingUsage", JSON.stringify(usageRecord))
+
+    // Mostrar confirmación
     toast({
-      title: "¡Look guardado!",
-      description: "Tu combinación ha sido guardada en 'Mis looks'",
+      title: "Look guardado",
+      description: "El look ha sido guardado en tu colección.",
       variant: "success",
     })
+
+    // Cerrar diálogo si está abierto
+    setShowSaveDialog(false)
   }
 
-  // Función para registrar el uso de las prendas
+  // Función para registrar el uso del outfit actual
   const handleRecordUsage = () => {
-    if (outfit.length === 0) return
+    if (outfit.length === 0) {
+      toast({
+        title: "No hay look para registrar",
+        description: "Genera un look primero antes de registrar su uso.",
+        variant: "warning",
+      })
+      return
+    }
 
-    // Obtener el registro de usos actual
+    // Obtener el registro de uso actual
     const storedUsage = localStorage.getItem("clothingUsage")
     const usageRecord: UsageRecord = storedUsage ? JSON.parse(storedUsage) : {}
     const today = new Date().toISOString().split("T")[0] // Formato YYYY-MM-DD
@@ -882,78 +962,69 @@ export default function SuggestPage() {
     // Guardar el registro actualizado
     localStorage.setItem("clothingUsage", JSON.stringify(usageRecord))
 
-    // Mostrar diálogo de confirmación
-    setShowUsageDialog(true)
-    setUsageUpdated(true)
-
-    // También mostrar un toast
+    // Mostrar confirmación
     toast({
-      title: "¡Uso registrado!",
+      title: "Uso registrado",
       description: "Has actualizado el contador de uso de estas prendas.",
       variant: "success",
     })
+
+    // Actualizar estado
+    setUsageUpdated(true)
+    setShowUsageDialog(true)
   }
 
-  // Obtener el número de usos de cada prenda
-  const getItemUsageCount = (itemId: string): number => {
-    const storedUsage = localStorage.getItem("clothingUsage")
-    if (!storedUsage) return 0
-
-    const usageRecord: UsageRecord = JSON.parse(storedUsage)
-    return usageRecord[itemId]?.count || 0
-  }
-
-  // Función para obtener la etiqueta de categoría
-  const getCategoryLabel = (type: string): string => {
-    if (CLOTHING_CATEGORIES.upperBody.includes(type)) return "Parte superior"
-    if (CLOTHING_CATEGORIES.lowerBody.includes(type)) return "Parte inferior"
-    if (CLOTHING_CATEGORIES.fullBody.includes(type)) return "Prenda completa"
-    if (CLOTHING_CATEGORIES.outerwear.includes(type)) return "Abrigo"
-    if (CLOTHING_CATEGORIES.footwear.includes(type)) return "Calzado"
-    if (CLOTHING_CATEGORIES.accessories.includes(type)) return "Accesorio"
-    return type
-  }
-
-  // Función para manejar el cambio de clima seleccionado
-  const handleClimateChange = (climate: string) => {
-    console.log("Clima seleccionado:", climate)
-    setSelectedClimate(climate)
-    // Si hay un outfit generado, limpiar para evitar inconsistencias con el nuevo clima
-    if (outfit.length > 0) {
-      setOutfit([])
-      // Eliminar el mensaje que causa duplicación
-      setMessage("")
+  // Función para generar un nuevo look con la misma prenda base
+  const handleRegenerateWithSameBase = () => {
+    if (baseItem) {
+      generateOutfitWithBaseItem(baseItem, items)
+    } else {
+      handleGenerateOutfit()
     }
   }
 
-  // Función para manejar el cambio de ocasión seleccionada
-  const handleOccasionChange = (occasion: string) => {
-    console.log("Ocasión seleccionada:", occasion)
-    setSelectedOccasion(occasion)
-    // Si hay un outfit generado, limpiar para evitar inconsistencias con la nueva ocasión
-    if (outfit.length > 0) {
-      setOutfit([])
-      // Eliminar el mensaje que causa duplicación
-      setMessage("")
+  // Función para mostrar la visualización del outfit
+  const handleShowVisualization = () => {
+    if (outfit.length === 0) {
+      toast({
+        title: "No hay look para visualizar",
+        description: "Genera un look primero antes de visualizarlo.",
+        variant: "warning",
+      })
+      return
     }
+
+    setShowOutfitVisualization(true)
   }
 
-  // Función para obtener el icono de clima
-  const getClimateIcon = (climate: string) => {
-    const climateType = CLIMATE_TYPES.find((type) => type.value === climate)
-    if (!climateType) return Thermometer
-    return climateType.icon
-  }
-
-  // Función para obtener el icono de ocasión
-  const getOccasionIcon = (occasion: string) => {
-    const occasionType = OCCASION_TYPES.find((type) => type.value === occasion)
-    if (!occasionType) return Briefcase
-    return occasionType.icon
-  }
-
+  // Renderizar la página
   return (
     <div className="container py-8">
+      <div className="flex flex-col items-center justify-between gap-4 mb-8 md:flex-row">
+        <h1 className="text-2xl font-bold">Sugerir Look</h1>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/gallery">
+            <Button variant="outline" className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Volver a Mi Armario
+            </Button>
+          </Link>
+          <Link href="/looks">
+            <Button variant="outline" className="gap-2">
+              <Heart className="w-4 h-4" />
+              Ver Looks Guardados
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Diálogo de visualización del outfit */}
+      <OutfitVisualization
+        items={outfit}
+        isOpen={showOutfitVisualization}
+        onClose={() => setShowOutfitVisualization(false)}
+      />
+
       {/* Diálogo de confirmación de uso */}
       <Dialog open={showUsageDialog} onOpenChange={setShowUsageDialog}>
         <DialogContent className="sm:max-w-[425px]">
@@ -963,17 +1034,13 @@ export default function SuggestPage() {
           </DialogHeader>
           <div className="py-4">
             <div className="rounded-lg bg-muted p-4 mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <h3 className="font-medium">Contador de usos actualizado</h3>
-              </div>
+              <h3 className="font-medium mb-2">Prendas registradas:</h3>
               <ul className="space-y-2">
                 {outfit.map((item) => (
                   <li key={item.id} className="flex justify-between items-center">
                     <span className="capitalize">
                       {item.type} {item.color}
                     </span>
-                    <Badge variant="secondary">{getItemUsageCount(item.id)} usos</Badge>
                   </li>
                 ))}
               </ul>
@@ -991,254 +1058,200 @@ export default function SuggestPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex flex-col items-center justify-between gap-4 mb-8 md:flex-row">
-        <h1 className="text-2xl font-bold">Sugerencia de Look</h1>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/gallery">
-            <Button variant="outline" className="gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              Volver a Mi Armario
-            </Button>
-          </Link>
-          <Link href="/looks">
-            <Button variant="outline" className="gap-2">
-              <Heart className="w-4 h-4" />
-              Mis looks guardados
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      <div className="max-w-3xl mx-auto">
-        {/* Alerta de prendas insuficientes */}
-        {clothingStatus && !clothingStatus.hasEnough && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Prendas insuficientes</AlertTitle>
-            <AlertDescription>
-              <p className="mb-2">No tenés suficientes prendas para generar un look completo. Te faltan:</p>
-              <ul className="list-disc pl-5 mb-3">
-                {clothingStatus.missingCategories.map((category, index) => (
-                  <li key={index}>{category}</li>
+      {/* Diálogo de guardar outfit */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Guardar Look</DialogTitle>
+            <DialogDescription>¿Querés guardar este look en tu colección?</DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="rounded-lg bg-muted p-4 mb-4">
+              <h3 className="font-medium mb-2">Prendas en este look:</h3>
+              <ul className="space-y-2">
+                {outfit.map((item) => (
+                  <li key={item.id} className="flex justify-between items-center">
+                    <span className="capitalize">
+                      {item.type} {item.color}
+                    </span>
+                  </li>
                 ))}
               </ul>
-              <p className="mb-2">Actualmente tenés:</p>
-              <ul className="list-disc pl-5 mb-3">
-                <li>{clothingStatus.upperBodyCount} prendas superiores</li>
-                <li>{clothingStatus.lowerBodyCount} prendas inferiores</li>
-                <li>{clothingStatus.fullBodyCount} prendas completas</li>
-                <li>{clothingStatus.outerwearCount} abrigos</li>
-                <li>{clothingStatus.footwearCount} calzados</li>
-              </ul>
-              <Link href="/upload">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Upload className="w-4 h-4" />
-                  Añadir más prendas
-                </Button>
-              </Link>
-            </AlertDescription>
-          </Alert>
-        )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Los looks guardados aparecerán en la sección "Looks Guardados".
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveOutfit}>Guardar Look</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        {/* Selector de clima con botones normales */}
-        <Card className="mb-6">
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Panel de configuración */}
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Seleccioná el clima para tu look</CardTitle>
+            <CardTitle>Configurar Look</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {CLIMATE_TYPES.map((climate) => {
-                const Icon = climate.icon
-                const isSelected = selectedClimate === climate.value
-                return (
+          <CardContent className="space-y-4">
+            {/* Selección de clima */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Clima:</label>
+              <div className="grid grid-cols-4 gap-2">
+                {CLIMATE_TYPES.map((climate) => (
                   <Button
                     key={climate.value}
-                    variant={isSelected ? "default" : "outline"}
-                    className={`flex flex-col items-center justify-center h-auto py-4 ${
-                      isSelected ? "bg-primary-500 text-white" : ""
-                    }`}
-                    onClick={() => handleClimateChange(climate.value)}
+                    variant={selectedClimate === climate.value ? "default" : "outline"}
+                    className="flex flex-col items-center justify-center h-auto py-3 px-2"
+                    onClick={() => setSelectedClimate(climate.value)}
                   >
-                    <Icon className="mb-2 h-6 w-6" />
-                    {climate.label}
+                    <climate.icon className="h-5 w-5 mb-1" />
+                    <span className="text-xs">{climate.label}</span>
                   </Button>
-                )
-              })}
+                ))}
+              </div>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Selector de ocasión con botones normales */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Seleccioná la ocasión para tu look</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              {OCCASION_TYPES.map((occasion) => {
-                const Icon = occasion.icon
-                const isSelected = selectedOccasion === occasion.value
-                return (
+            {/* Selección de ocasión */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Ocasión:</label>
+              <div className="grid grid-cols-5 gap-2">
+                {OCCASION_TYPES.map((occasion) => (
                   <Button
                     key={occasion.value}
-                    variant={isSelected ? "default" : "outline"}
-                    className={`flex flex-col items-center justify-center h-auto py-4 ${
-                      isSelected ? "bg-primary-500 text-white" : ""
-                    }`}
-                    onClick={() => handleOccasionChange(occasion.value)}
+                    variant={selectedOccasion === occasion.value ? "default" : "outline"}
+                    className="flex flex-col items-center justify-center h-auto py-3 px-2"
+                    onClick={() => setSelectedOccasion(occasion.value)}
                   >
-                    <Icon className="mb-2 h-6 w-6" />
-                    {occasion.label}
+                    <occasion.icon className="h-5 w-5 mb-1" />
+                    <span className="text-xs">{occasion.label}</span>
                   </Button>
-                )
-              })}
+                ))}
+              </div>
             </div>
+
+            {/* Prenda base (si existe) */}
+            {baseItem && (
+              <div className="p-3 rounded-lg border">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-md overflow-hidden">
+                    <img
+                      src={baseItem.image || "/placeholder.svg"}
+                      alt={baseItem.type}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <p className="font-medium capitalize">
+                      Prenda base: {baseItem.type} {baseItem.color}
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      <Badge variant="outline" className="capitalize">
+                        {baseItem.climate}
+                      </Badge>
+                      <Badge variant="outline" className="capitalize">
+                        {baseItem.occasion}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Botón de generación */}
+            <Button
+              onClick={handleGenerateOutfit}
+              className="w-full gap-2"
+              disabled={isLoading || (clothingStatus && !clothingStatus.hasEnough)}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generando...
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4" />
+                  Generar sugerencia
+                </>
+              )}
+            </Button>
+
+            {/* Mensaje de error si no hay suficientes prendas */}
+            {clothingStatus && !clothingStatus.hasEnough && (
+              <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                <p className="font-medium">No hay suficientes prendas para generar un look</p>
+                <p className="mt-1">Necesitas añadir al menos:</p>
+                <ul className="list-disc list-inside mt-1">
+                  {clothingStatus.missingCategories.map((category, index) => (
+                    <li key={index}>{category}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="mb-6 shadow-sm hover:shadow-md transition-all duration-300">
+        {/* Panel de resultados */}
+        <Card>
           <CardHeader>
-            <CardTitle className="text-center">
-              {baseItem
-                ? `Look generado con tu ${baseItem.type} ${baseItem.color}${selectedClimate ? ` para clima ${selectedClimate}` : ""}${selectedOccasion ? ` y ocasión ${selectedOccasion}` : ""}`
-                : outfit.length > 0
-                  ? message
-                  : ""}
-            </CardTitle>
+            <CardTitle>Tu Look Sugerido</CardTitle>
           </CardHeader>
           <CardContent>
             {outfit.length > 0 ? (
-              <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
-                {outfit.map((item) => (
-                  <div key={item.id} className="flex flex-col items-center animate-fade-in">
-                    <div className="relative w-full h-48 mb-2 overflow-hidden rounded-md border">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={item.image || "/placeholder.svg"}
-                        alt={item.type}
-                        className="object-cover w-full h-full"
-                      />
-                      {getItemUsageCount(item.id) > 0 && (
-                        <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
-                          {getItemUsageCount(item.id)} usos
-                        </div>
-                      )}
-                      {baseItem?.id === item.id && (
-                        <div className="absolute bottom-2 left-2 bg-primary-500 text-white text-xs px-2 py-1 rounded-full">
-                          Prenda base
-                        </div>
-                      )}
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {outfit.map((item) => (
+                    <div key={item.id} className="flex flex-col items-center">
+                      <div className="relative w-full aspect-square mb-2 overflow-hidden rounded-md">
+                        <img
+                          src={item.image || "/placeholder.svg"}
+                          alt={item.type}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                      <div className="flex flex-wrap justify-center gap-1">
+                        <Badge className="capitalize">{item.type}</Badge>
+                        <Badge variant="outline" className="capitalize" style={{ backgroundColor: `${item.color}20` }}>
+                          {item.color}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      <Badge className="capitalize">{item.type}</Badge>
-                      <Badge variant="secondary" className="capitalize">
-                        {getCategoryLabel(item.type)}
-                      </Badge>
-                      <Badge variant="outline" className="capitalize" style={{ backgroundColor: `${item.color}20` }}>
-                        {item.color}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className="flex items-center gap-1"
-                        style={{
-                          backgroundColor:
-                            item.climate === "caluroso" ? "#FFEDD5" : item.climate === "frio" ? "#DBEAFE" : "#F3F4F6",
-                        }}
-                      >
-                        {React.createElement(getClimateIcon(item.climate), { className: "h-3 w-3" })}
-                        <span className="capitalize">{item.climate}</span>
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className="flex items-center gap-1"
-                        style={{
-                          backgroundColor:
-                            item.occasion === "fiesta"
-                              ? "#FCE7F3"
-                              : item.occasion === "trabajo"
-                                ? "#E0F2FE"
-                                : "#F3F4F6",
-                        }}
-                      >
-                        {React.createElement(getOccasionIcon(item.occasion), { className: "h-3 w-3" })}
-                        <span className="capitalize">{item.occasion}</span>
-                      </Badge>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full gap-2 mt-1 px-3 py-1 h-auto text-xs whitespace-normal text-center"
-                      onClick={() => handleGenerateWithItem(item)}
-                      disabled={baseItem?.id === item.id || (clothingStatus && !clothingStatus.hasEnough)}
-                    >
-                      <Wand2 className="w-3 h-3 flex-shrink-0" />
-                      <span>
-                        {baseItem?.id === item.id ? "Prenda base actual" : "Generar nuevo look con esta prenda"}
-                      </span>
-                    </Button>
-                  </div>
-                ))}
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap gap-2 justify-center mt-4">
+                  <Button variant="outline" onClick={handleRegenerateWithSameBase} className="gap-2">
+                    <Wand2 className="h-4 w-4" />
+                    Generar otro
+                  </Button>
+                  <Button variant="outline" onClick={handleShowVisualization} className="gap-2">
+                    <Eye className="h-4 w-4" />
+                    Visualizar look
+                  </Button>
+                  <Button onClick={() => setShowSaveDialog(true)} className="gap-2">
+                    <Save className="h-4 w-4" />
+                    Guardar look
+                  </Button>
+                  <Button onClick={handleRecordUsage} className="gap-2" disabled={usageUpdated}>
+                    <Heart className="h-4 w-4" />
+                    {usageUpdated ? "Uso registrado" : "Voy a usar este look"}
+                  </Button>
+                </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center p-12 text-center bg-muted/30 rounded-lg border border-dashed">
-                <Wand2 className="h-12 w-12 text-primary-500/50 mb-4" />
-                <p className="text-muted-foreground">
-                  {selectedClimate && selectedOccasion
-                    ? `Seleccionado clima ${selectedClimate} y ocasión ${selectedOccasion}. Presioná el botón para generar un look.`
-                    : "Presioná el botón para generar un look con tus prendas"}
-                </p>
+              <div className="flex flex-col items-center justify-center p-8 text-center">
+                <Wand2 className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">{message}</p>
               </div>
             )}
           </CardContent>
-          <CardFooter className="flex flex-wrap justify-center gap-4">
-            <Button onClick={handleGenerateOutfit} className="gap-2 btn-hover" disabled={isLoading}>
-              <Wand2 className="w-4 h-4" />
-              {isLoading ? "Generando..." : "Generar sugerencia"}
-            </Button>
-
-            {outfit.length > 0 && (
-              <>
-                <Button onClick={() => setShowOutfitVisualization(true)} variant="default" className="gap-2 btn-hover">
-                  <Eye className="w-4 h-4" />
-                  Ver conjunto completo
-                </Button>
-
-                <Button onClick={handleSaveOutfit} variant="outline" className="gap-2 btn-hover">
-                  <Save className="w-4 h-4" />
-                  Guardar look
-                </Button>
-
-                <Button
-                  onClick={handleRecordUsage}
-                  variant="secondary"
-                  className="gap-2 btn-hover"
-                  disabled={usageUpdated}
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Voy a usar este look hoy
-                </Button>
-              </>
-            )}
-          </CardFooter>
-          {/* Botón flotante para visualización en móviles */}
-          {outfit.length > 0 && (
-            <div className="fixed bottom-20 right-4 z-10 md:hidden">
-              <Button
-                onClick={() => setShowOutfitVisualization(true)}
-                size="lg"
-                className="rounded-full h-14 w-14 shadow-lg"
-              >
-                <Eye className="h-6 w-6" />
-              </Button>
-            </div>
-          )}
         </Card>
       </div>
-      <OutfitVisualization
-        items={outfit}
-        isOpen={showOutfitVisualization}
-        onClose={() => setShowOutfitVisualization(false)}
-      />
       <Toaster />
     </div>
   )
