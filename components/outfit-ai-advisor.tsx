@@ -131,6 +131,9 @@ export function OutfitAIAdvisor({ outfit, occasion, climate, onClose }: OutfitAI
     // Cargar estadísticas de uso
     const stats = loadUsageStats()
 
+    // Obtener el nombre del usuario
+    const userName = preferences?.userName || ""
+
     // Análisis de uso de las prendas del outfit actual
     const outfitUsageAnalysis = outfit.map((item) => {
       const itemStats = stats?.allItems.find((statItem) => statItem.id === item.id)
@@ -143,7 +146,9 @@ export function OutfitAIAdvisor({ outfit, occasion, climate, onClose }: OutfitAI
     })
 
     // Generar análisis personalizado y cálido
-    let analysis = "¡Hola! Soy ARIN y acabo de crear este look especialmente para vos 💕\n\n"
+    let analysis = userName
+      ? `¡Hola ${userName}! Acabo de crear este look especialmente para vos 💕\n\n`
+      : "¡Hola! Acabo de crear este look especialmente para vos 💕\n\n"
 
     // Análisis de uso de prendas con tono personal
     const hasNeverUsedItems = outfitUsageAnalysis.some((item) => item.isNeverUsed)
@@ -152,11 +157,42 @@ export function OutfitAIAdvisor({ outfit, occasion, climate, onClose }: OutfitAI
     if (hasNeverUsedItems || hasLeastUsedItems) {
       analysis += "✨ **Me encanta que confíes en mí para esto:**\n"
 
-      outfitUsageAnalysis.forEach((itemAnalysis) => {
+      // Frases variadas para prendas sin usar
+      const estrenoFrases = [
+        "¡Era hora de que estrenes tu {prenda}! Te queda increíble 😍",
+        "¡Por fin vas a usar tu {prenda}! Va a ser un éxito 🤩",
+        "Tu {prenda} estaba esperando este momento. ¡Te va genial! ✨",
+        "¡Qué bueno que te animaste con tu {prenda}! Es perfecta para vos 💫",
+      ]
+
+      // Frases variadas para prendas poco usadas
+      const pocoUsoFrases = [
+        "Tu {prenda} merecía más protagonismo. Solo la usaste {veces} {vezText} antes 👌",
+        "¡Qué bueno darle más uso a tu {prenda}! ({veces} {vezText} es muy poco) 💕",
+        "Tu {prenda} estaba un poco olvidada con solo {veces} {vezText} de uso. ¡Hoy brilla! ✨",
+        "Me alegra rescatar tu {prenda} del fondo del armario ({veces} {vezText} no le hace justicia) 🌟",
+      ]
+
+      outfitUsageAnalysis.forEach((itemAnalysis, index) => {
+        const prenda = `${itemAnalysis.item.type} ${itemAnalysis.item.color}`
+
         if (itemAnalysis.isNeverUsed) {
-          analysis += `• ¡Era hora de que estrenes tu ${itemAnalysis.item.type} ${itemAnalysis.item.color}! Sabía que te iba a quedar increíble 😍\n`
+          // Seleccionar una frase aleatoria sin repetir la última si es posible
+          const fraseIndex = Math.floor(Math.random() * estrenoFrases.length)
+          const frase = estrenoFrases[fraseIndex].replace("{prenda}", prenda)
+          analysis += `• ${frase}\n`
         } else if (itemAnalysis.isLeastUsed) {
-          analysis += `• Tu ${itemAnalysis.item.type} ${itemAnalysis.item.color} estaba pidiendo a gritos salir del armario. Solo la usaste ${itemAnalysis.usageCount} ${itemAnalysis.usageCount === 1 ? "vez" : "veces"} 💫\n`
+          const veces = itemAnalysis.usageCount
+          const vezText = veces === 1 ? "vez" : "veces"
+
+          // Seleccionar una frase aleatoria sin repetir la última si es posible
+          const fraseIndex = Math.floor(Math.random() * pocoUsoFrases.length)
+          const frase = pocoUsoFrases[fraseIndex]
+            .replace("{prenda}", prenda)
+            .replace("{veces}", veces.toString())
+            .replace("{vezText}", vezText)
+
+          analysis += `• ${frase}\n`
         }
       })
       analysis += "\n"
@@ -209,14 +245,23 @@ export function OutfitAIAdvisor({ outfit, occasion, climate, onClose }: OutfitAI
     const message = userMessage.toLowerCase()
     const stats = loadUsageStats()
 
+    // Obtener el nombre del usuario
+    const userProfile = localStorage.getItem("userFashionPreferences")
+    const userName = userProfile ? JSON.parse(userProfile).userName || "" : ""
+
     if (message.includes("estadistica") || message.includes("uso") || message.includes("cuanto")) {
-      if (!stats) return "Todavía estamos conociéndonos... necesito que uses más looks para entender tu estilo 💕"
+      if (!stats)
+        return userName
+          ? `${userName}, todavía estamos conociéndonos... necesito que uses más looks para entender tu estilo 💕`
+          : "Todavía estamos conociéndonos... necesito que uses más looks para entender tu estilo 💕"
 
       const totalItems = stats.allItems.length
       const usedItems = stats.allItems.filter((item) => item.usageCount > 0).length
       const usagePercentage = totalItems > 0 ? Math.round((usedItems / totalItems) * 100) : 0
 
-      let response = `💕 **Tu armario y yo somos íntimas:**\n`
+      let response = userName
+        ? `💕 **${userName}, tu armario y yo somos íntimas:**\n`
+        : "💕 **Tu armario y yo somos íntimas:**\n"
       response += `• Conocés el ${usagePercentage}% de tu potencial (${usedItems}/${totalItems} prendas)\n`
       response += `• Tenés ${stats.neverUsed.length} sorpresas esperándote\n`
       response += `• ${stats.leastUsed.length} prendas que merecen más amor\n`
@@ -231,20 +276,28 @@ export function OutfitAIAdvisor({ outfit, occasion, climate, onClose }: OutfitAI
 
     if (message.includes("poco usada") || message.includes("sin usar") || message.includes("estrenar")) {
       if (!stats || stats.neverUsed.length === 0) {
-        return "¡Qué orgullo! Conmigo has logrado usar todo tu armario. Somos el equipo perfecto 💪✨"
+        return userName
+          ? `¡Qué orgullo, ${userName}! Conmigo has logrado usar todo tu armario. Somos el equipo perfecto 💪✨`
+          : "¡Qué orgullo! Conmigo has logrado usar todo tu armario. Somos el equipo perfecto 💪✨"
       }
 
       const randomNeverUsed = stats.neverUsed[Math.floor(Math.random() * stats.neverUsed.length)]
-      return `Amor, tenés ${stats.neverUsed.length} prendas esperando su debut. Tu ${randomNeverUsed.type} ${randomNeverUsed.color} me está susurrando que quiere brillar... ¿la incluimos en el próximo look? 🌟`
+      return userName
+        ? `${userName}, tenés ${stats.neverUsed.length} prendas esperando su debut. Tu ${randomNeverUsed.type} ${randomNeverUsed.color} me está susurrando que quiere brillar... ¿la incluimos en el próximo look? 🌟`
+        : `Amor, tenés ${stats.neverUsed.length} prendas esperando su debut. Tu ${randomNeverUsed.type} ${randomNeverUsed.color} me está susurrando que quiere brillar... ¿la incluimos en el próximo look? 🌟`
     }
 
     if (message.includes("favorita") || message.includes("mas uso")) {
       if (!stats || stats.mostUsed.length === 0) {
-        return "Aún estoy aprendiendo cuáles son tus favoritas... pero ya empiezo a notarlo 👀"
+        return userName
+          ? `${userName}, aún estoy aprendiendo cuáles son tus favoritas... pero ya empiezo a notarlo 👀`
+          : "Aún estoy aprendiendo cuáles son tus favoritas... pero ya empiezo a notarlo 👀"
       }
 
       const topItem = stats.mostUsed[0]
-      return `Tu ${topItem.type} ${topItem.color} es tu alma gemela textil (${topItem.usageCount} veces juntas). Pero dejame cuidarla alternándola con otras prendas que también te van a enamorar 💕`
+      return userName
+        ? `${userName}, tu ${topItem.type} ${topItem.color} es tu alma gemela textil (${topItem.usageCount} veces juntas). Pero dejame cuidarla alternándola con otras prendas que también te van a enamorar 💕`
+        : `Tu ${topItem.type} ${topItem.color} es tu alma gemela textil (${topItem.usageCount} veces juntas). Pero dejame cuidarla alternándola con otras prendas que también te van a enamorar 💕`
     }
 
     if (message.includes("color") || message.includes("combina")) {
@@ -253,14 +306,18 @@ export function OutfitAIAdvisor({ outfit, occasion, climate, onClose }: OutfitAI
       if (stats && stats.mostUsed.length > 0) {
         const favoriteColors = stats.mostUsed.map((item) => item.color.toLowerCase())
         const uniqueColors = [...new Set(favoriteColors)]
-        response += `Ya sé que te inclinás por: ${uniqueColors.slice(0, 3).join(", ")}. Me encanta conocerte así de bien.`
+        response += userName
+          ? `${userName}, ya sé que te inclinás por: ${uniqueColors.slice(0, 3).join(", ")}. Me encanta conocerte así de bien.`
+          : `Ya sé que te inclinás por: ${uniqueColors.slice(0, 3).join(", ")}. Me encanta conocerte así de bien.`
       }
 
       return response
     }
 
     if (message.includes("cambiar") || message.includes("mejorar")) {
-      let response = "¡Me encanta que me pidas consejos! 💕 Para que te sientas aún mejor: "
+      let response = userName
+        ? `¡Me encanta que me pidas consejos, ${userName}! 💕 Para que te sientas aún mejor: `
+        : "¡Me encanta que me pidas consejos! 💕 Para que te sientas aún mejor: "
 
       if (stats && stats.neverUsed.length > 0) {
         const randomItem = stats.neverUsed[Math.floor(Math.random() * stats.neverUsed.length)]
@@ -280,23 +337,37 @@ export function OutfitAIAdvisor({ outfit, occasion, climate, onClose }: OutfitAI
 
         if (unusedAccessories.length > 0) {
           const randomAccessory = unusedAccessories[Math.floor(Math.random() * unusedAccessories.length)]
-          return `Tengo el accesorio perfecto en mente... tu ${randomAccessory.type} ${randomAccessory.color} que está esperando su momento de gloria. ¿Confiás en mí? ✨`
+          return userName
+            ? `${userName}, tengo el accesorio perfecto en mente... tu ${randomAccessory.type} ${randomAccessory.color} que está esperando su momento de gloria. ¿Confiás en mí? ✨`
+            : `Tengo el accesorio perfecto en mente... tu ${randomAccessory.type} ${randomAccessory.color} que está esperando su momento de gloria. ¿Confiás en mí? ✨`
         }
       }
 
-      return "Los accesorios son mi especialidad secreta 😉 Dejame sorprenderte con la combinación perfecta para completar tu look."
+      return userName
+        ? `${userName}, los accesorios son mi especialidad secreta 😉 Dejame sorprenderte con la combinación perfecta para completar tu look.`
+        : "Los accesorios son mi especialidad secreta 😉 Dejame sorprenderte con la combinación perfecta para completar tu look."
     }
 
     if (message.includes("gracias") || message.includes("perfecto")) {
-      return "¡Ay, me haces feliz! 🥰 Cada día que me elegís para vestirte es un día que aprendo más sobre vos. Somos el dúo perfecto."
+      return userName
+        ? `¡Ay, ${userName}, me haces feliz! 🥰 Cada día que me elegís para vestirte es un día que aprendo más sobre vos. Somos el dúo perfecto.`
+        : "¡Ay, me haces feliz! 🥰 Cada día que me elegís para vestirte es un día que aprendo más sobre vos. Somos el dúo perfecto."
     }
 
     // Respuesta genérica cálida
     const responses = [
-      "Contame qué sentís con este look... yo ya sé que te queda increíble, pero quiero escucharlo de vos 💕",
-      "¿Hay algo que te genera dudas? Estoy acá para que te sientas segura con cada elección que hacemos juntas.",
-      "Me encanta cuando me consultás... significa que confiás en mi criterio. ¿Qué te gustaría ajustar?",
-      "Siento que cada vez nos entendemos mejor. ¿Qué te parece si exploramos juntas otras opciones?",
+      userName
+        ? `${userName}, contame qué sentís con este look... yo ya sé que te queda increíble, pero quiero escucharlo de vos 💕`
+        : "Contame qué sentís con este look... yo ya sé que te queda increíble, pero quiero escucharlo de vos 💕",
+      userName
+        ? `${userName}, ¿hay algo que te genera dudas? Estoy acá para que te sientas segura con cada elección que hacemos juntas.`
+        : "¿Hay algo que te genera dudas? Estoy acá para que te sientas segura con cada elección que hacemos juntas.",
+      userName
+        ? `Me encanta cuando me consultás, ${userName}... significa que confiás en mi criterio. ¿Qué te gustaría ajustar?`
+        : "Me encanta cuando me consultás... significa que confiás en mi criterio. ¿Qué te gustaría ajustar?",
+      userName
+        ? `${userName}, siento que cada vez nos entendemos mejor. ¿Qué te parece si exploramos juntas otras opciones?`
+        : "Siento que cada vez nos entendemos mejor. ¿Qué te parece si exploramos juntas otras opciones?",
     ]
 
     return responses[Math.floor(Math.random() * responses.length)]

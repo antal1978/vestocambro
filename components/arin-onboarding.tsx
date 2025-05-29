@@ -1,22 +1,18 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar } from "@/components/ui/avatar"
-import { Loader2, Send, Bot, User } from "lucide-react"
+import { Bot } from "lucide-react"
 import { useRouter } from "next/navigation"
 
-type Message = {
+type OnboardingStep = {
   id: string
-  role: "user" | "assistant"
-  content: string
-  timestamp: Date
-  expectsInput?: boolean
-  inputType?: "text" | "options"
+  question: string
+  type: "text" | "multiple" | "colors"
   options?: string[]
-  fieldName?: string
+  key: string
 }
 
 type UserProfile = {
@@ -33,318 +29,237 @@ type UserProfile = {
   onboardingCompleted: boolean
 }
 
+const onboardingSteps: OnboardingStep[] = [
+  {
+    id: "1",
+    question: "¡Hola! Soy ARIN, tu nueva asistente de armario personal 💕 ¿Cómo te gusta que te llamen?",
+    type: "text",
+    key: "userName",
+  },
+  {
+    id: "2",
+    question: "¡Perfecto! Ahora contame, ¿cuáles son tus colores favoritos para vestirte?",
+    type: "colors",
+    options: ["Negro", "Blanco", "Azul", "Rojo", "Verde", "Rosa", "Amarillo", "Violeta", "Gris", "Marrón"],
+    key: "favoriteColors",
+  },
+  {
+    id: "3",
+    question: "¿Y hay algún color que no te guste usar?",
+    type: "colors",
+    options: ["Negro", "Blanco", "Azul", "Rojo", "Verde", "Rosa", "Amarillo", "Violeta", "Gris", "Marrón"],
+    key: "dislikedColors",
+  },
+  {
+    id: "4",
+    question: "¿Cómo describirías tu estilo personal?",
+    type: "multiple",
+    options: ["Casual", "Elegante", "Deportivo", "Bohemio", "Minimalista", "Romántico", "Urbano", "Clásico"],
+    key: "preferredStyle",
+  },
+  {
+    id: "5",
+    question: "¿Para qué ocasiones necesitás más ayuda para vestirte?",
+    type: "multiple",
+    options: ["Trabajo", "Casual/Diario", "Salidas nocturnas", "Eventos especiales", "Deportes", "Viajes"],
+    key: "occasions",
+  },
+]
+
 export function ArinOnboarding() {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [inputMessage, setInputMessage] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    userName: "",
+  const [userProfile, setUserProfile] = useState<Partial<UserProfile>>({
     favoriteColors: [],
     dislikedColors: [],
-    preferredStyle: "",
     occasions: [],
     likedOutfits: [],
     dislikedOutfits: [],
-    personalityTraits: [],
-    onboardingCompleted: false,
   })
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [textInput, setTextInput] = useState("")
   const router = useRouter()
 
-  // Scroll al último mensaje
+  // Verificar si ya completó el onboarding
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
-
-  // Iniciar onboarding
-  useEffect(() => {
-    startOnboarding()
-  }, [])
-
-  // Pasos del onboarding
-  const onboardingSteps = [
-    {
-      message:
-        "¡Hola! Soy ARIN, tu nueva compañera de armario 💕 Estoy aquí para ayudarte a crear looks increíbles con lo que ya tenés. ¿Cómo te gusta que te llamen?",
-      expectsInput: true,
-      inputType: "text",
-      fieldName: "userName",
-    },
-    {
-      message: (name: string) =>
-        `¡Encantada de conocerte, ${name}! 😊 Me encantaría saber más sobre tu estilo para poder ayudarte mejor. ¿Cuáles son tus colores favoritos? (podés mencionar varios)`,
-      expectsInput: true,
-      inputType: "text",
-      fieldName: "favoriteColors",
-    },
-    {
-      message: "¡Qué buena elección! 🎨 Y para conocerte mejor... ¿hay algún color que preferís evitar?",
-      expectsInput: true,
-      inputType: "text",
-      fieldName: "dislikedColors",
-    },
-    {
-      message:
-        "Entendido. Ahora contame, ¿cómo describirías tu estilo? (casual, elegante, minimalista, bohemio, deportivo...)",
-      expectsInput: true,
-      inputType: "options",
-      options: ["Casual", "Elegante", "Minimalista", "Bohemio", "Deportivo", "Urbano", "Clásico", "Romántico", "Otro"],
-      fieldName: "preferredStyle",
-    },
-    {
-      message:
-        "¡Me encanta! Y... ¿para qué ocasiones necesitás más ayuda con tus looks? (trabajo, salidas, eventos especiales...)",
-      expectsInput: true,
-      inputType: "options",
-      options: ["Trabajo", "Casual diario", "Salidas con amigos", "Citas", "Eventos formales", "Fiestas", "Otro"],
-      fieldName: "occasions",
-    },
-    {
-      message: (name: string) =>
-        `¡Perfecto, ${name}! Ya tengo todo lo que necesito para empezar a crear looks increíbles para vos. ¿Querés que te muestre cómo funciona la app o preferís explorar por tu cuenta?`,
-      expectsInput: true,
-      inputType: "options",
-      options: ["Mostrame cómo funciona", "Exploraré por mi cuenta"],
-      fieldName: "tutorial",
-    },
-  ]
-
-  // Iniciar onboarding
-  const startOnboarding = async () => {
-    // Verificar si ya existe un perfil
-    const storedPreferences = localStorage.getItem("userFashionPreferences")
-    if (storedPreferences) {
-      const preferences = JSON.parse(storedPreferences)
-      if (preferences.onboardingCompleted) {
-        // Si ya completó el onboarding, redirigir
-        router.push("/gallery")
+    const existingProfile = localStorage.getItem("userFashionPreferences")
+    if (existingProfile) {
+      const profile = JSON.parse(existingProfile)
+      if (profile.onboardingCompleted) {
+        router.push("/")
         return
       }
+    }
+  }, [router])
 
-      // Si hay preferencias pero no completó onboarding, cargarlas
+  const currentStepData = onboardingSteps[currentStep]
+
+  const handleTextSubmit = () => {
+    if (!textInput.trim()) return
+
+    setUserProfile((prev) => ({
+      ...prev,
+      [currentStepData.key]: textInput.trim(),
+    }))
+
+    setTextInput("")
+    nextStep()
+  }
+
+  const handleMultipleChoice = (option: string) => {
+    if (currentStepData.type === "multiple") {
       setUserProfile((prev) => ({
         ...prev,
-        ...preferences,
+        [currentStepData.key]: option,
+      }))
+    } else if (currentStepData.type === "colors") {
+      const currentColors = (userProfile[currentStepData.key as keyof UserProfile] as string[]) || []
+      const updatedColors = currentColors.includes(option)
+        ? currentColors.filter((color) => color !== option)
+        : [...currentColors, option]
+
+      setUserProfile((prev) => ({
+        ...prev,
+        [currentStepData.key]: updatedColors,
       }))
     }
-
-    setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // Primer mensaje de ARIN
-    const firstStep = onboardingSteps[0]
-    const firstMessage: Message = {
-      id: Date.now().toString(),
-      role: "assistant",
-      content: firstStep.message,
-      timestamp: new Date(),
-      expectsInput: firstStep.expectsInput,
-      inputType: firstStep.inputType,
-      options: firstStep.options,
-      fieldName: firstStep.fieldName,
-    }
-
-    setMessages([firstMessage])
-    setIsLoading(false)
   }
 
-  // Manejar respuesta del usuario
-  const handleUserResponse = async () => {
-    if (!inputMessage.trim() && !userProfile.userName) return
-
-    const currentStepData = onboardingSteps[currentStep]
-    const fieldName = currentStepData.fieldName as keyof UserProfile
-
-    // Crear mensaje del usuario
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: inputMessage,
-      timestamp: new Date(),
-    }
-
-    setMessages((prev) => [...prev, userMessage])
-
-    // Actualizar perfil del usuario
-    const updatedProfile = { ...userProfile }
-
-    if (
-      fieldName === "favoriteColors" ||
-      fieldName === "dislikedColors" ||
-      fieldName === "occasions" ||
-      fieldName === "personalityTraits"
-    ) {
-      // Para campos que son arrays
-      const values = inputMessage
-        .split(/,|\s+y\s+/)
-        .map((item) => item.trim())
-        .filter(Boolean)
-      updatedProfile[fieldName] = values as any
-    } else if (fieldName === "tutorial") {
-      // No guardamos esto en el perfil, solo para navegación
+  const nextStep = () => {
+    if (currentStep < onboardingSteps.length - 1) {
+      setCurrentStep(currentStep + 1)
     } else {
-      // Para campos simples
-      updatedProfile[fieldName as keyof UserProfile] = inputMessage as any
+      completeOnboarding()
     }
-
-    setUserProfile(updatedProfile)
-    setInputMessage("")
-    setIsLoading(true)
-
-    // Simular delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    // Avanzar al siguiente paso
-    const nextStep = currentStep + 1
-
-    if (nextStep < onboardingSteps.length) {
-      // Hay más pasos
-      const nextStepData = onboardingSteps[nextStep]
-      const nextMessage =
-        typeof nextStepData.message === "function"
-          ? nextStepData.message(updatedProfile.userName)
-          : nextStepData.message
-
-      const assistantMessage: Message = {
-        id: Date.now().toString(),
-        role: "assistant",
-        content: nextMessage,
-        timestamp: new Date(),
-        expectsInput: nextStepData.expectsInput,
-        inputType: nextStepData.inputType,
-        options: nextStepData.options,
-        fieldName: nextStepData.fieldName,
-      }
-
-      setMessages((prev) => [...prev, assistantMessage])
-      setCurrentStep(nextStep)
-    } else {
-      // Onboarding completado
-      const finalMessage: Message = {
-        id: Date.now().toString(),
-        role: "assistant",
-        content: `¡Genial! Estoy muy emocionada de ayudarte con tu armario, ${updatedProfile.userName}. ¡Vamos a crear looks increíbles juntas! 💕`,
-        timestamp: new Date(),
-      }
-
-      setMessages((prev) => [...prev, finalMessage])
-
-      // Marcar onboarding como completado
-      updatedProfile.onboardingCompleted = true
-
-      // Guardar perfil completo
-      localStorage.setItem("userFashionPreferences", JSON.stringify(updatedProfile))
-
-      // Redirigir después de un momento
-      setTimeout(() => {
-        if (inputMessage.toLowerCase().includes("mostrame") || inputMessage.toLowerCase().includes("cómo funciona")) {
-          router.push("/guia")
-        } else {
-          router.push("/gallery")
-        }
-      }, 3000)
-    }
-
-    setIsLoading(false)
   }
 
-  // Seleccionar opción
-  const selectOption = (option: string) => {
-    setInputMessage(option)
-    handleUserResponse()
+  const completeOnboarding = () => {
+    const completeProfile: UserProfile = {
+      userName: userProfile.userName || "Usuario",
+      favoriteColors: userProfile.favoriteColors || [],
+      dislikedColors: userProfile.dislikedColors || [],
+      preferredStyle: userProfile.preferredStyle || "Casual",
+      occasions: userProfile.occasions || [],
+      bodyType: userProfile.bodyType,
+      likedOutfits: [],
+      dislikedOutfits: [],
+      lifestyle: userProfile.lifestyle,
+      personalityTraits: userProfile.personalityTraits,
+      onboardingCompleted: true,
+    }
+
+    localStorage.setItem("userFashionPreferences", JSON.stringify(completeProfile))
+    router.push("/")
+  }
+
+  const canProceed = () => {
+    if (currentStepData.type === "text") {
+      return textInput.trim().length > 0
+    } else if (currentStepData.type === "colors") {
+      const colors = userProfile[currentStepData.key as keyof UserProfile] as string[]
+      return colors && colors.length > 0
+    } else if (currentStepData.type === "multiple") {
+      return userProfile[currentStepData.key as keyof UserProfile]
+    }
+    return false
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-950/20 dark:to-secondary-950/20 p-4">
-      <Card className="w-full max-w-md mx-auto shadow-lg">
-        <CardHeader className="border-b bg-primary-100/50 dark:bg-primary-900/20">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 bg-primary/10 border-2 border-primary/20">
-              <Bot className="h-5 w-5 text-primary" />
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-primary-900 flex items-center justify-center p-4">
+      <Card className="w-full max-w-2xl shadow-xl">
+        <CardHeader className="text-center pb-4">
+          <div className="flex justify-center mb-4">
+            <Avatar className="h-16 w-16 bg-primary/10">
+              <Bot className="h-8 w-8 text-primary" />
             </Avatar>
-            <CardTitle className="text-xl">ARIN</CardTitle>
           </div>
+          <CardTitle className="text-2xl font-bold text-primary">ARIN</CardTitle>
+          <p className="text-muted-foreground">Tu asistente de armario personal</p>
         </CardHeader>
 
-        <CardContent className="p-4 h-[400px] overflow-y-auto">
-          <div className="space-y-4">
-            {messages.map((message) => (
-              <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`rounded-lg p-3 max-w-[85%] ${
-                    message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    {message.role === "user" ? (
-                      <>
-                        <span className="text-xs font-medium">Tú</span>
-                        <User className="h-3 w-3" />
-                      </>
-                    ) : (
-                      <>
-                        <Bot className="h-3 w-3" />
-                        <span className="text-xs font-medium">ARIN</span>
-                      </>
-                    )}
-                  </div>
-                  <div className="whitespace-pre-wrap">{message.content}</div>
-                </div>
-              </div>
+        <CardContent className="space-y-6">
+          {/* Progreso */}
+          <div className="flex justify-center space-x-2 mb-6">
+            {onboardingSteps.map((_, index) => (
+              <div
+                key={index}
+                className={`w-3 h-3 rounded-full transition-colors ${index <= currentStep ? "bg-primary" : "bg-muted"}`}
+              />
             ))}
+          </div>
 
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="rounded-lg p-3 bg-muted flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Escribiendo...</span>
-                </div>
+          {/* Pregunta */}
+          <div className="text-center space-y-4">
+            <h2 className="text-xl font-semibold">{currentStepData.question}</h2>
+
+            {/* Input de texto */}
+            {currentStepData.type === "text" && (
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  placeholder="Escribe tu respuesta..."
+                  className="w-full p-3 border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && canProceed()) {
+                      handleTextSubmit()
+                    }
+                  }}
+                />
               </div>
             )}
 
-            {messages.length > 0 &&
-              messages[messages.length - 1].inputType === "options" &&
-              messages[messages.length - 1].options && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {messages[messages.length - 1].options!.map((option) => (
+            {/* Opciones múltiples */}
+            {(currentStepData.type === "multiple" || currentStepData.type === "colors") && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {currentStepData.options?.map((option) => {
+                  const isSelected =
+                    currentStepData.type === "colors"
+                      ? ((userProfile[currentStepData.key as keyof UserProfile] as string[]) || []).includes(option)
+                      : userProfile[currentStepData.key as keyof UserProfile] === option
+
+                  return (
                     <Button
                       key={option}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => selectOption(option)}
-                      className="bg-background hover:bg-muted/80"
+                      variant={isSelected ? "default" : "outline"}
+                      onClick={() => handleMultipleChoice(option)}
+                      className="h-12"
                     >
                       {option}
                     </Button>
-                  ))}
-                </div>
-              )}
-
-            <div ref={messagesEndRef} />
+                  )
+                })}
+              </div>
+            )}
           </div>
-        </CardContent>
 
-        <CardFooter className="border-t p-3">
-          <div className="flex w-full gap-2">
-            <Input
-              placeholder="Escribe tu respuesta..."
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              className="flex-1"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault()
-                  handleUserResponse()
-                }
-              }}
-              disabled={isLoading || (messages.length > 0 && messages[messages.length - 1].inputType === "options")}
-            />
-            <Button onClick={handleUserResponse} disabled={isLoading || !inputMessage.trim()}>
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          {/* Botones de navegación */}
+          <div className="flex justify-between pt-6">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+              disabled={currentStep === 0}
+            >
+              Anterior
             </Button>
+
+            {currentStepData.type === "text" ? (
+              <Button onClick={handleTextSubmit} disabled={!canProceed()}>
+                {currentStep === onboardingSteps.length - 1 ? "Finalizar" : "Siguiente"}
+              </Button>
+            ) : (
+              <Button onClick={nextStep} disabled={!canProceed()}>
+                {currentStep === onboardingSteps.length - 1 ? "Finalizar" : "Siguiente"}
+              </Button>
+            )}
           </div>
-        </CardFooter>
+
+          {/* Mensaje de ayuda para colores */}
+          {currentStepData.type === "colors" && (
+            <p className="text-sm text-muted-foreground text-center">
+              Podés seleccionar varios colores. Hacé clic en los que te gusten.
+            </p>
+          )}
+        </CardContent>
       </Card>
     </div>
   )

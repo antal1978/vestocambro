@@ -21,7 +21,7 @@ export default function Home() {
                 <span className="gradient-text">reinventado</span>
               </h1>
               <p className="text-xl text-muted-foreground max-w-xl">
-                Laboratorio de looks - Organizá tus prendas y creá nuevos looks con lo que ya tenés. Reutilizá,
+                Tu asistente de armario - Organizá tus prendas y creá nuevos looks con lo que ya tenés. Reutilizá,
                 reinventá, reestrená.
               </p>
               <div className="flex flex-wrap gap-4 justify-center md:justify-start">
@@ -226,7 +226,7 @@ export default function Home() {
       </footer>
 
       {/* ARIN Chat */}
-      <ArinChat />
+      <ArinChat autoOpen={true} />
     </div>
   )
 }

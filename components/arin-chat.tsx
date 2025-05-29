@@ -29,12 +29,15 @@ type UserProfile = {
   onboardingCompleted: boolean
 }
 
-export function ArinChat() {
+// Añadir el prop autoOpen y usarlo para controlar el estado inicial
+
+// Modificar la definición del componente:
+export function ArinChat({ autoOpen = false }: { autoOpen?: boolean }) {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputMessage, setInputMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [isOpen, setIsOpen] = useState(false)
-  const [isMinimized, setIsMinimized] = useState(true)
+  const [isOpen, setIsOpen] = useState(autoOpen)
+  const [isMinimized, setIsMinimized] = useState(!autoOpen)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -44,11 +47,16 @@ export function ArinChat() {
     const storedPreferences = localStorage.getItem("userFashionPreferences")
     if (storedPreferences) {
       setUserProfile(JSON.parse(storedPreferences))
+
+      // Si autoOpen es true, abrir el chat automáticamente
+      if (autoOpen) {
+        openChat()
+      }
     } else {
       // Si no hay perfil, redirigir a onboarding
       router.push("/onboarding")
     }
-  }, [router])
+  }, [router, autoOpen])
 
   // Scroll al último mensaje
   useEffect(() => {
@@ -64,13 +72,29 @@ export function ArinChat() {
       setIsLoading(true)
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      // Mensaje inicial de ARIN
+      // Mensaje inicial de ARIN con opciones de navegación
       const greeting: Message = {
         id: Date.now().toString(),
         role: "assistant",
         content: userProfile
-          ? `¡Hola ${userProfile.userName}! 💕 ¿En qué puedo ayudarte hoy? ¿Querés que te sugiera un look o tenés alguna pregunta sobre tu armario?`
-          : "¡Hola! 💕 ¿En qué puedo ayudarte hoy? ¿Querés que te sugiera un look o tenés alguna pregunta sobre tu armario?",
+          ? `¡Hola ${userProfile.userName}! 💕 ¿Qué querés hacer hoy?
+
+• Subir una nueva prenda
+• Ver tu colección
+• Crear un look nuevo
+• Ver tus looks guardados
+• Revisar estadísticas
+
+¿En qué puedo ayudarte?`
+          : `¡Hola! 💕 ¿Qué querés hacer hoy?
+
+• Subir una nueva prenda
+• Ver tu colección
+• Crear un look nuevo
+• Ver tus looks guardados
+• Revisar estadísticas
+
+¿En qué puedo ayudarte?`,
         timestamp: new Date(),
       }
 
@@ -91,17 +115,63 @@ export function ArinChat() {
 
   // Generar respuesta de ARIN
   const generateArinResponse = async (userMessage: string): Promise<string> => {
-    // Palabras clave para detectar intenciones
+    // Palabras clave para detectar intenciones de navegación
+    const navigationKeywords = {
+      upload: ["subir", "cargar", "agregar", "nueva prenda", "añadir ropa", "foto", "fotografía", "imagen"],
+      gallery: ["galería", "ver prendas", "mis prendas", "armario", "guardarropa", "ropa", "prendas"],
+      suggest: ["sugerir", "look", "outfit", "combinación", "vestir", "combinar", "crear look", "generar look"],
+      looks: ["mis looks", "looks guardados", "favoritos", "combinaciones guardadas"],
+      stats: ["estadísticas", "stats", "uso", "análisis", "datos"],
+      guide: ["guía", "ayuda", "tutorial", "cómo", "instrucciones", "manual"],
+    }
+
+    // Palabras clave para detectar intenciones generales
     const keywords = {
       suggestLook: ["look", "outfit", "vestir", "ropa", "sugerencia", "sugerir", "crear", "generar", "armario"],
       askStyle: ["estilo", "combinar", "combina", "color", "colores", "moda", "tendencia"],
       greeting: ["hola", "buenas", "hey", "saludos", "qué tal", "como estas", "cómo estás"],
       thanks: ["gracias", "genial", "excelente", "perfecto", "buenísimo"],
+      help: ["ayuda", "ayudame", "no sé", "opciones", "qué puedo hacer", "funciones", "qué hacés"],
     }
 
     const message = userMessage.toLowerCase()
 
-    // Detectar intención
+    // Detectar intención de navegación
+    for (const [section, words] of Object.entries(navigationKeywords)) {
+      if (words.some((word) => message.includes(word))) {
+        // Preparar navegación
+        setTimeout(() => {
+          router.push(`/${section}`)
+        }, 1000)
+
+        const responses = {
+          upload: "¡Vamos a subir una nueva prenda! Te llevo a la sección de carga...",
+          gallery: "¡Perfecto! Vamos a ver tu colección de prendas...",
+          suggest: "¡Genial! Vamos a crear un look nuevo juntas...",
+          looks: "Te llevo a ver tus looks guardados...",
+          stats: "Vamos a revisar las estadísticas de tu armario...",
+          guide: "Te muestro la guía de uso para que aproveches al máximo la app...",
+        }
+
+        return responses[section as keyof typeof responses]
+      }
+    }
+
+    // Detectar intención de ayuda/opciones
+    if (keywords.help.some((word) => message.includes(word))) {
+      return `${userProfile?.userName ? `${userProfile.userName}, ` : ""}soy ARIN, tu asistente de armario personal. Puedo ayudarte con:
+  
+• Subir una nueva prenda a tu armario
+• Ver tu colección de prendas
+• Crear un look nuevo
+• Ver tus looks guardados
+• Revisar estadísticas de uso
+• Mostrarte la guía de uso
+
+¿Qué te gustaría hacer?`
+    }
+
+    // Resto de la lógica existente
     if (keywords.suggestLook.some((word) => message.includes(word))) {
       return userProfile
         ? `¡Claro ${userProfile.userName}! Me encantaría ayudarte a crear un look. ¿Para qué ocasión lo necesitás? ¿Casual, trabajo, salida...?`
@@ -117,26 +187,22 @@ export function ArinChat() {
 
     if (keywords.greeting.some((word) => message.includes(word))) {
       return userProfile
-        ? `¡Hola de nuevo, ${userProfile.userName}! 💕 Siempre es un gusto charlar con vos. ¿En qué puedo ayudarte hoy?`
-        : "¡Hola! 💕 ¿Cómo estás? ¿En qué puedo ayudarte hoy?"
+        ? `¡Hola ${userProfile.userName}! 💕 ¿En qué puedo ayudarte hoy? Puedo mostrarte tus prendas, crear un look nuevo, o lo que necesites.`
+        : "¡Hola! 💕 ¿En qué puedo ayudarte hoy? Puedo mostrarte tus prendas, crear un look nuevo, o lo que necesites."
     }
 
     if (keywords.thanks.some((word) => message.includes(word))) {
       return "¡De nada! 😊 Siempre es un placer ayudarte. ¿Hay algo más en lo que pueda asistirte?"
     }
 
-    if (message.includes("crear look") || message.includes("nuevo look")) {
-      return "¡Vamos a crear un look! Te voy a llevar a la página de sugerencias para que podamos trabajar juntas en algo increíble."
-    }
-
     // Respuesta genérica
     const genericResponses = [
       userProfile
-        ? `Me encanta cuando charlamos, ${userProfile.userName}. ¿Querés que te ayude a crear un look para hoy?`
-        : "Me encanta charlar con vos. ¿Querés que te ayude a crear un look para hoy?",
-      "¿Te gustaría explorar nuevas combinaciones con las prendas que ya tenés?",
-      "¿Querés que te muestre cómo combinar alguna prenda específica de tu armario?",
-      "¿Necesitás un look para alguna ocasión especial?",
+        ? `${userProfile.userName}, soy tu asistente de armario personal. ¿Querés que te ayude a navegar por la app? Puedo mostrarte tus prendas, crear un look, o lo que necesites.`
+        : "Soy tu asistente de armario personal. ¿Querés que te ayude a navegar por la app? Puedo mostrarte tus prendas, crear un look, o lo que necesites.",
+      "Como tu asistente de armario, puedo ayudarte a explorar tu colección o crear un nuevo look.",
+      "Estoy aquí para ser tu asistente de armario. ¿Necesitás ayuda para encontrar algo específico?",
+      "Soy tu asistente personal de armario. ¿Querés ver tus prendas o crear una combinación nueva?",
     ]
 
     return genericResponses[Math.floor(Math.random() * genericResponses.length)]
