@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -7,6 +9,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar } from "@/components/ui/avatar"
 import { Loader2, Send, Bot, X, Maximize2, Minimize2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+
+interface ChatMessage {
+  id: string
+  sender: string
+  text: string
+  timestamp: Date
+}
 
 type Message = {
   id: string
@@ -29,10 +38,7 @@ type UserProfile = {
   onboardingCompleted: boolean
 }
 
-// Añadir el prop autoOpen y usarlo para controlar el estado inicial
-
-// Modificar la definición del componente:
-export function ArinChat({ autoOpen = false }: { autoOpen?: boolean }) {
+const ArinChat: React.FC<{ autoOpen?: boolean }> = ({ autoOpen = false }) => {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputMessage, setInputMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -53,10 +59,24 @@ export function ArinChat({ autoOpen = false }: { autoOpen?: boolean }) {
         openChat()
       }
     } else {
-      // Si no hay perfil, redirigir a onboarding
-      router.push("/onboarding")
+      // Si no hay perfil, usar valores por defecto
+      const defaultProfile: UserProfile = {
+        userName: "Usuario",
+        favoriteColors: [],
+        dislikedColors: [],
+        preferredStyle: "",
+        occasions: [],
+        likedOutfits: [],
+        dislikedOutfits: [],
+        onboardingCompleted: false,
+      }
+      setUserProfile(defaultProfile)
+
+      if (autoOpen) {
+        openChat()
+      }
     }
-  }, [router, autoOpen])
+  }, [autoOpen])
 
   // Scroll al último mensaje
   useEffect(() => {
@@ -72,29 +92,37 @@ export function ArinChat({ autoOpen = false }: { autoOpen?: boolean }) {
       setIsLoading(true)
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      // Mensaje inicial de ARIN con opciones de navegación
+      // Mensaje inicial de ARIN con presentación completa
       const greeting: Message = {
         id: Date.now().toString(),
         role: "assistant",
         content: userProfile
-          ? `¡Hola ${userProfile.userName}! 💕 ¿Qué querés hacer hoy?
+          ? `¡Hola ${userProfile.userName}! 💕 Soy ARIN, tu asistente personal de moda.
+
+Mi misión es ayudarte a optimizar el uso de todas las prendas que tenés en tu armario para crear looks increíbles, revalorizando cada pieza que ya tenés.
+
+Creo firmemente que no necesitás comprar más ropa para verte espectacular - solo necesitás aprender a combinar mejor lo que ya tenés. Paulatinamente, también te voy a enseñar cómo tomar buenas decisiones de compra para que tu ropa sea funcional, dure más y nada quede olvidado en el fondo del armario. ✨
+
+¿En qué puedo ayudarte hoy?
 
 • Subir una nueva prenda
 • Ver tu colección
 • Crear un look nuevo
 • Ver tus looks guardados
-• Revisar estadísticas
+• Revisar estadísticas`
+          : `¡Hola! 💕 Soy ARIN, tu asistente personal de moda.
 
-¿En qué puedo ayudarte?`
-          : `¡Hola! 💕 ¿Qué querés hacer hoy?
+Mi misión es ayudarte a optimizar el uso de todas las prendas que tenés en tu armario para crear looks increíbles, revalorizando cada pieza que ya tenés.
+
+Creo firmemente que no necesitás comprar más ropa para verte espectacular - solo necesitás aprender a combinar mejor lo que ya tenés. Paulatinamente, también te voy a enseñar cómo tomar buenas decisiones de compra para que tu ropa sea funcional, dure más y nada quede olvidado en el fondo del armario. ✨
+
+¿En qué puedo ayudarte hoy?
 
 • Subir una nueva prenda
 • Ver tu colección
 • Crear un look nuevo
 • Ver tus looks guardados
-• Revisar estadísticas
-
-¿En qué puedo ayudarte?`,
+• Revisar estadísticas`,
         timestamp: new Date(),
       }
 
@@ -160,7 +188,7 @@ export function ArinChat({ autoOpen = false }: { autoOpen?: boolean }) {
     // Detectar intención de ayuda/opciones
     if (keywords.help.some((word) => message.includes(word))) {
       return `${userProfile?.userName ? `${userProfile.userName}, ` : ""}soy ARIN, tu asistente de armario personal. Puedo ayudarte con:
-  
+
 • Subir una nueva prenda a tu armario
 • Ver tu colección de prendas
 • Crear un look nuevo
@@ -187,8 +215,8 @@ export function ArinChat({ autoOpen = false }: { autoOpen?: boolean }) {
 
     if (keywords.greeting.some((word) => message.includes(word))) {
       return userProfile
-        ? `¡Hola ${userProfile.userName}! 💕 ¿En qué puedo ayudarte hoy? Puedo mostrarte tus prendas, crear un look nuevo, o lo que necesites.`
-        : "¡Hola! 💕 ¿En qué puedo ayudarte hoy? Puedo mostrarte tus prendas, crear un look nuevo, o lo que necesites."
+        ? `¡Hola ${userProfile.userName}! 💕 ¿En qué puedo ayudarte hoy? Puedo mostrarte tus prendas, crear un look, o lo que necesites.`
+        : "¡Hola! 💕 ¿En qué puedo ayudarte hoy? Puedo mostrarte tus prendas, crear un look, o lo que necesites."
     }
 
     if (keywords.thanks.some((word) => message.includes(word))) {
@@ -229,41 +257,18 @@ export function ArinChat({ autoOpen = false }: { autoOpen?: boolean }) {
     await new Promise((resolve) => setTimeout(resolve, 1500))
 
     try {
-      // Verificar si el usuario quiere crear un look
-      if (
-        currentInput.toLowerCase().includes("crear look") ||
-        currentInput.toLowerCase().includes("nuevo look") ||
-        currentInput.toLowerCase().includes("sugerir look") ||
-        currentInput.toLowerCase().includes("generar look")
-      ) {
-        // Mensaje de redirección
-        const redirectMessage: Message = {
-          id: Date.now().toString(),
-          role: "assistant",
-          content: "¡Perfecto! Vamos a crear un look juntas. Te llevo a la página de sugerencias...",
-          timestamp: new Date(),
-        }
+      // Generar respuesta
+      const response = await generateArinResponse(currentInput)
 
-        setMessages((prev) => [...prev, redirectMessage])
-
-        // Redirigir después de un momento
-        setTimeout(() => {
-          router.push("/suggest")
-        }, 1500)
-      } else {
-        // Generar respuesta normal
-        const response = await generateArinResponse(currentInput)
-
-        // Mensaje de ARIN
-        const assistantMessage: Message = {
-          id: Date.now().toString(),
-          role: "assistant",
-          content: response,
-          timestamp: new Date(),
-        }
-
-        setMessages((prev) => [...prev, assistantMessage])
+      // Mensaje de ARIN
+      const assistantMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: response,
+        timestamp: new Date(),
       }
+
+      setMessages((prev) => [...prev, assistantMessage])
     } catch (error) {
       console.error("Error al generar respuesta:", error)
 
@@ -379,3 +384,5 @@ export function ArinChat({ autoOpen = false }: { autoOpen?: boolean }) {
     </div>
   )
 }
+
+export { ArinChat }

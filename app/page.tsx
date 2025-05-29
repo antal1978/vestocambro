@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Check, Sparkles, Shirt, Wand2, Heart, MessageSquare } from "lucide-react"
+import { ArrowRight, Check, Shirt, Wand2, Heart, MessageSquare } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { ArinChat } from "@/components/arin-chat"
@@ -29,12 +29,6 @@ export default function Home() {
                   <Button size="lg" className="gap-2 btn-hover bg-primary-600 hover:bg-primary-700">
                     Comenzar ahora
                     <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </Link>
-                <Link href="/ejemplos">
-                  <Button size="lg" variant="outline" className="gap-2 btn-hover">
-                    Ver ejemplos
-                    <Sparkles className="w-4 h-4" />
                   </Button>
                 </Link>
               </div>
@@ -226,7 +220,7 @@ export default function Home() {
       </footer>
 
       {/* ARIN Chat */}
-      <ArinChat autoOpen={true} />
+      <ArinChat autoOpen={false} />
     </div>
   )
 }

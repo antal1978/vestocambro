@@ -1,92 +1,112 @@
 "use client"
 
+import type React from "react"
+
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Shirt, Home, Wand2, Heart, BarChart3, Menu, X, MessageSquare } from "lucide-react"
+import { Shirt, Home, Wand2, Heart, BarChart3, BookOpen, Menu } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { useState } from "react"
-import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { MobileNav } from "@/components/mobile-nav"
+import { ArinHelpDialog } from "@/components/arin-help-dialog"
+
+const navigation = [
+  { name: "Inicio", href: "/", icon: Home, helpContext: "inicio" },
+  { name: "Mi Armario", href: "/gallery", icon: Shirt, helpContext: "mi-armario" },
+  { name: "Sugerir Look", href: "/suggest", icon: Wand2, helpContext: "sugerir-look" },
+  { name: "Looks", href: "/looks", icon: Heart, helpContext: "looks" },
+  { name: "Estadísticas", href: "/stats", icon: BarChart3, helpContext: "estadisticas" },
+  { name: "Guía", href: "/guia", icon: BookOpen, helpContext: "guia" },
+]
 
 export function Navbar() {
   const pathname = usePathname()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false)
+  const [currentHelpContext, setCurrentHelpContext] = useState("")
 
-  const isActive = (path: string) => {
-    return pathname === path
+  const handleNavClick = (helpContext: string, href: string, e: React.MouseEvent) => {
+    // Si es la página actual, mostrar ayuda en lugar de navegar
+    if (pathname === href) {
+      e.preventDefault()
+      setCurrentHelpContext(helpContext)
+      setHelpDialogOpen(true)
+    }
   }
 
-  // Cambiar el nombre en la barra de navegación principal
-  const navItems = [
-    { path: "/", icon: Home, label: "Inicio" },
-    { path: "/gallery", icon: Shirt, label: "Mi Armario" },
-    { path: "/suggest", icon: Wand2, label: "Sugerir Look" },
-    { path: "/looks", icon: Heart, label: "Looks" },
-    { path: "/stats", icon: BarChart3, label: "Estadísticas" },
-    { path: "/guia", icon: MessageSquare, label: "Guía" },
-  ]
+  const handleHelpAction = (action: string) => {
+    // Manejar acciones específicas basadas en el contexto
+    console.log("Acción de ayuda:", action, "Contexto:", currentHelpContext)
+
+    // Aquí puedes agregar lógica específica para cada acción
+    switch (action) {
+      case "Guíame paso a paso":
+        // Iniciar tutorial guiado
+        break
+      case "Subir mi primera prenda":
+        window.location.href = "/upload"
+        break
+      case "¡Sí, crear mi look!":
+        // Continuar con el flujo normal de sugerencias
+        break
+      // Agregar más casos según necesites
+    }
+  }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
-      <div className="container flex h-16 items-center justify-between">
-        <Logo />
+    <>
+      <nav className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center">
+          <Logo />
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-1">
-          {navItems.map((item) => (
-            <Link key={item.path} href={item.path}>
-              <Button
-                variant={isActive(item.path) ? "default" : "ghost"}
-                size="sm"
-                className={cn(
-                  "h-9 px-3 transition-all duration-200",
-                  isActive(item.path) ? "bg-primary-500 text-white" : "hover:bg-primary-50 hover:text-primary-600",
-                )}
-              >
-                <item.icon className="h-4 w-4 mr-2" />
-                <span>{item.label}</span>
-              </Button>
-            </Link>
-          ))}
-          <ThemeToggle />
-        </nav>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex md:items-center md:space-x-1 ml-8">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={(e) => handleNavClick(item.helpContext, item.href, e)}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-accent hover:text-accent-foreground ${
+                    isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  <item.icon className="w-4 h-4" />
+                  {item.name}
+                </Link>
+              )
+            })}
+          </div>
 
-        {/* Mobile Menu Button */}
-        <div className="flex items-center gap-2 md:hidden">
-          <ThemeToggle />
-          <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle menu">
-            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+          <div className="ml-auto flex items-center space-x-2">
+            <ThemeToggle />
+
+            {/* Mobile menu button */}
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(true)}>
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
-      </div>
+      </nav>
 
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-background border-b animate-fade-in">
-          <nav className="container py-4">
-            <ul className="space-y-2">
-              {navItems.map((item) => (
-                <li key={item.path}>
-                  <Link
-                    href={item.path}
-                    onClick={() => setIsMenuOpen(false)}
-                    className={cn(
-                      "flex items-center p-3 rounded-md transition-colors",
-                      isActive(item.path)
-                        ? "bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400"
-                        : "hover:bg-muted",
-                    )}
-                  >
-                    <item.icon className="h-5 w-5 mr-3" />
-                    <span className="font-medium">{item.label}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-      )}
-    </div>
+      {/* Mobile Navigation */}
+      <MobileNav
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        navigation={navigation}
+        onNavClick={handleNavClick}
+      />
+
+      {/* Help Dialog */}
+      <ArinHelpDialog
+        isOpen={helpDialogOpen}
+        onClose={() => setHelpDialogOpen(false)}
+        helpContext={currentHelpContext}
+        onAction={handleHelpAction}
+      />
+    </>
   )
 }

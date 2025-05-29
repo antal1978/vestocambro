@@ -1,613 +1,433 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, Loader2, ArrowLeft, Trash2 } from "lucide-react"
+import {
+  ArrowLeft,
+  Shirt,
+  Users,
+  Briefcase,
+  PartyPopper,
+  Sun,
+  Cloud,
+  Snowflake,
+  PinIcon as PantsIcon,
+  DiamondIcon as DressIcon,
+  PocketIcon as JacketIcon,
+  FootprintsIcon as ShoesIcon,
+  ActivityIcon as AccessoryIcon,
+} from "lucide-react"
 import Link from "next/link"
-import { useToast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
-import { Progress } from "@/components/ui/progress"
+import { useRouter } from "next/navigation"
 
-type ClothingItem = {
-  id: string
-  image: string
-  type: string
-  color: string
-  occasion: string
-  climate: string
-  isOuterwear: boolean
+// Iconos personalizados para prendas
+const ClothingIcons = {
+  remera: Shirt,
+  pantalon: PantsIcon,
+  vestido: DressIcon,
+  chaqueta: JacketIcon,
+  zapatos: ShoesIcon,
+  accesorio: AccessoryIcon,
 }
 
-// Actualizar las prendas de ejemplo para usar URLs de imágenes confiables
-const sampleClothes: Omit<ClothingItem, "id">[] = [
-  // Prendas parte superior
+// Datos mínimos de ejemplo
+const exampleItems = [
   {
-    image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&h=300&fit=crop&q=80",
+    id: 1,
+    name: "Remera Básica Blanca",
     type: "remera",
-    color: "blanco",
-    occasion: "casual",
-    climate: "caluroso",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=300&h=300&fit=crop&q=80",
-    type: "remera",
-    color: "negro",
-    occasion: "casual",
-    climate: "caluroso",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1581655353564-df123a1eb820?w=300&h=300&fit=crop&q=80",
-    type: "remera",
-    color: "azul",
-    occasion: "casual",
-    climate: "caluroso",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=300&h=300&fit=crop&q=80",
-    type: "sweater",
-    color: "gris",
+    color: "Blanco",
     occasion: "casual",
     climate: "templado",
-    isOuterwear: false,
+    icon: Shirt,
+    description: "Perfecta para combinar con todo",
   },
   {
-    image: "https://images.unsplash.com/photo-1565084888279-aca607ecce0c?w=300&h=300&fit=crop&q=80",
-    type: "jean",
-    color: "azul",
-    occasion: "casual",
-    climate: "templado",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=300&h=300&fit=crop&q=80",
-    type: "camisa",
-    color: "blanco",
-    occasion: "formal",
-    climate: "templado",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=300&h=300&fit=crop&q=80",
-    type: "camisa",
-    color: "azul",
-    occasion: "formal",
-    climate: "templado",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1588359348347-9bc6cbbb689e?w=300&h=300&fit=crop&q=80",
-    type: "camisa",
-    color: "rojo",
-    occasion: "fiesta",
-    climate: "templado",
-    isOuterwear: false,
-  },
-
-  // Prendas parte inferior
-  {
-    image: "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=300&h=300&fit=crop&q=80",
+    id: 2,
+    name: "Jeans Azul Clásico",
     type: "pantalon",
-    color: "negro",
+    color: "Azul",
     occasion: "casual",
     climate: "templado",
-    isOuterwear: false,
+    icon: PantsIcon,
+    description: "El básico que nunca falla",
   },
   {
-    image: "https://images.unsplash.com/photo-1542272604-787c3835535d?w=300&h=300&fit=crop&q=80",
-    type: "pantalon",
-    color: "azul",
-    occasion: "casual",
-    climate: "templado",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=300&h=300&fit=crop&q=80",
-    type: "pantalon",
-    color: "gris",
+    id: 3,
+    name: "Blazer Negro Formal",
+    type: "chaqueta",
+    color: "Negro",
     occasion: "formal",
     climate: "templado",
-    isOuterwear: false,
+    icon: JacketIcon,
+    description: "Para looks profesionales",
   },
   {
-    image: "https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=300&h=300&fit=crop&q=80",
-    type: "falda",
-    color: "negro",
-    occasion: "formal",
-    climate: "templado",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1577900232427-18219b9166a0?w=300&h=300&fit=crop&q=80",
-    type: "falda",
-    color: "rojo",
-    occasion: "fiesta",
-    climate: "caluroso",
-    isOuterwear: false,
-  },
-
-  // Vestidos
-  {
-    image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=300&h=300&fit=crop&q=80",
+    id: 4,
+    name: "Vestido Floral",
     type: "vestido",
-    color: "negro",
-    occasion: "fiesta",
-    climate: "templado",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=300&h=300&fit=crop&q=80",
-    type: "vestido",
-    color: "azul",
-    occasion: "fiesta",
+    color: "Multicolor",
+    occasion: "casual",
     climate: "caluroso",
-    isOuterwear: false,
-  },
-
-  // Abrigos
-  {
-    image: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=300&h=300&fit=crop&q=80",
-    type: "campera",
-    color: "negro",
-    occasion: "casual",
-    climate: "frio",
-    isOuterwear: true,
+    icon: DressIcon,
+    description: "Ideal para días soleados",
   },
   {
-    image: "https://images.unsplash.com/photo-1559551409-dadc959f76b8?w=300&h=300&fit=crop&q=80",
-    type: "campera",
-    color: "marron",
-    occasion: "casual",
-    climate: "frio",
-    isOuterwear: true,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=300&h=300&fit=crop&q=80",
-    type: "blazer",
-    color: "azul",
-    occasion: "formal",
-    climate: "templado",
-    isOuterwear: true,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1555069519-127aadedf1ee?w=300&h=300&fit=crop&q=80",
-    type: "blazer",
-    color: "negro",
-    occasion: "formal",
-    climate: "templado",
-    isOuterwear: true,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1621184455862-c163dfb30e0f?w=300&h=300&fit=crop&q=80",
-    type: "cardigan",
-    color: "gris",
+    id: 5,
+    name: "Zapatillas Blancas",
+    type: "zapatos",
+    color: "Blanco",
     occasion: "casual",
     climate: "templado",
-    isOuterwear: true,
+    icon: ShoesIcon,
+    description: "Comodidad y estilo",
   },
   {
-    image: "https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=300&h=300&fit=crop&q=80",
-    type: "tapado",
-    color: "negro",
-    occasion: "formal",
-    climate: "frio",
-    isOuterwear: true,
-  },
-
-  // Calzado
-  {
-    image: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=300&h=300&fit=crop&q=80",
-    type: "calzado",
-    color: "negro",
-    occasion: "formal",
-    climate: "todo-clima",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1520639888713-7851133b1ed0?w=300&h=300&fit=crop&q=80",
-    type: "calzado",
-    color: "marron",
-    occasion: "formal",
-    climate: "todo-clima",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=300&h=300&fit=crop&q=80",
-    type: "calzado",
-    color: "blanco",
-    occasion: "casual",
-    climate: "todo-clima",
-    isOuterwear: false,
-  },
-
-  // Accesorios
-  {
-    image: "https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=300&h=300&fit=crop&q=80",
+    id: 6,
+    name: "Cartera Negra",
     type: "accesorio",
-    color: "rojo",
-    occasion: "casual",
-    climate: "frio",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?w=300&h=300&fit=crop&q=80",
-    type: "accesorio",
-    color: "negro",
-    occasion: "casual",
-    climate: "frio",
-    isOuterwear: false,
-  },
-  // Nuevas categorías - Chalecos
-  {
-    image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=300&h=300&fit=crop&q=80",
-    type: "chaleco",
-    color: "negro",
+    color: "Negro",
     occasion: "formal",
     climate: "templado",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1588359348347-9bc6cbbb689e?w=300&h=300&fit=crop&q=80",
-    type: "chaleco",
-    color: "gris",
-    occasion: "casual",
-    climate: "templado",
-    isOuterwear: false,
-  },
-
-  // Shorts
-  {
-    image: "https://images.unsplash.com/photo-1565084888279-aca607ecce0c?w=300&h=300&fit=crop&q=80",
-    type: "short",
-    color: "azul",
-    occasion: "casual",
-    climate: "caluroso",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=300&h=300&fit=crop&q=80",
-    type: "short",
-    color: "negro",
-    occasion: "deporte",
-    climate: "caluroso",
-    isOuterwear: false,
-  },
-
-  // Accesorios específicos - Gorras
-  {
-    image: "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?w=300&h=300&fit=crop&q=80",
-    type: "gorra",
-    color: "negro",
-    occasion: "casual",
-    climate: "caluroso",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=300&h=300&fit=crop&q=80",
-    type: "gorra",
-    color: "azul",
-    occasion: "deporte",
-    climate: "caluroso",
-    isOuterwear: false,
-  },
-
-  // Bufandas
-  {
-    image: "https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=300&h=300&fit=crop&q=80",
-    type: "bufanda",
-    color: "rojo",
-    occasion: "casual",
-    climate: "frio",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?w=300&h=300&fit=crop&q=80",
-    type: "bufanda",
-    color: "gris",
-    occasion: "formal",
-    climate: "frio",
-    isOuterwear: false,
-  },
-
-  // Aros
-  {
-    image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=300&h=300&fit=crop&q=80",
-    type: "aros",
-    color: "dorado",
-    occasion: "fiesta",
-    climate: "todo-clima",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=300&h=300&fit=crop&q=80",
-    type: "aros",
-    color: "plateado",
-    occasion: "formal",
-    climate: "todo-clima",
-    isOuterwear: false,
-  },
-
-  // Carteras
-  {
-    image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&h=300&fit=crop&q=80",
-    type: "cartera",
-    color: "negro",
-    occasion: "formal",
-    climate: "todo-clima",
-    isOuterwear: false,
-  },
-  {
-    image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&h=300&fit=crop&q=80",
-    type: "cartera",
-    color: "marron",
-    occasion: "casual",
-    climate: "todo-clima",
-    isOuterwear: false,
-  },
-
-  // Pañuelos
-  {
-    image: "https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=300&h=300&fit=crop&q=80",
-    type: "pañuelo",
-    color: "rojo",
-    occasion: "casual",
-    climate: "caluroso",
-    isOuterwear: false,
+    icon: AccessoryIcon,
+    description: "El toque final perfecto",
   },
 ]
 
+// Ejemplo de look generado
+const exampleLook = {
+  occasion: "Trabajo",
+  climate: "Templado",
+  items: [
+    { name: "Remera Básica Blanca", type: "remera", icon: Shirt },
+    { name: "Blazer Negro Formal", type: "chaqueta", icon: JacketIcon },
+    { name: "Jeans Azul Clásico", type: "pantalon", icon: PantsIcon },
+    { name: "Zapatillas Blancas", type: "zapatos", icon: ShoesIcon },
+    { name: "Cartera Negra", type: "accesorio", icon: AccessoryIcon },
+  ],
+}
+
+const occasionIcons = {
+  casual: Users,
+  formal: Briefcase,
+  fiesta: PartyPopper,
+}
+
+const climateIcons = {
+  caluroso: Sun,
+  templado: Cloud,
+  frio: Snowflake,
+}
+
+const occasionColors = {
+  casual: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+  formal: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+  fiesta: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300",
+}
+
+const climateColors = {
+  caluroso: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+  templado: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+  frio: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+}
+
 export default function EjemplosPage() {
-  const [loading, setLoading] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [existingItems, setExistingItems] = useState<ClothingItem[]>([])
-  const { toast } = useToast()
-
-  useEffect(() => {
-    // Cargar prendas existentes
-    const storedItems = localStorage.getItem("clothingItems")
-    if (storedItems) {
-      setExistingItems(JSON.parse(storedItems))
-    }
-  }, [])
-
-  const handleLoadSamples = async () => {
-    setLoading(true)
-    setProgress(0)
-
-    try {
-      // Obtener prendas existentes
-      const storedItems = localStorage.getItem("clothingItems")
-      const existingItems: ClothingItem[] = storedItems ? JSON.parse(storedItems) : []
-
-      // Crear nuevas prendas con IDs únicos
-      const newItems: ClothingItem[] = sampleClothes.map((item) => ({
-        ...item,
-        id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-      }))
-
-      // Simular carga progresiva
-      for (let i = 0; i < newItems.length; i++) {
-        // Esperar un poco para simular carga
-        await new Promise((resolve) => setTimeout(resolve, 100))
-
-        // Actualizar progreso
-        setProgress(((i + 1) / newItems.length) * 100)
-      }
-
-      // Guardar todas las prendas (existentes + nuevas)
-      localStorage.setItem("clothingItems", JSON.stringify([...existingItems, ...newItems]))
-
-      toast({
-        title: "¡Prendas cargadas!",
-        description: `Se han añadido ${newItems.length} prendas de ejemplo a tu armario.`,
-      })
-    } catch (error) {
-      toast({
-        title: "Error al cargar prendas",
-        description: "Ocurrió un error al cargar las prendas de ejemplo.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleClearWardrobe = () => {
-    localStorage.removeItem("clothingItems")
-    localStorage.removeItem("savedOutfits")
-    setExistingItems([])
-
-    toast({
-      title: "Armario limpiado",
-      description: "Se han eliminado todas las prendas y looks guardados.",
-    })
-  }
+  const router = useRouter()
+  const [selectedTab, setSelectedTab] = useState<"prendas" | "look">("prendas")
 
   return (
-    <div className="container py-8">
-      <div className="flex flex-col items-center justify-between gap-4 mb-8 md:flex-row">
-        <h1 className="text-2xl font-bold">Prendas de Ejemplo</h1>
-        <Link href="/gallery">
-          <Button variant="outline" className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Volver a Mi Armario
+    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white dark:from-primary-950 dark:to-background">
+      <div className="container max-w-6xl mx-auto py-8">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full">
+            <ArrowLeft className="h-5 w-5" />
           </Button>
-        </Link>
-      </div>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Cargar prendas de ejemplo</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p>
-            Carga un conjunto de prendas de ejemplo para probar las combinaciones de looks. Estas prendas incluyen
-            diferentes tipos, colores, climas y ocasiones.
-          </p>
-
-          {loading && (
-            <div className="space-y-2">
-              <Progress value={progress} className="h-2 w-full" />
-              <p className="text-sm text-muted-foreground text-center">Cargando prendas... {Math.round(progress)}%</p>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {sampleClothes.slice(0, 10).map((item, index) => (
-              <div key={index} className="relative overflow-hidden rounded-md aspect-square">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.image || "/placeholder.svg"} alt={item.type} className="object-cover w-full h-full" />
-                <div className="absolute bottom-0 left-0 right-0 p-1 text-xs text-center text-white bg-black/50 truncate">
-                  {item.type} {item.color}
-                </div>
-              </div>
-            ))}
-            <div className="relative overflow-hidden rounded-md aspect-square flex items-center justify-center bg-muted">
-              <p className="text-sm text-muted-foreground">+{sampleClothes.length - 10} más</p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold">Ejemplos de Uso</h1>
+            <p className="text-muted-foreground">Descubrí cómo funciona ARIN con estos ejemplos</p>
           </div>
-        </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row gap-4">
-          <Button onClick={handleLoadSamples} disabled={loading} className="w-full sm:w-auto gap-2">
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Cargando...
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4" />
-                Cargar {sampleClothes.length} prendas de ejemplo
-              </>
-            )}
-          </Button>
-
-          <Button
-            variant="destructive"
-            onClick={handleClearWardrobe}
-            disabled={loading || existingItems.length === 0}
-            className="w-full sm:w-auto gap-2"
-          >
-            <Trash2 className="w-4 h-4" />
-            Limpiar armario
-          </Button>
-        </CardFooter>
-      </Card>
-
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Resumen de prendas de ejemplo</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Por tipo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-1">
-                <li className="flex justify-between">
-                  <span>Remeras:</span> <Badge variant="outline">3</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Camisas:</span> <Badge variant="outline">3</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Pantalones:</span> <Badge variant="outline">3</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Faldas:</span> <Badge variant="outline">2</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Vestidos:</span> <Badge variant="outline">2</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Abrigos:</span> <Badge variant="outline">6</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Calzado:</span> <Badge variant="outline">3</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Accesorios:</span> <Badge variant="outline">2</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Chalecos:</span> <Badge variant="outline">2</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Shorts:</span> <Badge variant="outline">2</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Gorras:</span> <Badge variant="outline">2</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Bufandas:</span> <Badge variant="outline">2</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Aros:</span> <Badge variant="outline">2</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Carteras:</span> <Badge variant="outline">2</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Pañuelos:</span> <Badge variant="outline">1</Badge>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Por clima</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-1">
-                <li className="flex justify-between">
-                  <span>Caluroso:</span> <Badge variant="outline">5</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Templado:</span> <Badge variant="outline">10</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Frío:</span> <Badge variant="outline">5</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Todo clima:</span> <Badge variant="outline">3</Badge>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Por color</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-1">
-                <li className="flex justify-between">
-                  <span>Negro:</span> <Badge variant="outline">8</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Blanco:</span> <Badge variant="outline">3</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Azul:</span> <Badge variant="outline">5</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Rojo:</span> <Badge variant="outline">3</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Gris:</span> <Badge variant="outline">2</Badge>
-                </li>
-                <li className="flex justify-between">
-                  <span>Marrón:</span> <Badge variant="outline">2</Badge>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
         </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-8">
+          <Button
+            variant={selectedTab === "prendas" ? "default" : "outline"}
+            onClick={() => setSelectedTab("prendas")}
+            className="flex items-center gap-2"
+          >
+            <Shirt className="h-4 w-4" />
+            Prendas de Ejemplo
+          </Button>
+          <Button
+            variant={selectedTab === "look" ? "default" : "outline"}
+            onClick={() => setSelectedTab("look")}
+            className="flex items-center gap-2"
+          >
+            <Users className="h-4 w-4" />
+            Look Generado
+          </Button>
+        </div>
+
+        {/* Content */}
+        {selectedTab === "prendas" && (
+          <div className="space-y-8">
+            {/* Intro */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-6">
+                <h2 className="text-xl font-semibold mb-3">¿Cómo categorizar tus prendas?</h2>
+                <p className="text-muted-foreground mb-4">
+                  Cada prenda que cargues necesita esta información básica para que ARIN pueda crear looks perfectos:
+                </p>
+                <div className="grid md:grid-cols-4 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
+                    <span>
+                      <strong>Tipo:</strong> Remera, pantalón, etc.
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
+                    <span>
+                      <strong>Color:</strong> Principal de la prenda
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
+                    <span>
+                      <strong>Ocasión:</strong> Casual, formal, fiesta
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
+                    <span>
+                      <strong>Clima:</strong> Caluroso, templado, frío
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Example Items Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {exampleItems.map((item) => {
+                const IconComponent = item.icon
+                const OccasionIcon = occasionIcons[item.occasion as keyof typeof occasionIcons]
+                const ClimateIcon = climateIcons[item.climate as keyof typeof climateIcons]
+
+                return (
+                  <Card key={item.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <IconComponent className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <CardTitle className="text-lg">{item.name}</CardTitle>
+                          <p className="text-sm text-muted-foreground">{item.description}</p>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Tipo:</span>
+                        <Badge variant="secondary" className="capitalize">
+                          {item.type}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Color:</span>
+                        <Badge variant="outline">{item.color}</Badge>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Ocasión:</span>
+                        <Badge className={occasionColors[item.occasion as keyof typeof occasionColors]}>
+                          <OccasionIcon className="h-3 w-3 mr-1" />
+                          {item.occasion}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Clima:</span>
+                        <Badge className={climateColors[item.climate as keyof typeof climateColors]}>
+                          <ClimateIcon className="h-3 w-3 mr-1" />
+                          {item.climate}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+
+            {/* CTA */}
+            <Card className="border-primary bg-gradient-to-r from-primary/5 to-primary/10">
+              <CardContent className="p-8 text-center">
+                <h3 className="text-xl font-semibold mb-3">¿Lista para cargar tus prendas?</h3>
+                <p className="text-muted-foreground mb-6">
+                  Con solo 5-6 prendas ya podés empezar a crear looks increíbles
+                </p>
+                <div className="flex gap-4 justify-center">
+                  <Link href="/upload">
+                    <Button size="lg" className="flex items-center gap-2">
+                      <Shirt className="h-4 w-4" />
+                      Cargar mis prendas
+                    </Button>
+                  </Link>
+                  <Link href="/onboarding">
+                    <Button variant="outline" size="lg">
+                      Volver a la guía
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {selectedTab === "look" && (
+          <div className="space-y-8">
+            {/* Intro */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-6">
+                <h2 className="text-xl font-semibold mb-3">Así genera ARIN tus looks</h2>
+                <p className="text-muted-foreground">
+                  Cuando tengas prendas cargadas, ARIN analizará la ocasión y el clima para sugerirte combinaciones
+                  perfectas como esta:
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Generated Look Example */}
+            <Card className="max-w-2xl mx-auto">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl">Look Sugerido por ARIN</CardTitle>
+                  <div className="flex gap-2">
+                    <Badge className={occasionColors.formal}>
+                      <Briefcase className="h-3 w-3 mr-1" />
+                      {exampleLook.occasion}
+                    </Badge>
+                    <Badge className={climateColors.templado}>
+                      <Cloud className="h-3 w-3 mr-1" />
+                      {exampleLook.climate}
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Look Items */}
+                <div className="space-y-4">
+                  {exampleLook.items.map((item, index) => {
+                    const IconComponent = item.icon
+                    return (
+                      <div key={index} className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg">
+                        <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <IconComponent className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-sm text-muted-foreground capitalize">{item.type}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* ARIN's Explanation */}
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-bold text-primary">A</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm mb-2">¿Por qué ARIN eligió esta combinación?</p>
+                      <p className="text-sm text-muted-foreground">
+                        "Elegí esta combinación porque el blazer negro le da formalidad para el trabajo, pero los jeans
+                        y zapatillas mantienen comodidad. La remera blanca es versátil y la cartera negra completa el
+                        look profesional pero relajado."
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-4">
+                  <Button className="flex-1" variant="outline">
+                    💕 Me gusta
+                  </Button>
+                  <Button className="flex-1" variant="outline">
+                    🔄 Generar otro
+                  </Button>
+                  <Button className="flex-1" variant="outline">
+                    💾 Guardar look
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Features */}
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Users className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Ocasión Perfecta</h3>
+                  <p className="text-sm text-muted-foreground">ARIN considera si es para trabajo, casual o fiesta</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Cloud className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Clima Apropiado</h3>
+                  <p className="text-sm text-muted-foreground">Sugiere prendas según la temperatura del día</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <Shirt className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold mb-2">Combinaciones Armoniosas</h3>
+                  <p className="text-sm text-muted-foreground">Colores y estilos que funcionan perfectamente juntos</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* CTA */}
+            <Card className="border-primary bg-gradient-to-r from-primary/5 to-primary/10">
+              <CardContent className="p-8 text-center">
+                <h3 className="text-xl font-semibold mb-3">¿Querés que ARIN cree looks para vos?</h3>
+                <p className="text-muted-foreground mb-6">
+                  Cargá tus prendas y empezá a recibir sugerencias personalizadas
+                </p>
+                <div className="flex gap-4 justify-center">
+                  <Link href="/upload">
+                    <Button size="lg" className="flex items-center gap-2">
+                      <Shirt className="h-4 w-4" />
+                      Empezar ahora
+                    </Button>
+                  </Link>
+                  <Link href="/suggest">
+                    <Button variant="outline" size="lg">
+                      Ver sugerencias
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
-      <Toaster />
     </div>
   )
 }
