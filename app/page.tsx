@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, Check, Sparkles, Shirt, Wand2, Heart, MessageSquare } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { ArinChat } from "@/components/arin-chat"
 
 export default function Home() {
   return (
@@ -24,7 +25,7 @@ export default function Home() {
                 reinventá, reestrená.
               </p>
               <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                <Link href="/upload">
+                <Link href="/onboarding">
                   <Button size="lg" className="gap-2 btn-hover bg-primary-600 hover:bg-primary-700">
                     Comenzar ahora
                     <ArrowRight className="w-4 h-4" />
@@ -81,7 +82,7 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-bold mb-2">Generá looks automáticos</h3>
               <p className="text-muted-foreground">
-                Dejá que Vestok te sugiera combinaciones perfectas basadas en tus prendas favoritas.
+                Dejá que ARIN te sugiera combinaciones perfectas basadas en tus prendas favoritas.
               </p>
             </div>
 
@@ -102,7 +103,7 @@ export default function Home() {
       {/* Benefits Section */}
       <section className="py-16">
         <div className="container px-4 mx-auto">
-          <h2 className="section-title text-center">Beneficios de usar Vestok</h2>
+          <h2 className="section-title text-center">Beneficios de usar ARIN</h2>
           <div className="grid md:grid-cols-2 gap-8 mt-12">
             <div className="space-y-6">
               {/* Benefit 1 */}
@@ -192,12 +193,12 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-16 bg-gradient-to-br from-primary-500 to-primary-700 text-white">
         <div className="container px-4 mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">¿Listo para transformar tu armario?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">¿Lista para transformar tu armario?</h2>
           <p className="text-xl opacity-90 max-w-2xl mx-auto mb-8">
             Comenzá a organizar tus prendas y descubrí nuevas combinaciones hoy mismo.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/upload">
+            <Link href="/onboarding">
               <Button size="lg" variant="secondary" className="gap-2 btn-hover">
                 Comenzar ahora
                 <ArrowRight className="w-4 h-4" />
@@ -223,6 +224,9 @@ export default function Home() {
           <p className="text-muted-foreground">© {new Date().getFullYear()} ARIN. Todos los derechos reservados.</p>
         </div>
       </footer>
+
+      {/* ARIN Chat */}
+      <ArinChat />
     </div>
   )
 }

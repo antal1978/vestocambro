@@ -2,8 +2,9 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { X, Loader2 } from "lucide-react"
+import { X, Loader2, Bot } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
+import { OutfitAIAdvisor } from "@/components/outfit-ai-advisor"
 
 type ClothingItem = {
   id: string
@@ -19,6 +20,8 @@ type OutfitVisualizationProps = {
   items: ClothingItem[]
   isOpen: boolean
   onClose: () => void
+  climate?: string
+  occasion?: string
 }
 
 type ProcessedImage = {
@@ -29,7 +32,13 @@ type ProcessedImage = {
   isProcessed: boolean
 }
 
-export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizationProps) {
+export function OutfitVisualization({
+  items,
+  isOpen,
+  onClose,
+  climate = "templado",
+  occasion = "casual",
+}: OutfitVisualizationProps) {
   // Estado para las imágenes procesadas
   const [processedImages, setProcessedImages] = useState<Record<string, ProcessedImage>>({})
   const [isProcessing, setIsProcessing] = useState(false)
@@ -42,6 +51,9 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
     type: string
     color: string
   } | null>(null)
+
+  // Nuevo estado para el asesor de IA
+  const [showAIAdvisor, setShowAIAdvisor] = useState(false)
 
   // Clasificar prendas por categoría (evitando duplicados)
   // Primero identificamos los abrigos
@@ -446,6 +458,11 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
     setExpandedImage(null)
   }
 
+  // Función para mostrar/ocultar el asesor de IA
+  const toggleAIAdvisor = () => {
+    setShowAIAdvisor(!showAIAdvisor)
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
@@ -682,11 +699,32 @@ export function OutfitVisualization({ items, isOpen, onClose }: OutfitVisualizat
             </div>
           </div>
 
+          {/* Botón para consultar al asesor de IA */}
+          <div className="mt-4 flex justify-center">
+            <Button onClick={toggleAIAdvisor} className="gap-2" variant={showAIAdvisor ? "secondary" : "default"}>
+              <Bot className="h-4 w-4" />
+              {showAIAdvisor ? "Ocultar asesor IA" : "Consultar a asesor IA"}
+            </Button>
+          </div>
+
           {/* Texto informativo - más corto */}
           <p className="text-xs text-muted-foreground text-center mt-2 mb-2">
             Captura de pantalla para compartir este look.
           </p>
         </div>
+
+        {/* Asesor de IA */}
+        {showAIAdvisor && (
+          <div className="border-t p-4">
+            <OutfitAIAdvisor
+              outfit={items}
+              climate={climate}
+              occasion={occasion}
+              onClose={() => setShowAIAdvisor(false)}
+            />
+          </div>
+        )}
+
         {/* Diálogo para mostrar imagen ampliada */}
         {expandedImage && (
           <Dialog open={!!expandedImage} onOpenChange={closeExpandedImage}>

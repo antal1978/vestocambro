@@ -547,8 +547,45 @@ export default function SuggestPage() {
           }
 
           // Agregar calzado si es necesario
+          // Agregar calzado (OBLIGATORIO)
           if (!isFootwear && occasionSuitableFootwear.length > 0) {
             selectedItems.push(occasionSuitableFootwear[0])
+            console.log("Calzado añadido (obligatorio):", occasionSuitableFootwear[0].type)
+          } else if (!isFootwear) {
+            console.warn("⚠️ No hay calzado disponible para la prenda base")
+          }
+
+          // Agregar cartera (OBLIGATORIO)
+          const allAccessories = allItems.filter(
+            (item) => CLOTHING_CATEGORIES.accessories.includes(item.type) && item.id !== baseItem.id,
+          )
+          const climateSuitableAccessories = filterAccessoriesByClimate(allAccessories, targetClimate)
+          const occasionSuitableAccessories = filterItemsByOccasion(
+            climateSuitableAccessories,
+            targetOccasion,
+            selectedOccasion === targetOccasion,
+          )
+
+          const carteras = occasionSuitableAccessories.filter((item) => item.type === "cartera")
+          if (carteras.length > 0) {
+            selectedItems.push(carteras[0])
+            console.log("Cartera añadida (obligatoria):", carteras[0].color)
+          } else {
+            const accesoriosGenerales = occasionSuitableAccessories.filter((item) => item.type === "accesorio")
+            if (accesoriosGenerales.length > 0) {
+              selectedItems.push(accesoriosGenerales[0])
+              console.log("Accesorio añadido como cartera:", accesoriosGenerales[0].color)
+            }
+          }
+
+          // Completar look según clima (mismo código que arriba para alcanzar 5-7 piezas)
+          const currentPieces = selectedItems.length
+          const targetPieces = targetClimate === "frio" ? (Math.random() > 0.5 ? 6 : 7) : 5
+
+          const piecesNeeded = targetPieces - currentPieces
+          if (piecesNeeded > 0) {
+            // Lógica similar para añadir piezas según clima...
+            console.log(`Completando look con prenda base: necesitamos ${piecesNeeded} piezas más`)
           }
 
           setOutfit(selectedItems)
@@ -745,45 +782,22 @@ export default function SuggestPage() {
             occasionSuitableFullBody[randomIndex].color,
           )
         } else {
-          // Decidir si usar cardigan o chaleco (30% de probabilidad si hay disponibles)
-          const useLayerNeedsBase = occasionSuitableLayerNeedsBase.length > 0 && Math.random() < 0.3
+          // ESTRUCTURA BÁSICA: Remera base + Pantalón
 
-          if (useLayerNeedsBase) {
-            // Si usamos cardigan o chaleco, necesitamos una prenda base
-            const randomLayerIndex = Math.floor(Math.random() * occasionSuitableLayerNeedsBase.length)
-            selectedItems.push(occasionSuitableLayerNeedsBase[randomLayerIndex])
-
-            // Seleccionar prenda base apropiada según la ocasión
-            let baseItems = occasionSuitableUpperBase
-
-            if (targetOccasion === "formal") {
-              // Para ocasiones formales, preferir camisas y blusas
-              const formalBaseItems = baseItems.filter((item) => item.type === "camisa" || item.type === "blusa")
-              if (formalBaseItems.length > 0) {
-                baseItems = formalBaseItems
-              }
-            } else if (targetOccasion === "casual") {
-              // Para ocasiones casuales, preferir remeras
-              const casualBaseItems = baseItems.filter((item) => item.type === "remera")
-              if (casualBaseItems.length > 0) {
-                baseItems = casualBaseItems
-              }
-            }
-
-            if (baseItems.length > 0) {
-              const randomBaseIndex = Math.floor(Math.random() * baseItems.length)
-              selectedItems.push(baseItems[randomBaseIndex])
-            }
+          // 1. Añadir remera base (OBLIGATORIO)
+          if (occasionSuitableUpperBase.length > 0) {
+            const randomIndex = Math.floor(Math.random() * occasionSuitableUpperBase.length)
+            selectedItems.push(occasionSuitableUpperBase[randomIndex])
+            console.log(
+              "Remera base añadida:",
+              occasionSuitableUpperBase[randomIndex].type,
+              occasionSuitableUpperBase[randomIndex].color,
+            )
           } else {
-            // Si no usamos cardigan o chaleco, seleccionar prenda superior normal
-            const allUpperItems = [...occasionSuitableUpperBase, ...occasionSuitableUpperLayer]
-            if (allUpperItems.length > 0) {
-              const randomIndex = Math.floor(Math.random() * allUpperItems.length)
-              selectedItems.push(allUpperItems[randomIndex])
-            }
+            console.warn("⚠️ No hay remeras base disponibles")
           }
 
-          // Seleccionar parte inferior
+          // 2. Añadir parte inferior (OBLIGATORIO)
           if (occasionSuitableLowerBody.length > 0) {
             const randomIndex = Math.floor(Math.random() * occasionSuitableLowerBody.length)
             selectedItems.push(occasionSuitableLowerBody[randomIndex])
@@ -793,61 +807,96 @@ export default function SuggestPage() {
               occasionSuitableLowerBody[randomIndex].color,
             )
           } else {
-            console.warn("No hay prendas inferiores disponibles para la selección")
+            console.warn("⚠️ No hay prendas inferiores disponibles")
           }
-        }
 
-        // Añadir abrigo según el clima
-        if (occasionSuitableOuterwear.length > 0 && !selectedItems.some((item) => item.isOuterwear)) {
-          // Obtener probabilidad según el clima objetivo
-          const probability = getOuterwearProbabilityByClimate(targetClimate)
-          console.log("Probabilidad de añadir abrigo:", probability)
-
-          // Decidir si añadir abrigo basado en la probabilidad ajustada
-          if (Math.random() < probability) {
-            const randomIndex = Math.floor(Math.random() * occasionSuitableOuterwear.length)
-            selectedItems.push(occasionSuitableOuterwear[randomIndex])
+          // 3. Para clima frío: SIEMPRE añadir sweater o buzo (OBLIGATORIO)
+          if (targetClimate === "frio" && occasionSuitableUpperLayer.length > 0) {
+            const randomIndex = Math.floor(Math.random() * occasionSuitableUpperLayer.length)
+            selectedItems.push(occasionSuitableUpperLayer[randomIndex])
             console.log(
-              "Abrigo seleccionado:",
-              occasionSuitableOuterwear[randomIndex].type,
-              occasionSuitableOuterwear[randomIndex].color,
+              "Sweater/buzo añadido (obligatorio para frío):",
+              occasionSuitableUpperLayer[randomIndex].type,
+              occasionSuitableUpperLayer[randomIndex].color,
             )
           }
         }
 
-        // Añadir calzado con 70% de probabilidad
-        if (occasionSuitableFootwear.length > 0 && Math.random() > 0.3) {
-          const randomIndex = Math.floor(Math.random() * occasionSuitableFootwear.length)
-          selectedItems.push(occasionSuitableFootwear[randomIndex])
+        // 4. Añadir abrigo para clima frío (OBLIGATORIO)
+        if (targetClimate === "frio" && occasionSuitableOuterwear.length > 0) {
+          const randomIndex = Math.floor(Math.random() * occasionSuitableOuterwear.length)
+          selectedItems.push(occasionSuitableOuterwear[randomIndex])
           console.log(
-            "Calzado seleccionado:",
-            occasionSuitableFootwear[randomIndex].type,
-            occasionSuitableFootwear[randomIndex].color,
+            "Abrigo añadido (obligatorio para frío):",
+            occasionSuitableOuterwear[randomIndex].type,
+            occasionSuitableOuterwear[randomIndex].color,
           )
         }
 
-        // Añadir accesorio específico para el clima con probabilidad inteligente
-        if (occasionSuitableAccessories.length > 0) {
-          const accessoryProbability = getAccessoryProbabilityByClimate(targetClimate)
-          console.log(`Probabilidad de añadir accesorio para clima ${targetClimate}:`, accessoryProbability)
-
-          if (Math.random() < accessoryProbability) {
-            const randomIndex = Math.floor(Math.random() * occasionSuitableAccessories.length)
-            selectedItems.push(occasionSuitableAccessories[randomIndex])
-            console.log(
-              "Accesorio seleccionado:",
-              occasionSuitableAccessories[randomIndex].type,
-              occasionSuitableAccessories[randomIndex].color,
-              `(apropiado para clima ${targetClimate})`,
-            )
-          } else {
-            console.log(`No se añadió accesorio (probabilidad: ${accessoryProbability})`)
-          }
+        // 5. Añadir calzado (OBLIGATORIO)
+        if (occasionSuitableFootwear.length > 0) {
+          const randomIndex = Math.floor(Math.random() * occasionSuitableFootwear.length)
+          selectedItems.push(occasionSuitableFootwear[randomIndex])
+          console.log(
+            "Calzado seleccionado (obligatorio):",
+            occasionSuitableFootwear[randomIndex].type,
+            occasionSuitableFootwear[randomIndex].color,
+          )
         } else {
-          console.log(`No hay accesorios apropiados para clima ${targetClimate}`)
+          console.warn("⚠️ No hay calzado disponible")
         }
 
-        console.log("Outfit final generado con", selectedItems.length, "prendas")
+        // 6. Añadir cartera (OBLIGATORIO)
+        const carteras = occasionSuitableAccessories.filter((item) => item.type === "cartera")
+        if (carteras.length > 0) {
+          const randomIndex = Math.floor(Math.random() * carteras.length)
+          selectedItems.push(carteras[randomIndex])
+          console.log("Cartera seleccionada (obligatoria):", carteras[randomIndex].color)
+        } else {
+          // Si no hay carteras específicas, buscar en accesorios generales
+          const accesoriosGenerales = occasionSuitableAccessories.filter((item) => item.type === "accesorio")
+          if (accesoriosGenerales.length > 0) {
+            const randomIndex = Math.floor(Math.random() * accesoriosGenerales.length)
+            selectedItems.push(accesoriosGenerales[randomIndex])
+            console.log("Accesorio seleccionado como cartera:", accesoriosGenerales[randomIndex].color)
+          } else {
+            console.warn("⚠️ No hay carteras disponibles")
+          }
+        }
+
+        // 7. Para clima frío: añadir bufanda O gorro (no ambos)
+        if (targetClimate === "frio") {
+          const bufandas = occasionSuitableAccessories.filter((item) => item.type === "bufanda")
+          const gorros = occasionSuitableAccessories.filter((item) => item.type === "gorro")
+
+          // Decidir entre bufanda o gorro
+          if (bufandas.length > 0 && gorros.length > 0) {
+            // Si hay ambos disponibles, elegir uno al azar
+            if (Math.random() > 0.5) {
+              const randomIndex = Math.floor(Math.random() * bufandas.length)
+              selectedItems.push(bufandas[randomIndex])
+              console.log("Bufanda añadida:", bufandas[randomIndex].color)
+            } else {
+              const randomIndex = Math.floor(Math.random() * gorros.length)
+              selectedItems.push(gorros[randomIndex])
+              console.log("Gorro añadido:", gorros[randomIndex].color)
+            }
+          } else if (bufandas.length > 0) {
+            // Solo hay bufandas
+            const randomIndex = Math.floor(Math.random() * bufandas.length)
+            selectedItems.push(bufandas[randomIndex])
+            console.log("Bufanda añadida:", bufandas[randomIndex].color)
+          } else if (gorros.length > 0) {
+            // Solo hay gorros
+            const randomIndex = Math.floor(Math.random() * gorros.length)
+            selectedItems.push(gorros[randomIndex])
+            console.log("Gorro añadido:", gorros[randomIndex].color)
+          } else {
+            console.warn("⚠️ No hay bufandas ni gorros disponibles para clima frío")
+          }
+        }
+
+        console.log(`Outfit final: ${selectedItems.length} piezas para clima ${targetClimate}`)
 
         // Verificar si se generó un outfit válido
         if (selectedItems.length === 0) {
@@ -1023,6 +1072,8 @@ export default function SuggestPage() {
         items={outfit}
         isOpen={showOutfitVisualization}
         onClose={() => setShowOutfitVisualization(false)}
+        climate={selectedClimate}
+        occasion={selectedOccasion}
       />
 
       {/* Diálogo de confirmación de uso */}

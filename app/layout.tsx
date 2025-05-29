@@ -1,49 +1,37 @@
 import type React from "react"
-import "@/app/globals.css"
-import { Inter, Montserrat } from "next/font/google"
+import "./globals.css"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Navbar } from "@/components/navbar"
-import { MobileNav } from "@/components/mobile-nav"
+import { Toaster } from "@/components/ui/toaster"
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-})
+const inter = Inter({ subsets: ["latin"] })
 
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  variable: "--font-montserrat",
-  display: "swap",
-})
-
-export const metadata = {
-  title: "ARIN",
-  description: "Laboratorio de looks - Organizá tus prendas y creá looks increíbles",
-  // Añadimos metadatos para mejorar la experiencia web
+export const metadata: Metadata = {
+  title: "ARIN - Tu armario inteligente",
+  description: "Organiza tu armario y crea nuevos looks con lo que ya tienes",
   manifest: "/manifest.json",
-  themeColor: "#8b5cf6",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "ARIN",
-  },
     generator: 'v0.dev'
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.variable} ${montserrat.variable} font-sans`}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <Navbar />
-          <main className="min-h-screen pt-16 pb-20 md:pb-0">{children}</main>
-          <MobileNav />
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <link rel="icon" href="/icon-192.png" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+      </head>
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="light">
+          <div className="flex flex-col min-h-screen">
+            <Navbar />
+            <main className="flex-1">{children}</main>
+          </div>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
