@@ -1,10 +1,12 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Wand2, Trash2, Plus, Database, BarChart3, Sparkles, Eye, Save, ArrowLeftRight, X } from "lucide-react"
+import { Wand2, Trash2, Plus, Database, BarChart3, Eye, Save, ArrowLeftRight, X } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -61,7 +63,7 @@ const CLOTHING_CATEGORIES: Record<ClothingCategory, string[]> = {
   fullBody: ["vestido", "mono", "jumpsuit"],
   outerwear: ["campera", "tapado", "blazer", "abrigo"],
   footwear: ["calzado", "zapatos", "zapatillas", "botas"],
-  accessories: ["accesorio", "bufanda", "gorra", "gorro", "guantes", "cinturon", "aros", "pañuelo", "cartera"],
+  accessories: ["bufanda", "gorra", "gorro", "guantes", "cinturon", "cartera"],
 }
 
 // Nombres de categorías para mostrar
@@ -103,9 +105,15 @@ export default function GalleryPage() {
     // Load items from localStorage
     const storedItems = localStorage.getItem("clothingItems")
     if (storedItems) {
-      setItems(JSON.parse(storedItems))
+      try {
+        const parsedItems = JSON.parse(storedItems)
+        setItems(parsedItems)
+      } catch (error) {
+        console.error("Error parsing stored items:", error)
+        setItems([])
+      }
     }
-  }, [])
+  }, []) // Solo ejecutar una vez al montar el componente
 
   const handleDelete = (item: ClothingItem) => {
     setItemToDelete(item)
@@ -144,16 +152,31 @@ export default function GalleryPage() {
 
   const getClimateLabel = (climate: string) => {
     switch (climate) {
-      case "caluroso":
-        return "Caluroso"
+      case "calor":
+        return "Calor"
       case "templado":
         return "Templado"
       case "frio":
         return "Frío"
-      case "todo-clima":
-        return "Todo clima"
       default:
         return climate
+    }
+  }
+
+  const getOccasionLabel = (occasion: string) => {
+    switch (occasion) {
+      case "dia-casual":
+        return "Día a día / Casual"
+      case "trabajo":
+        return "Trabajo"
+      case "salidas-informales":
+        return "Salidas informales"
+      case "salidas-formales":
+        return "Salidas formales"
+      case "deporte":
+        return "Deporte"
+      default:
+        return occasion
     }
   }
 
@@ -186,7 +209,7 @@ export default function GalleryPage() {
       toast({
         title: "Atención",
         description: "Al seleccionar un vestido se eliminarán las prendas superiores e inferiores seleccionadas.",
-        variant: "warning",
+        variant: "default",
       })
 
       // Actualizar el look actual
@@ -205,7 +228,7 @@ export default function GalleryPage() {
       toast({
         title: "Atención",
         description: "Al seleccionar esta prenda se eliminará el vestido seleccionado.",
-        variant: "warning",
+        variant: "default",
       })
 
       // Actualizar el look actual
@@ -227,7 +250,6 @@ export default function GalleryPage() {
     toast({
       title: "Prenda seleccionada",
       description: `${item.type} ${item.color} añadida a tu look virtual.`,
-      variant: "success",
     })
   }
 
@@ -274,7 +296,7 @@ export default function GalleryPage() {
       toast({
         title: "Look vacío",
         description: "Selecciona al menos una prenda para guardar el look.",
-        variant: "warning",
+        variant: "default",
       })
       return
     }
@@ -285,7 +307,6 @@ export default function GalleryPage() {
     toast({
       title: "Look guardado",
       description: "Ahora puedes crear otro look para comparar.",
-      variant: "success",
     })
 
     // Limpiar el look actual para crear uno nuevo
@@ -378,132 +399,47 @@ export default function GalleryPage() {
     }
   }
 
-  const handleGenerateLookWithItem = (item: ClothingItem) => {
-    // Guardar el ID de la prenda seleccionada en localStorage
-    localStorage.setItem("baseItemForLook", item.id)
-
-    // Redirigir a la página de sugerencias con un parámetro que indique que debe usar esta prenda como base
-    router.push(`/suggest?baseItem=${item.id}`)
-
-    toast({
-      title: "Generando look",
-      description: `Creando un look basado en tu ${item.type} ${item.color}`,
-    })
-  }
-
-  // Renderizar el look virtual (actual o guardado)
-  const renderVirtualLook = (look: Record<ClothingCategory, ClothingItem | null>, title: string) => {
-    // Verificar si hay al menos una prenda en el look
-    const hasItems = Object.values(look).some((item) => item !== null)
-
-    if (!hasItems) {
-      return (
-        <div className="flex flex-col items-center justify-center p-6 bg-muted/30 rounded-lg border border-dashed h-full">
-          <p className="text-muted-foreground text-center">
-            {title} está vacío. Selecciona prendas para visualizar el look.
-          </p>
-        </div>
-      )
-    }
-
-    return (
-      <div className="space-y-4">
-        <h3 className="font-medium text-center">{title}</h3>
-        <div className="grid grid-cols-2 gap-2">
-          {/* Parte superior o prenda completa */}
-          <div className="col-span-2 aspect-square relative bg-white rounded-md overflow-hidden border">
-            {look.fullBody ? (
-              // Mostrar prenda completa
-              <img
-                src={look.fullBody.image || "/placeholder.svg"}
-                alt={look.fullBody.type}
-                className="absolute inset-0 w-full h-full object-contain"
-              />
-            ) : look.upperBody ? (
-              // Mostrar parte superior
-              <img
-                src={look.upperBody.image || "/placeholder.svg"}
-                alt={look.upperBody.type}
-                className="absolute inset-0 w-full h-full object-contain"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-muted-foreground text-sm">Sin parte superior</p>
-              </div>
-            )}
-          </div>
-
-          {/* Parte inferior (solo si no hay prenda completa) */}
-          {!look.fullBody && (
-            <div className="col-span-2 aspect-square relative bg-white rounded-md overflow-hidden border">
-              {look.lowerBody ? (
-                <img
-                  src={look.lowerBody.image || "/placeholder.svg"}
-                  alt={look.lowerBody.type}
-                  className="absolute inset-0 w-full h-full object-contain"
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground text-sm">Sin parte inferior</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Abrigo y calzado */}
-          <div className="aspect-square relative bg-white rounded-md overflow-hidden border">
-            {look.outerwear ? (
-              <img
-                src={look.outerwear.image || "/placeholder.svg"}
-                alt={look.outerwear.type}
-                className="absolute inset-0 w-full h-full object-contain"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-muted-foreground text-sm">Sin abrigo</p>
-              </div>
-            )}
-          </div>
-
-          <div className="aspect-square relative bg-white rounded-md overflow-hidden border">
-            {look.footwear ? (
-              <img
-                src={look.footwear.image || "/placeholder.svg"}
-                alt={look.footwear.type}
-                className="absolute inset-0 w-full h-full object-contain"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-muted-foreground text-sm">Sin calzado</p>
-              </div>
-            )}
-          </div>
-
-          {/* Accesorios */}
-          <div className="col-span-2 aspect-square relative bg-white rounded-md overflow-hidden border">
-            {look.accessories ? (
-              <img
-                src={look.accessories.image || "/placeholder.svg"}
-                alt={look.accessories.type}
-                className="absolute inset-0 w-full h-full object-contain"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-muted-foreground text-sm">Sin accesorios</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   const handleImageClick = (imageUrl: string) => {
     setExpandedImage(imageUrl)
   }
 
   const closeExpandedImage = () => {
     setExpandedImage(null)
+  }
+
+  const renderVirtualLook = (look: Record<ClothingCategory, ClothingItem | null>, title: string): React.ReactNode => {
+    return (
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium">{title}</h3>
+        <Card>
+          <CardContent className="p-4 grid grid-cols-2 gap-4">
+            {Object.entries(look).map(([category, item]) => (
+              <div key={category} className="flex flex-col items-center justify-center">
+                <div className="relative w-24 h-24 rounded-full overflow-hidden">
+                  {item ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.image || "/placeholder.svg"}
+                      alt={item.type}
+                      className="object-cover w-full h-full"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                      <span className="text-gray-500 dark:text-gray-400 text-xs">
+                        {CATEGORY_NAMES[category as ClothingCategory]}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs mt-2 text-center text-muted-foreground">
+                  {CATEGORY_NAMES[category as ClothingCategory]}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -839,7 +775,7 @@ export default function GalleryPage() {
                     {item.color}
                   </Badge>
                   <Badge variant="outline" className="capitalize">
-                    {item.occasion}
+                    {getOccasionLabel(item.occasion)}
                   </Badge>
                   <Badge variant="outline" className="capitalize">
                     {getClimateLabel(item.climate)}
@@ -851,16 +787,7 @@ export default function GalleryPage() {
                   )}
                 </div>
               </CardContent>
-              <CardFooter className="p-4 pt-0 flex justify-between">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 px-3 py-1 h-auto text-xs whitespace-normal text-center"
-                  onClick={() => handleGenerateLookWithItem(item)}
-                >
-                  <Sparkles className="w-3 h-3 flex-shrink-0" />
-                  <span>Crear look</span>
-                </Button>
+              <CardFooter className="p-4 pt-0 flex justify-center">
                 <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(item)}>
                   <Trash2 className="w-4 h-4" />
                 </Button>

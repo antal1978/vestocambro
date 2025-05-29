@@ -15,6 +15,7 @@ import { Toaster } from "@/components/ui/toaster"
 import Link from "next/link"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ColorPicker } from "@/components/color-picker"
 
 type ClothingItem = {
   id: string
@@ -616,8 +617,6 @@ export default function UploadPage() {
                 <SelectItem value="bufanda">Bufanda</SelectItem>
                 <SelectItem value="gorra">Gorra</SelectItem>
                 <SelectItem value="gorro">Gorro</SelectItem>
-                <SelectItem value="aros">Aros</SelectItem>
-                <SelectItem value="pañuelo">Pañuelo</SelectItem>
                 <SelectItem value="cartera">Cartera</SelectItem>
                 <SelectItem value="cinturon">Cinturón</SelectItem>
                 <SelectItem value="guantes">Guantes</SelectItem>
@@ -631,23 +630,7 @@ export default function UploadPage() {
               <Label htmlFor="color">Color *</Label>
               <InfoTooltip text="Si la prenda es estampada o tiene mezcla de colores, selecciona el color que predomina. Esto ayudará a la app a generar combinaciones más armoniosas." />
             </div>
-            <Select value={color} onValueChange={setColor}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar el color" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="negro">Negro</SelectItem>
-                <SelectItem value="blanco">Blanco</SelectItem>
-                <SelectItem value="gris">Gris</SelectItem>
-                <SelectItem value="azul">Azul</SelectItem>
-                <SelectItem value="rojo">Rojo</SelectItem>
-                <SelectItem value="verde">Verde</SelectItem>
-                <SelectItem value="amarillo">Amarillo</SelectItem>
-                <SelectItem value="rosa">Rosa</SelectItem>
-                <SelectItem value="morado">Morado</SelectItem>
-                <SelectItem value="marron">Marrón</SelectItem>
-              </SelectContent>
-            </Select>
+            <ColorPicker value={color} onChange={setColor} placeholder="Seleccionar el color" />
           </div>
 
           <div className="grid w-full gap-2">
@@ -660,7 +643,7 @@ export default function UploadPage() {
                 <SelectItem value="casual">Casual</SelectItem>
                 <SelectItem value="formal">Formal</SelectItem>
                 <SelectItem value="deporte">Deporte</SelectItem>
-                <SelectItem value="fiesta">Fiesta</SelectItem>
+                <SelectItem value="night-out">Night out</SelectItem>
                 <SelectItem value="homewear">En casa</SelectItem>
               </SelectContent>
             </Select>

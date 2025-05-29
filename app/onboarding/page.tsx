@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar } from "@/components/ui/avatar"
-import { Loader2, Send, Bot, User, ArrowLeft, Camera, Shirt, Heart } from "lucide-react"
+import { Loader2, Send, Bot, User, ArrowLeft, Camera, Heart } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { loadExampleItems } from "@/lib/example-items"
 
 interface Message {
   id: string
@@ -25,12 +26,22 @@ export default function OnboardingPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [inputMessage, setInputMessage] = useState("")
   const [userName, setUserName] = useState("")
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  // Cambiar la lógica de scroll para mostrar el inicio del último mensaje de ARIN
+  const lastMessageRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
-  // Scroll al último mensaje
+  // Modificar el useEffect de scroll:
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    if (lastMessageRef.current) {
+      // Hacer scroll al inicio del último mensaje con un pequeño delay
+      setTimeout(() => {
+        lastMessageRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+          inline: "nearest",
+        })
+      }, 100)
+    }
   }, [messages])
 
   // Iniciar onboarding automáticamente
@@ -116,9 +127,9 @@ Podés cambiar todo:
       return {
         content: `Las categorías son simples ${userName}! 👕
 
-**TIPOS:** Remeras, pantalones, vestidos, zapatos, etc.
-**OCASIONES:** Casual, formal, fiesta, trabajo
-**CLIMA:** Caluroso, templado, frío
+TIPOS: Remeras, pantalones, vestidos, zapatos, etc.
+OCASIONES: Casual, formal, fiesta, trabajo
+CLIMA: Caluroso, templado, frío
 
 ¡Súper fácil!`,
         suggestions: ["Está claro, empiezo", "¿Qué es 'templado'?", "¿Y los accesorios?"],
@@ -133,7 +144,7 @@ Podés cambiar todo:
       return {
         content: `¡Buena pregunta ${userName}! 🌤️
 
-**Templado** = ni muy calor ni muy frío
+Templado = ni muy calor ni muy frío
 • 15°C a 25°C
 • Como otoño/primavera
 • Perfecto para capas: remera + cardigan
@@ -147,15 +158,15 @@ Podés cambiar todo:
       return {
         content: `¡Excelente pregunta sobre accesorios ${userName}! 👜✨
 
-**Los accesorios incluyen:**
-• **Carteras y bolsos** - Para completar el look
-• **Bufandas y pañuelos** - Para clima frío o como detalle
-• **Sombreros y gorros** - Protección y estilo
-• **Cinturones** - Para definir la silueta
-• **Joyas básicas** - Collares, aros, pulseras
-• **Anteojos de sol** - Funcionales y fashionistas
+Los accesorios incluyen:
+• Carteras y bolsos - Para completar el look
+• Bufandas y pañuelos - Para clima frío o como detalle
+• Sombreros y gorros - Protección y estilo
+• Cinturones - Para definir la silueta
+• Joyas básicas - Collares, aros, pulseras
+• Anteojos de sol - Funcionales y fashionistas
 
-**Tip de ARIN:** Los accesorios pueden transformar completamente un look básico. ¡Una remera simple + jeans se vuelve súper chic con los accesorios correctos!
+Tip de ARIN: Los accesorios pueden transformar completamente un look básico. ¡Una remera simple + jeans se vuelve súper chic con los accesorios correctos!
 
 ¿Empezamos cargando tus primeras prendas?`,
         suggestions: ["¡Sí, empiezo ahora!", "¿Cómo categorizo joyas?", "Prefiero ver ejemplos"],
@@ -166,13 +177,13 @@ Podés cambiar todo:
       return {
         content: `¡Buena pregunta ${userName}! Para las joyas es súper simple: 💎
 
-**Categorización de joyas:**
-• **Tipo:** Collar, aros, pulsera, anillo, etc.
-• **Color:** Dorado, plateado, rose gold, colorido
-• **Ocasión:** Casual (joyas simples), Formal (más elegantes)
-• **Clima:** Todas las joyas funcionan en cualquier clima
+Categorización de joyas:
+• Tipo: Collar, aros, pulsera, anillo, etc.
+• Color: Dorado, plateado, rose gold, colorido
+• Ocasión: Casual (joyas simples), Formal (más elegantes)
+• Clima: Todas las joyas funcionan en cualquier clima
 
-**Tip:** No necesitás fotografiar cada joya individual. Podés hacer una foto de tu "set dorado" y otra de tu "set plateado" si querés mantenerlo simple.
+Tip: No necesitás fotografiar cada joya individual. Podés hacer una foto de tu "set dorado" y otra de tu "set plateado" si querés mantenerlo simple.
 
 ¿Te parece práctico este enfoque?`,
         suggestions: ["¡Perfecto, empiezo!", "¿Y los cinturones?", "Mejor veo ejemplos primero"],
@@ -201,10 +212,10 @@ Podés cambiar todo:
         content: `¡Un placer conocerte, ${name}! 😊
 
 ARIN tiene 4 secciones:
-📸 **Mi Armario** - Cargás tus prendas
-✨ **Sugerir Look** - Creo combinaciones
-💕 **Looks Guardados** - Tus favoritos
-📊 **Estadísticas** - Qué usás más
+📸 Mi Armario - Cargás tus prendas
+✨ Sugerir Look - Creo combinaciones
+💕 Looks Guardados - Tus favoritos
+📊 Estadísticas - Qué usás más
 
 ¿Te explico paso a paso?`,
         suggestions: ["¡Sí, explicame!", "Prefiero explorar sola", "¿Cómo cargo las fotos?"],
@@ -216,15 +227,15 @@ ARIN tiene 4 secciones:
         return {
           content: `¡Perfecto ${userName}! 💫
 
-**PASO 1:** Sacá fotos de tu ropa
+PASO 1: Sacá fotos de tu ropa
 • Superficie clara
 • Buena luz
 • Prenda extendida
 
-**PASO 2:** Completá la info
+PASO 2: Completá la info
 • Tipo, color, ocasión, clima
 
-**PASO 3:** ¡Creá looks!
+PASO 3: ¡Creá looks!
 
 ¿Empezamos?`,
           suggestions: ["Cargar mi primera prenda", "Ver ejemplos", "¿Cuántas prendas necesito?"],
@@ -249,20 +260,20 @@ Podés explorar la app libremente. Si en algún momento necesitás ayuda, siempr
         return {
           content: `¡Excelente pregunta, ${userName}! 📸
 
-**Cómo tomar buenas fotos de tus prendas:**
+Cómo tomar buenas fotos de tus prendas:
 
-1. **Preparación**
+1. Preparación
    • Elegí un lugar con buena luz natural (cerca de una ventana)
    • Usá una superficie clara: cama con sábanas blancas, mesa clara, etc.
    • Evitá sombras y reflejos
 
-2. **La prenda**
+2. La prenda
    • Extendé bien la prenda, sin arrugas
    • Si es una remera/camisa, acomodá las mangas
    • Si es un pantalón, estiralo completamente
    • Para vestidos, mostrá la forma completa
 
-3. **La foto**
+3. La foto
    • Centrá la prenda en el encuadre
    • Asegurate de que se vea completa
    • Una foto por prenda es suficiente
@@ -302,15 +313,23 @@ Recordá los consejos que te di:
 ¡Nos vemos del otro lado! Cualquier duda, solo preguntame 💕`,
           suggestions: [],
         }
-      } else if (lowerMessage.includes("ejemplo")) {
+      } else if (lowerMessage.includes("cargar prendas de ejemplo") || lowerMessage.includes("ejemplo")) {
         setOnboardingState("completed")
 
+        // Cargar ejemplos inmediatamente aquí
+        loadExampleItems()
+
         return {
-          content: `¡Buena idea ${userName}! 👀
+          content: `¡Excelente idea ${userName}! 👚👖👗
 
-Te voy a mostrar algunos ejemplos de prendas para que veas cómo funciona la app antes de cargar las tuyas.
+He cargado algunas prendas de ejemplo en tu armario para que puedas ver cómo funciona la app sin tener que subir tus propias fotos todavía.
 
-Esto te va a dar una idea de cómo se ven las combinaciones y cómo organizar tu armario.`,
+Con estas prendas podrás:
+• Ver cómo se organizan en tu armario
+• Probar a crear looks combinándolas
+• Entender mejor cómo funciona todo
+
+¡Te llevo a tu armario con las prendas ya cargadas!`,
           suggestions: [],
         }
       }
@@ -321,7 +340,7 @@ Esto te va a dar una idea de cómo se ven las combinaciones y cómo organizar tu
           content: `¡Excelente elección ${userName}! Te llevo a "Mi Armario" para que empieces a cargar tus prendas 📸`,
           suggestions: [],
         }
-      } else if (lowerMessage.includes("ejemplo")) {
+      } else if (lowerMessage.includes("cargar prendas de ejemplo") || lowerMessage.includes("ejemplo")) {
         setOnboardingState("completed")
         return {
           content: `¡Buena idea ${userName}! Te muestro algunos ejemplos para que veas cómo funciona 👀`,
@@ -422,8 +441,12 @@ Hay varias formas de contarme tus gustos:
         setTimeout(() => {
           if (textToSend.toLowerCase().includes("primera prenda") || textToSend.toLowerCase().includes("armario")) {
             router.push("/upload")
-          } else if (textToSend.toLowerCase().includes("ejemplo")) {
-            router.push("/ejemplos")
+          } else if (
+            textToSend.toLowerCase().includes("ejemplo") ||
+            textToSend.toLowerCase().includes("cargar prendas de ejemplo")
+          ) {
+            // Redirigir al armario después de cargar los ejemplos
+            router.push("/gallery")
           } else if (textToSend.toLowerCase().includes("guía")) {
             router.push("/guia")
           }
@@ -469,24 +492,14 @@ Hay varias formas de contarme tus gustos:
           </div>
         </div>
 
-        {/* Quick Access Cards */}
-        <div className="grid md:grid-cols-3 gap-4 mb-6">
+        {/* Quick Access Cards - Solo 2 opciones */}
+        <div className="grid md:grid-cols-2 gap-4 mb-6">
           <Link href="/upload">
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <CardContent className="p-4 text-center">
                 <Camera className="h-8 w-8 mx-auto mb-2 text-primary" />
                 <h3 className="font-medium">Cargar Prendas</h3>
                 <p className="text-xs text-muted-foreground">Subí fotos de tu ropa</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/ejemplos">
-            <Card className="cursor-pointer hover:shadow-md transition-shadow">
-              <CardContent className="p-4 text-center">
-                <Shirt className="h-8 w-8 mx-auto mb-2 text-primary" />
-                <h3 className="font-medium">Ver Ejemplos</h3>
-                <p className="text-xs text-muted-foreground">Explorá prendas de muestra</p>
               </CardContent>
             </Card>
           </Link>
@@ -521,58 +534,66 @@ Hay varias formas de contarme tus gustos:
                   </div>
                 </div>
               ) : (
-                messages.map((message, index) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} animate-in slide-in-from-left duration-300`}
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <div
-                      className={`rounded-lg p-4 max-w-[85%] ${
-                        message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted border border-border"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        {message.role === "user" ? (
-                          <>
-                            <span className="text-xs font-medium opacity-90">Tú</span>
-                            <User className="h-3 w-3 opacity-90" />
-                          </>
-                        ) : (
-                          <>
-                            <Bot className="h-3 w-3 text-primary" />
-                            <span className="text-xs font-medium text-primary">ARIN</span>
-                          </>
-                        )}
-                        <span className="text-xs opacity-70">
-                          {new Date(message.timestamp).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
-                      <div className="whitespace-pre-wrap">{message.content}</div>
+                messages.map((message, index) => {
+                  const isLastMessage = index === messages.length - 1
+                  const isArinMessage = message.role === "assistant"
 
-                      {/* Sugerencias rápidas */}
-                      {message.role === "assistant" && message.suggestions && message.suggestions.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-4">
-                          {message.suggestions.map((suggestion, suggestionIndex) => (
-                            <Button
-                              key={suggestionIndex}
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleQuickSuggestion(suggestion)}
-                              className="text-xs hover:bg-primary hover:text-primary-foreground transition-colors"
-                              disabled={isLoading}
-                            >
-                              {suggestion}
-                            </Button>
-                          ))}
+                  return (
+                    <div
+                      key={message.id}
+                      ref={isLastMessage && isArinMessage ? lastMessageRef : null}
+                      className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} animate-in slide-in-from-left duration-300`}
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <div
+                        className={`rounded-lg p-4 max-w-[85%] ${
+                          message.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted border border-border"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          {message.role === "user" ? (
+                            <>
+                              <span className="text-xs font-medium opacity-90">Tú</span>
+                              <User className="h-3 w-3 opacity-90" />
+                            </>
+                          ) : (
+                            <>
+                              <Bot className="h-3 w-3 text-primary" />
+                              <span className="text-xs font-medium text-primary">ARIN</span>
+                            </>
+                          )}
+                          <span className="text-xs opacity-70">
+                            {new Date(message.timestamp).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
                         </div>
-                      )}
+                        <div className="whitespace-pre-wrap">{message.content}</div>
+
+                        {/* Sugerencias rápidas */}
+                        {message.role === "assistant" && message.suggestions && message.suggestions.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-4">
+                            {message.suggestions.map((suggestion, suggestionIndex) => (
+                              <Button
+                                key={suggestionIndex}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleQuickSuggestion(suggestion)}
+                                className="text-xs hover:bg-primary hover:text-primary-foreground transition-colors"
+                                disabled={isLoading}
+                              >
+                                {suggestion === "Ver ejemplos" ? "Cargar prendas de ejemplo" : suggestion}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  )
+                })
               )}
 
               {isLoading && messages.length > 0 && (
@@ -583,8 +604,6 @@ Hay varias formas de contarme tus gustos:
                   </div>
                 </div>
               )}
-
-              <div ref={messagesEndRef} />
             </div>
           </CardContent>
 

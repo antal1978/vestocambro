@@ -23,7 +23,7 @@ type ConversationState =
   | "idle"
   | "asking_occasion"
   | "asking_weather"
-  | "asking_base_item"
+  | "asking_style"
   | "generating_suggestions"
   | "showing_suggestions"
   | "completed"
@@ -39,7 +39,7 @@ interface Message {
 interface ArinSuggestChatProps {
   isOpen: boolean
   onClose: () => void
-  onDecision: (climate: string, occasion: string) => void
+  onDecision: (climate: string, occasion: string, style: string) => void
   items: ClothingItem[]
   baseItem?: ClothingItem | null
   startWithPresentation?: boolean
@@ -60,6 +60,7 @@ export const ArinSuggestChat: React.FC<ArinSuggestChatProps> = ({
   const [userProfile, setUserProfile] = useState<{ userName?: string }>({})
   const [selectedOccasion, setSelectedOccasion] = useState<string>("")
   const [selectedClimate, setSelectedClimate] = useState<string>("")
+  const [selectedStyle, setSelectedStyle] = useState<string>("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -92,11 +93,15 @@ export const ArinSuggestChat: React.FC<ArinSuggestChatProps> = ({
 
 Mi misión es ayudarte a optimizar el uso de todas las prendas que tenés en tu armario para crear looks increíbles, revalorizando cada pieza que ya tenés.
 
-Creo firmemente que no necesitás comprar más ropa para verte espectacular - solo necesitás aprender a combinar mejor lo que ya tenés. Paulatinamente, también te voy a enseñar cómo tomar buenas decisiones de compra para que tu ropa sea funcional, dure más y nada quede olvidado en el fondo del armario. ✨
-
-Para empezar a crear tu primer look, necesito conocer un poco sobre la ocasión y el clima. ¿Me contás para qué ocasión querés armar el look?`,
+Para empezar a crear tu look, necesito conocer un poco sobre la ocasión, el clima y tu estilo preferido. ¿Para qué ocasión querés armar el look?`,
           timestamp: new Date(),
-          suggestions: ["Trabajo", "Casual", "Fiesta", "Formal", "En casa"],
+          suggestions: [
+            "Para el día a día / uso casual",
+            "Para trabajar",
+            "Para salidas informales",
+            "Para salidas formales",
+            "Para hacer deporte",
+          ],
         }
 
         setMessages([presentationMessage])
@@ -113,24 +118,16 @@ Para empezar a crear tu primer look, necesito conocer un poco sobre la ocasión 
     if (conversationState === "asking_occasion") {
       // Detectar ocasión
       let occasion = ""
-      if (lowerMessage.includes("trabajo") || lowerMessage.includes("oficina") || lowerMessage.includes("laboral")) {
-        occasion = "formal"
-      } else if (
-        lowerMessage.includes("casual") ||
-        lowerMessage.includes("relajado") ||
-        lowerMessage.includes("cómodo")
-      ) {
-        occasion = "casual"
-      } else if (lowerMessage.includes("fiesta") || lowerMessage.includes("salir") || lowerMessage.includes("noche")) {
-        occasion = "fiesta"
-      } else if (
-        lowerMessage.includes("formal") ||
-        lowerMessage.includes("elegante") ||
-        lowerMessage.includes("serio")
-      ) {
-        occasion = "formal"
-      } else if (lowerMessage.includes("casa") || lowerMessage.includes("hogar") || lowerMessage.includes("descanso")) {
-        occasion = "homewear"
+      if (lowerMessage.includes("día") || lowerMessage.includes("casual")) {
+        occasion = "dia-casual"
+      } else if (lowerMessage.includes("trabajo") || lowerMessage.includes("trabajar")) {
+        occasion = "trabajo"
+      } else if (lowerMessage.includes("informales")) {
+        occasion = "salidas-informales"
+      } else if (lowerMessage.includes("formales")) {
+        occasion = "salidas-formales"
+      } else if (lowerMessage.includes("deporte")) {
+        occasion = "deporte"
       } else {
         // Si no detectamos la ocasión, usar el mensaje tal como viene
         occasion = message.toLowerCase()
@@ -140,16 +137,16 @@ Para empezar a crear tu primer look, necesito conocer un poco sobre la ocasión 
       setConversationState("asking_weather")
 
       return {
-        content: `¡Perfecto! Entiendo que es para ${occasion}. 
+        content: `¡Perfecto! Entiendo que es para ${message}. 
 
 Ahora necesito saber sobre el clima para elegir las prendas más adecuadas. ¿Cómo está el tiempo hoy?`,
-        suggestions: ["Caluroso", "Templado", "Frío", "No sé"],
+        suggestions: ["Calor", "Templado", "Frío"],
       }
     } else if (conversationState === "asking_weather") {
       // Detectar clima
       let climate = ""
       if (lowerMessage.includes("calor") || lowerMessage.includes("caluroso") || lowerMessage.includes("caliente")) {
-        climate = "caluroso"
+        climate = "calor"
       } else if (
         lowerMessage.includes("templado") ||
         lowerMessage.includes("agradable") ||
@@ -163,18 +160,42 @@ Ahora necesito saber sobre el clima para elegir las prendas más adecuadas. ¿C�
       }
 
       setSelectedClimate(climate)
+      setConversationState("asking_style")
+
+      return {
+        content: `¡Excelente! Ya tengo la ocasión y el clima.
+
+Por último, ¿qué estilo preferís para este look?`,
+        suggestions: ["Cómodo", "Arreglado", "Creativo", "Sorprendeme"],
+      }
+    } else if (conversationState === "asking_style") {
+      // Detectar estilo
+      let style = ""
+      if (lowerMessage.includes("cómodo") || lowerMessage.includes("comodo") || lowerMessage.includes("casual")) {
+        style = "comodo"
+      } else if (lowerMessage.includes("arreglado") || lowerMessage.includes("elegante")) {
+        style = "arreglado"
+      } else if (lowerMessage.includes("creativo") || lowerMessage.includes("original")) {
+        style = "creativo"
+      } else if (lowerMessage.includes("sorprende") || lowerMessage.includes("sorpresa")) {
+        style = "sorpresa"
+      } else {
+        style = "comodo" // Por defecto
+      }
+
+      setSelectedStyle(style)
       setConversationState("generating_suggestions")
 
       // Simular generación de sugerencias
       setTimeout(() => {
-        onDecision(climate, selectedOccasion)
-        router.push(`/suggest-results?occasion=${selectedOccasion}&climate=${climate}`)
+        onDecision(selectedClimate, selectedOccasion, style)
+        router.push(`/suggest-results?occasion=${selectedOccasion}&climate=${selectedClimate}&style=${style}`)
       }, 3000)
 
       return {
-        content: `¡Excelente! Con ${selectedOccasion} y clima ${climate}, ya tengo todo lo que necesito.
+        content: `¡Genial! Con toda esta información ya puedo crear el look perfecto para vos.
 
-✨ Estoy analizando tu armario y creando el look perfecto para vos...
+✨ Estoy analizando tu armario y creando el look para ${message} con clima ${selectedClimate}...
 
 Esto puede tomar unos segundos mientras reviso todas tus prendas y encuentro las mejores combinaciones.`,
         suggestions: [],
@@ -385,3 +406,5 @@ Esto puede tomar unos segundos mientras reviso todas tus prendas y encuentro las
     </div>
   )
 }
+
+export default ArinSuggestChat
