@@ -1,709 +1,488 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useRef, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Camera, Upload, Save, X, RotateCw, Info, Crop, FlipHorizontal } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
-import Link from "next/link"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ColorPicker } from "@/components/color-picker"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { ArinChat } from "@/components/arin-chat"
 
-type ClothingItem = {
-  id: string
-  image: string
-  type: string
-  color: string
-  occasion: string
-  climate: string
-  isOuterwear: boolean
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+
+const categories = [
+  "Tops",
+  "T-Shirts",
+  "Shirts",
+  "Blouses",
+  "Knitwear",
+  "Sweaters",
+  "Cardigans",
+  "Jackets",
+  "Coats",
+  "Blazers",
+  "Dresses",
+  "Skirts",
+  "Pants",
+  "Jeans",
+  "Shorts",
+  "Jumpsuits",
+  "Suits",
+  "Underwear",
+  "Socks",
+  "Swimwear",
+  "Lingerie",
+  "Loungewear",
+  "Activewear",
+  "Shoes",
+  "Accessories",
+  "Bags",
+  "Jewelry",
+  "Hats",
+  "Scarves",
+  "Gloves",
+  "Belts",
+  "Wallets",
+  "Sunglasses",
+  "Watches",
+]
+
+function hexToRgb(hex: string): [number, number, number] | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result
+    ? [Number.parseInt(result[1], 16), Number.parseInt(result[2], 16), Number.parseInt(result[3], 16)]
+    : null
 }
 
-export default function UploadPage() {
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [type, setType] = useState("")
-  const [color, setColor] = useState("")
-  const [occasion, setOccasion] = useState("")
-  const [climate, setClimate] = useState("")
-  const [isOuterwear, setIsOuterwear] = useState(false)
-  const [showCamera, setShowCamera] = useState(false)
-  const [cameraError, setCameraError] = useState<string | null>(null)
-  const [isCameraLoading, setIsCameraLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [showGuides, setShowGuides] = useState(true)
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment")
-  const [showInstructions, setShowInstructions] = useState(true)
+function calculateColorDifference(color1: [number, number, number], color2: [number, number, number]): number {
+  const [r1, g1, b1] = color1
+  const [r2, g2, b2] = color2
+  return Math.sqrt((r2 - r1) ** 2 + (g2 - g1) ** 2 + (b2 - b1) ** 2)
+}
 
-  // Verificar compatibilidad del navegador al cargar
-  useEffect(() => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      console.warn("Este navegador no soporta la API MediaDevices")
-      setCameraError("Tu navegador no soporta el acceso a la cámara. Intenta con Chrome, Firefox o Safari recientes.")
+function findClosestColor(inputColor: string, colors: { name: string; hex: string }[]): { name: string; hex: string } {
+  const rgbInput = hexToRgb(inputColor)
+  if (!rgbInput) {
+    return { name: "Unknown", hex: "#000000" }
+  }
+
+  let closestColor = colors[0]
+  let minDifference = Number.POSITIVE_INFINITY
+
+  for (const color of colors) {
+    const rgbColor = hexToRgb(color.hex)
+    if (rgbColor) {
+      const difference = calculateColorDifference(rgbInput, rgbColor)
+      if (difference < minDifference) {
+        minDifference = difference
+        closestColor = color
+      }
     }
-  }, [])
+  }
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  return closestColor
+}
+
+const colors = [
+  { name: "Red", hex: "#FF0000" },
+  { name: "Green", hex: "#00FF00" },
+  { name: "Blue", hex: "#0000FF" },
+  { name: "Yellow", hex: "#FFFF00" },
+  { name: "Cyan", hex: "#00FFFF" },
+  { name: "Magenta", hex: "#FF00FF" },
+  { name: "Black", hex: "#000000" },
+  { name: "White", hex: "#FFFFFF" },
+  { name: "Gray", hex: "#808080" },
+  { name: "Silver", hex: "#C0C0C0" },
+  { name: "Maroon", hex: "#800000" },
+  { name: "Olive", hex: "#808000" },
+  { name: "Lime", hex: "#00FF00" },
+  { name: "Aqua", hex: "#00FFFF" },
+  { name: "Teal", hex: "#008080" },
+  { name: "Navy", hex: "#000080" },
+  { name: "Fuchsia", hex: "#FF00FF" },
+  { name: "Purple", hex: "#800080" },
+  { name: "Orange", hex: "#FFA500" },
+  { name: "Brown", hex: "#A52A2A" },
+  { name: "Pink", hex: "#FFC0CB" },
+  { name: "Gold", hex: "#FFD700" },
+  { name: "Beige", hex: "#F5F5DC" },
+  { name: "Lavender", hex: "#E6E6FA" },
+]
+
+export default function UploadPage() {
+  const [image, setImage] = useState<string | null>(null)
+  const [cameraImage, setCameraImage] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [category, setCategory] = useState("")
+  const [color, setColor] = useState("")
+  const [description, setDescription] = useState("")
+  const [price, setPrice] = useState("")
+  const [name, setName] = useState("")
+  const [showCamera, setShowCamera] = useState(false)
+  const cameraRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-
   const router = useRouter()
   const { toast } = useToast()
 
-  // Limpiar el stream de la cámara cuando el componente se desmonta
   useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop())
+    async function setupCamera() {
+      if (cameraRef.current) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" },
+          })
+          cameraRef.current.srcObject = stream
+        } catch (error) {
+          console.error("Error accessing camera:", error)
+          toast({
+            title: "Error",
+            description: "Error accessing camera. Please check permissions.",
+            variant: "destructive",
+          })
+          setShowCamera(false)
+        }
       }
     }
-  }, [])
 
-  // Función mejorada para iniciar la cámara
-  const startCamera = async () => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setCameraError("Tu navegador no soporta el acceso a la cámara. Intenta con Chrome, Firefox o Safari recientes.")
-      toast({
-        title: "Navegador no compatible",
-        description: "Tu navegador no soporta el acceso a la cámara.",
-        variant: "destructive",
-      })
+    if (showCamera) {
+      setupCamera()
+    }
+
+    return () => {
+      if (cameraRef.current && cameraRef.current.srcObject) {
+        const stream = cameraRef.current.srcObject as MediaStream
+        stream.getTracks().forEach((track) => track.stop())
+      }
+    }
+  }, [showCamera, toast])
+
+  const handleImageChange = async (e: any) => {
+    const file = e.target.files?.[0]
+
+    if (!file) {
       return
     }
 
-    setShowCamera(true)
-    setIsCameraLoading(true)
-    setCameraError(null)
-
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop())
-      streamRef.current = null
-    }
-
-    setTimeout(async () => {
-      try {
-        console.log("Solicitando acceso a la cámara...")
-
-        if (!videoRef.current) {
-          throw new Error("Elemento de video no disponible. Intenta de nuevo.")
-        }
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: facingMode,
-            width: { ideal: 1280, max: 1920 },
-            height: { ideal: 720, max: 1080 },
-          },
-        })
-
-        console.log("Acceso a la cámara concedido:", stream)
-
-        if (!videoRef.current) {
-          throw new Error("Elemento de video no disponible después de obtener el stream.")
-        }
-
-        videoRef.current.srcObject = stream
-        videoRef.current.onloadedmetadata = () => {
-          console.log("Video metadata cargada, reproduciendo...")
-          if (videoRef.current) {
-            videoRef.current.play().catch((e) => {
-              console.error("Error al reproducir el video:", e)
-              setCameraError("Error al iniciar la reproducción del video.")
-            })
-          }
-        }
-        streamRef.current = stream
-      } catch (err) {
-        console.error("Error al acceder a la cámara:", err)
-
-        let errorMessage = "No se pudo acceder a la cámara."
-        if (err instanceof Error) {
-          errorMessage = err.message
-        }
-
-        if (err instanceof DOMException) {
-          if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-            errorMessage =
-              "Permiso denegado. Por favor, permite el acceso a la cámara en la configuración de tu navegador."
-          } else if (err.name === "NotFoundError") {
-            errorMessage = "No se encontró ninguna cámara en tu dispositivo."
-          } else if (err.name === "NotReadableError" || err.name === "AbortError") {
-            errorMessage = "La cámara está siendo utilizada por otra aplicación."
-          } else if (err.name === "SecurityError") {
-            errorMessage = "Error de seguridad al acceder a la cámara."
-          }
-        }
-
-        setCameraError(errorMessage)
-        toast({
-          title: "Error de cámara",
-          description: errorMessage,
-          variant: "destructive",
-        })
-      } finally {
-        setIsCameraLoading(false)
-      }
-    }, 100)
-  }
-
-  // Función para cambiar entre cámara frontal y trasera
-  const switchCamera = () => {
-    const newFacingMode = facingMode === "user" ? "environment" : "user"
-    setFacingMode(newFacingMode)
-
-    // Reiniciar la cámara con la nueva configuración
-    if (showCamera) {
-      cancelCapture()
-      setTimeout(() => {
-        startCamera()
-      }, 100)
-    }
-  }
-
-  // Función mejorada para tomar la foto
-  const capturePhoto = () => {
-    if (!videoRef.current || !canvasRef.current) {
+    if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "Error",
-        description: "No se pudo capturar la foto. Error interno.",
+        description: "Image size must be less than 5MB.",
         variant: "destructive",
       })
       return
     }
 
     try {
-      const video = videoRef.current
-      const canvas = canvasRef.current
-
-      if (video.readyState !== 4) {
-        toast({
-          title: "Espera un momento",
-          description: "La cámara aún se está inicializando.",
-          variant: "warning",
-        })
-        return
+      const compressedFile = await compressImage(file, 0.7)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImage(reader.result as string)
       }
-
-      // Configurar canvas con las dimensiones originales del video
-      const videoWidth = video.videoWidth
-      const videoHeight = video.videoHeight
-
-      // Mantener la proporción original
-      canvas.width = videoWidth
-      canvas.height = videoHeight
-
-      console.log(`Capturando foto: ${canvas.width}x${canvas.height}`)
-
-      const context = canvas.getContext("2d")
-      if (!context) {
-        toast({
-          title: "Error",
-          description: "No se pudo procesar la imagen.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      // Fondo blanco para mejor contraste
-      context.fillStyle = "#FFFFFF"
-      context.fillRect(0, 0, canvas.width, canvas.height)
-
-      // Dibujar la imagen completa sin recortar
-      context.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-      try {
-        const imageDataUrl = canvas.toDataURL("image/jpeg", 0.92)
-
-        compressImage(imageDataUrl, 1000, 0.9)
-          .then((compressedImage) => {
-            setImagePreview(compressedImage)
-            setShowCamera(false)
-
-            if (streamRef.current) {
-              streamRef.current.getTracks().forEach((track) => track.stop())
-              streamRef.current = null
-            }
-
-            toast({
-              title: "¡Foto capturada!",
-              description: "La foto se ha tomado correctamente. Puedes continuar completando los detalles.",
-              variant: "success",
-            })
-          })
-          .catch((err) => {
-            console.error("Error al comprimir la imagen:", err)
-            toast({
-              title: "Error",
-              description: "No se pudo procesar la imagen capturada.",
-              variant: "destructive",
-            })
-          })
-      } catch (err) {
-        console.error("Error al convertir canvas a imagen:", err)
-        toast({
-          title: "Error",
-          description: "No se pudo convertir la captura a imagen.",
-          variant: "destructive",
-        })
-      }
-    } catch (err) {
-      console.error("Error al capturar foto:", err)
+      reader.readAsDataURL(compressedFile)
+    } catch (error) {
+      console.error("Error compressing image:", error)
       toast({
         title: "Error",
-        description: "Ocurrió un error al capturar la foto.",
+        description: "Error processing image. Please try again.",
         variant: "destructive",
       })
     }
   }
 
-  // Función mejorada para procesar la imagen manteniendo la integridad visual
-  const compressImage = (dataUrl: string, maxWidth = 1000, quality = 0.92): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image()
-      img.crossOrigin = "anonymous"
-      img.src = dataUrl
-      img.onload = () => {
-        const canvas = document.createElement("canvas")
-        let width = img.width
-        let height = img.height
-        const aspectRatio = width / height
-
-        // Redimensionar si es necesario, manteniendo la proporción exacta
-        if (width > maxWidth) {
-          width = maxWidth
-          height = Math.round(width / aspectRatio)
+  const compressImage = (file: File, quality: number): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => {
+        const img = new Image()
+        img.src = reader.result as string
+        img.onload = () => {
+          const canvas = document.createElement("canvas")
+          const ctx = canvas.getContext("2d")
+          canvas.width = img.width
+          canvas.height = img.height
+          ctx?.drawImage(img, 0, 0, img.width, img.height)
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name, {
+                  type: "image/jpeg",
+                  lastModified: file.lastModified,
+                })
+                resolve(compressedFile)
+              } else {
+                reject(new Error("Failed to compress image"))
+              }
+            },
+            "image/jpeg",
+            quality,
+          )
         }
-
-        canvas.width = width
-        canvas.height = height
-        const ctx = canvas.getContext("2d")
-        if (ctx) {
-          // Fondo blanco para asegurar consistencia
-          ctx.fillStyle = "#FFFFFF"
-          ctx.fillRect(0, 0, width, height)
-
-          // Dibujar la imagen manteniendo la proporción original
-          ctx.drawImage(img, 0, 0, width, height)
-
-          // Comprimir con alta calidad
-          resolve(canvas.toDataURL("image/jpeg", quality))
-        } else {
-          resolve(dataUrl) // Fallback si no se puede comprimir
+        img.onerror = (error) => {
+          reject(error)
         }
+      }
+      reader.onerror = (error) => {
+        reject(error)
       }
     })
   }
 
-  const cancelCapture = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop())
-      streamRef.current = null
-    }
-    setShowCamera(false)
-  }
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const result = reader.result as string
-        compressImage(result).then((compressedImage) => {
-          setImagePreview(compressedImage)
-          toast({
-            title: "Imagen cargada",
-            description: "La imagen se ha cargado correctamente.",
-            variant: "success",
-          })
-        })
-      }
-      reader.readAsDataURL(file)
+  const handleCapture = () => {
+    if (cameraRef.current && canvasRef.current) {
+      const video = cameraRef.current
+      const canvas = canvasRef.current
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      const ctx = canvas.getContext("2d")
+      ctx?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight)
+      const dataUrl = canvas.toDataURL("image/jpeg")
+      setCameraImage(dataUrl)
+      setImage(dataUrl)
+      setShowCamera(false)
     }
   }
 
-  const handleSave = () => {
-    if (!imagePreview || !type || !color || !occasion || !climate) {
+  const handleUpload = async () => {
+    if (!image) {
       toast({
-        title: "Información incompleta",
-        description: "Por favor completa todos los campos obligatorios",
+        title: "Error",
+        description: "Please select or capture an image.",
         variant: "destructive",
       })
       return
     }
 
-    setIsSaving(true)
+    if (!name || !description || !price || !category || !color) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields.",
+        variant: "destructive",
+      })
+      return
+    }
 
-    setTimeout(() => {
-      try {
-        const existingItems = localStorage.getItem("clothingItems")
-        const items: ClothingItem[] = existingItems ? JSON.parse(existingItems) : []
+    setUploading(true)
+    setUploadProgress(0)
 
-        const newItem: ClothingItem = {
-          id: Date.now().toString(),
-          image: imagePreview,
-          type,
-          color,
-          occasion,
-          climate,
-          isOuterwear,
-        }
-
-        localStorage.setItem("clothingItems", JSON.stringify([...items, newItem]))
-
-        toast({
-          title: "¡Prenda guardada correctamente!",
-          description: `Tu ${type} ${color} ha sido añadida a tu armario`,
-          variant: "success",
-        })
-
-        // Reset form
-        setImagePreview(null)
-        setType("")
-        setColor("")
-        setOccasion("")
-        setClimate("")
-        setIsOuterwear(false)
-        if (fileInputRef.current) {
-          fileInputRef.current.value = ""
-        }
-      } catch (error) {
-        console.error("Error al guardar:", error)
-        toast({
-          title: "Error al guardar",
-          description: "Ocurrió un problema al guardar la prenda. Intenta de nuevo.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsSaving(false)
+    try {
+      // Simular progreso de upload
+      for (let i = 0; i <= 100; i += 10) {
+        setUploadProgress(i)
+        await new Promise((resolve) => setTimeout(resolve, 100))
       }
-    }, 600)
+
+      // Guardar en localStorage en lugar de Cloudinary
+      const productData = {
+        id: Date.now().toString(),
+        name,
+        description,
+        price: Number.parseFloat(price),
+        category,
+        color,
+        imageUrl: image, // Usar la imagen base64 directamente
+        dateAdded: new Date().toISOString(),
+      }
+
+      // Obtener productos existentes
+      const existingProducts = localStorage.getItem("clothingItems")
+      const products = existingProducts ? JSON.parse(existingProducts) : []
+
+      // Agregar nuevo producto
+      products.push(productData)
+      localStorage.setItem("clothingItems", JSON.stringify(products))
+
+      toast({
+        title: "Success",
+        description: "Product uploaded successfully!",
+      })
+
+      // Limpiar formulario
+      setImage(null)
+      setCameraImage(null)
+      setName("")
+      setDescription("")
+      setPrice("")
+      setCategory("")
+      setColor("")
+
+      router.push("/gallery")
+    } catch (error) {
+      console.error("Error uploading image:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload product.",
+        variant: "destructive",
+      })
+    } finally {
+      setUploading(false)
+      setUploadProgress(0)
+    }
   }
 
-  const InfoTooltip = ({ text }: { text: string }) => (
-    <div className="relative ml-1 group">
-      <div className="flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-gray-400 rounded-full cursor-help">
-        ?
-      </div>
-      <div className="absolute z-10 invisible p-2 text-xs text-left text-white transition-all transform -translate-x-1/2 translate-y-2 bg-gray-800 rounded-md opacity-0 w-60 group-hover:visible group-hover:opacity-100 left-1/2 bottom-full">
-        {text}
-      </div>
-    </div>
-  )
+  const dataURLtoFile = (dataurl: string, filename: string): File => {
+    const arr = dataurl.split(",")
+    const mime = arr[0].match(/:(.*?);/)?.[1]
+    const bstr = atob(arr[1])
+    let n = bstr.length
+    const u8arr = new Uint8Array(n)
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n)
+    }
+    return new File([u8arr], filename, { type: mime })
+  }
 
   return (
-    <div className="container max-w-md py-8 mx-auto">
-      <h1 className="mb-6 text-2xl font-bold text-center">Añadir Nueva Prenda</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen py-2">
+      <h1 className="text-4xl font-bold mb-4">Upload a Garment</h1>
 
-      {/* Instrucciones mejoradas */}
-      {showInstructions && (
-        <Alert className="mb-6 border-blue-200 bg-blue-50">
-          <Info className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-800">
-            <div className="space-y-2">
-              <p className="font-medium">Consejos para mejores fotos:</p>
-              <ul className="text-sm space-y-1 ml-4">
-                <li>• Coloca la prenda sobre una superficie plana y clara</li>
-                <li>• Asegúrate de tener buena iluminación</li>
-                <li>• Centra la prenda en el recuadro guía</li>
-                <li>• Evita sombras y reflejos</li>
-              </ul>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowInstructions(false)}
-                className="text-blue-600 p-0 h-auto"
-              >
-                Ocultar consejos
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <Card>
+      <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Detalles de la prenda</CardTitle>
+          <CardTitle>Garment Details</CardTitle>
+          <CardDescription>Enter the details of the garment you want to upload.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid w-full gap-2">
-            <Label htmlFor="picture">Foto de la prenda</Label>
-
-            {showCamera ? (
-              <div className="relative w-full">
-                <div className="w-full bg-black rounded-md overflow-hidden relative">
-                  <div className="pb-[100%] relative">
-                    {" "}
-                    {/* Proporción cuadrada */}
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      className="absolute inset-0 w-full h-full object-cover"
-                      onError={(e) => {
-                        console.error("Error en elemento video:", e)
-                        setCameraError("Error al inicializar el video.")
-                      }}
-                    />
-                    {/* Guías de encuadre mejoradas */}
-                    {showGuides && (
-                      <div className="absolute inset-0 pointer-events-none">
-                        {/* Marco principal */}
-                        <div className="absolute inset-4 border-2 border-white/70 rounded-lg">
-                          {/* Líneas de guía en las esquinas */}
-                          <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-primary-400 rounded-tl-lg"></div>
-                          <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-primary-400 rounded-tr-lg"></div>
-                          <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-primary-400 rounded-bl-lg"></div>
-                          <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-primary-400 rounded-br-lg"></div>
-
-                          {/* Líneas centrales */}
-                          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white/30 transform -translate-y-0.5"></div>
-                          <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-white/30 transform -translate-x-0.5"></div>
-                        </div>
-
-                        {/* Texto de ayuda */}
-                        <div className="absolute bottom-20 left-0 right-0 text-center">
-                          <div className="bg-black/70 text-white text-sm px-3 py-1 rounded-full mx-auto inline-block">
-                            Centra tu prenda en el recuadro
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {isCameraLoading && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70">
-                        <RotateCw className="w-8 h-8 animate-spin text-primary-500 mb-2" />
-                        <p className="text-white">Iniciando cámara...</p>
-                      </div>
-                    )}
-                    {cameraError && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="p-4 bg-destructive/10 text-destructive rounded-md max-w-xs text-center">
-                          <p className="text-sm font-medium">{cameraError}</p>
-                          <p className="text-xs mt-1">
-                            Asegúrate de que tu navegador tiene permisos para acceder a la cámara.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <canvas ref={canvasRef} className="hidden" />
-
-                  {/* Controles de cámara mejorados */}
-                  <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-4">
-                    {/* Botón para cambiar cámara */}
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full shadow-lg bg-white/90 hover:bg-white"
-                      onClick={switchCamera}
-                      disabled={isCameraLoading}
+        <CardContent className="grid gap-4">
+          <div className="flex flex-col space-y-1.5">
+            <Label htmlFor="name">Name</Label>
+            <Input id="name" placeholder="Garment Name" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="flex flex-col space-y-1.5">
+            <Label htmlFor="description">Description</Label>
+            <Input
+              id="description"
+              placeholder="Garment Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col space-y-1.5">
+            <Label htmlFor="price">Price</Label>
+            <Input
+              id="price"
+              placeholder="Garment Price"
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col space-y-1.5">
+            <Label htmlFor="category">Category</Label>
+            <Select onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col space-y-1.5">
+            <Label htmlFor="color">
+              Color
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4 ml-1 inline-block"
                     >
-                      <FlipHorizontal className="w-5 h-5" />
-                    </Button>
-
-                    {/* Botón cancelar */}
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="rounded-full shadow-lg"
-                      onClick={cancelCapture}
-                    >
-                      <X className="w-6 h-6" />
-                    </Button>
-
-                    {/* Botón capturar */}
-                    <Button
-                      variant="default"
-                      size="icon"
-                      className="rounded-full shadow-lg w-16 h-16"
-                      onClick={capturePhoto}
-                      disabled={isCameraLoading}
-                    >
-                      <Camera className="w-8 h-8" />
-                    </Button>
-
-                    {/* Botón toggle guías */}
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full shadow-lg bg-white/90 hover:bg-white"
-                      onClick={() => setShowGuides(!showGuides)}
-                    >
-                      <Crop className="w-5 h-5" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-4">
-                {imagePreview ? (
-                  <div className="relative w-full aspect-square overflow-hidden rounded-md border-2 border-dashed border-gray-300">
-                    <img
-                      src={imagePreview || "/placeholder.svg"}
-                      alt="Vista previa"
-                      className="object-cover w-full h-full"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2"
-                      onClick={() => setImagePreview(null)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed rounded-md border-muted-foreground/25 bg-muted/10">
-                    <Camera className="w-12 h-12 mb-3 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground text-center mb-2">
-                      Toma una foto o selecciona una imagen
-                    </p>
-                    <p className="text-xs text-muted-foreground/70 text-center">Recomendado: formato cuadrado</p>
-                  </div>
-                )}
-                <div className="flex gap-2 w-full justify-center">
-                  <Input
-                    ref={fileInputRef}
-                    id="picture"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageChange}
-                  />
-                  <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2">
-                    <Upload className="w-4 h-4" />
-                    Seleccionar imagen
-                  </Button>
-                  <Button variant="outline" onClick={startCamera} className="gap-2">
-                    <Camera className="w-4 h-4" />
-                    Usar cámara
-                  </Button>
-                </div>
-              </div>
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" x2="12" y1="8" y2="16" />
+                      <line x1="8" x2="16" y1="12" y2="12" />
+                    </svg>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    The color of the garment. We'll try to match it to the closest named color.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </Label>
+            <Input
+              type="color"
+              id="color"
+              value={color}
+              onChange={(e) => {
+                const selectedColor = e.target.value
+                setColor(selectedColor)
+              }}
+            />
+            {color && (
+              <Badge variant="secondary">Closest Color: {findClosestColor(color, colors).name || "Unknown"}</Badge>
             )}
           </div>
 
-          <div className="grid w-full gap-2">
-            <Label htmlFor="type">Tipo de prenda *</Label>
-            <Select value={type} onValueChange={setType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar el tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="remera">Remera</SelectItem>
-                <SelectItem value="camisa">Camisa</SelectItem>
-                <SelectItem value="blusa">Blusa</SelectItem>
-                <SelectItem value="sweater">Sweater/Buzo</SelectItem>
-                <SelectItem value="cardigan">Cardigan</SelectItem>
-                <SelectItem value="chaleco">Chaleco</SelectItem>
-                <SelectItem value="jean">Jean</SelectItem>
-                <SelectItem value="pantalon">Pantalón</SelectItem>
-                <SelectItem value="falda">Falda</SelectItem>
-                <SelectItem value="short">Short</SelectItem>
-                <SelectItem value="vestido">Vestido</SelectItem>
-                <SelectItem value="mono">Mono/Jumpsuit</SelectItem>
-                <SelectItem value="campera">Campera</SelectItem>
-                <SelectItem value="tapado">Tapado</SelectItem>
-                <SelectItem value="blazer">Blazer</SelectItem>
-                <SelectItem value="abrigo">Abrigo</SelectItem>
-                <SelectItem value="calzado">Calzado</SelectItem>
-                <SelectItem value="bufanda">Bufanda</SelectItem>
-                <SelectItem value="gorra">Gorra</SelectItem>
-                <SelectItem value="gorro">Gorro</SelectItem>
-                <SelectItem value="cartera">Cartera</SelectItem>
-                <SelectItem value="cinturon">Cinturón</SelectItem>
-                <SelectItem value="guantes">Guantes</SelectItem>
-                <SelectItem value="accesorio">Otro accesorio</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex flex-col space-y-1.5">
+            <Label htmlFor="image">Image</Label>
+            {image ? (
+              <div className="relative w-full h-64 rounded-md overflow-hidden">
+                <img src={image || "/placeholder.svg"} alt="Uploaded Garment" className="object-cover w-full h-full" />
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="absolute top-2 right-2"
+                  onClick={() => {
+                    setImage(null)
+                    setCameraImage(null)
+                  }}
+                >
+                  Remove
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Input type="file" id="image" onChange={handleImageChange} />
+                <Button onClick={() => setShowCamera(true)}>Open Camera</Button>
+              </>
+            )}
           </div>
 
-          <div className="grid w-full gap-2">
-            <div className="flex items-center">
-              <Label htmlFor="color">Color *</Label>
-              <InfoTooltip text="Si la prenda es estampada o tiene mezcla de colores, selecciona el color que predomina. Esto ayudará a la app a generar combinaciones más armoniosas." />
+          {showCamera && (
+            <div className="relative">
+              <video ref={cameraRef} autoPlay playsInline className="w-full h-64 object-cover rounded-md"></video>
+              <canvas ref={canvasRef} style={{ display: "none" }} width="0" height="0"></canvas>
+              <div className="absolute top-2 left-2 flex space-x-2">
+                <Button variant="secondary" onClick={() => setShowCamera(false)}>
+                  Close Camera
+                </Button>
+                <Button variant="outline" onClick={handleCapture}>
+                  Capture
+                </Button>
+              </div>
+              <div className="absolute bottom-2 left-2 right-2 bg-black bg-opacity-50 text-white p-2 rounded-md">
+                <p className="text-sm">Position the garment within the frame. Ensure good lighting for best results.</p>
+              </div>
             </div>
-            <ColorPicker value={color} onChange={setColor} placeholder="Seleccionar el color" />
-          </div>
-
-          <div className="grid w-full gap-2">
-            <Label htmlFor="occasion">Ocasión *</Label>
-            <Select value={occasion} onValueChange={setOccasion}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar la ocasión" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="casual">Casual</SelectItem>
-                <SelectItem value="formal">Formal</SelectItem>
-                <SelectItem value="deporte">Deporte</SelectItem>
-                <SelectItem value="night-out">Night out</SelectItem>
-                <SelectItem value="homewear">En casa</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid w-full gap-2">
-            <Label htmlFor="climate">Clima *</Label>
-            <Select value={climate} onValueChange={setClimate}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar el clima" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="caluroso">Caluroso</SelectItem>
-                <SelectItem value="templado">Templado</SelectItem>
-                <SelectItem value="frio">Frío</SelectItem>
-                <SelectItem value="todo-clima">Todo clima</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex flex-col space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="isOuterwear"
-                checked={isOuterwear}
-                onCheckedChange={(checked) => setIsOuterwear(!!checked)}
-              />
-              <Label
-                htmlFor="isOuterwear"
-                className="text-sm font-medium leading-none cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                ¿Es un abrigo?
-              </Label>
-              <InfoTooltip text="Marca esta opción si la prenda es para abrigarse (camperas, tapados, sweaters gruesos, etc.). Esto ayuda a la app a generar looks más adecuados según el clima seleccionado." />
-            </div>
-            <p className="text-xs text-muted-foreground ml-6">
-              Las prendas marcadas como abrigo se utilizarán principalmente en climas fríos o templados.
-            </p>
-          </div>
+          )}
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <Link href="/gallery">
-            <Button variant="outline">Ver Mi Armario</Button>
-          </Link>
-          <Button onClick={handleSave} className="gap-2" disabled={!imagePreview || isSaving}>
-            {isSaving ? (
-              <>
-                <RotateCw className="w-4 h-4 animate-spin" />
-                Guardando...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                Guardar prenda
-              </>
-            )}
+        <CardFooter>
+          <Button disabled={uploading} onClick={handleUpload}>
+            {uploading ? "Uploading..." : "Upload Garment"}
           </Button>
         </CardFooter>
+        {uploading && <Progress value={uploadProgress} className="mt-2" />}
       </Card>
-      <Toaster />
+
+      <ArinChat />
     </div>
   )
 }

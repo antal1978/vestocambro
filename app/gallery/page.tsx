@@ -2,825 +2,488 @@
 
 import type React from "react"
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Wand2, Trash2, Plus, Database, BarChart3, Eye, Save, ArrowLeftRight, X } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import Link from "next/link"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ArinChat } from "@/components/arin-chat"
+import { loadExampleItems } from "@/lib/example-items"
+import type { ClothingItem } from "@/types/ClothingItem"
+import { Search, Filter, Plus, Trash2, Wand2, BarChart3, Shirt, TrendingUp } from "lucide-react"
 
-type ClothingItem = {
-  id: string
-  image: string
-  type: string
-  color: string
-  occasion: string
-  climate: string
-  isOuterwear: boolean
-}
-
-type UsageRecord = {
-  [key: string]: {
-    count: number
-    lastUsed: string
-  }
-}
-
-type DisposalReason = "donated" | "broken" | "dislike" | "other"
-
-type DisposalRecord = {
-  id: string
-  itemId: string
-  itemType: string
-  itemColor: string
-  reason: DisposalReason
-  date: string
-  notes?: string
-}
-
-// Definir las categorías de prendas
-type ClothingCategory = "upperBody" | "lowerBody" | "fullBody" | "outerwear" | "footwear" | "accessories"
-
-// Mapeo de tipos de prendas a categorías
-const CLOTHING_CATEGORIES: Record<ClothingCategory, string[]> = {
-  upperBody: ["remera", "camisa", "sweater", "buzo", "blusa", "cardigan", "chaleco"],
-  lowerBody: ["pantalon", "jean", "falda", "short", "shorts", "jeans"],
-  fullBody: ["vestido", "mono", "jumpsuit"],
-  outerwear: ["campera", "tapado", "blazer", "abrigo"],
-  footwear: ["calzado", "zapatos", "zapatillas", "botas"],
-  accessories: ["bufanda", "gorra", "gorro", "guantes", "cinturon", "cartera"],
-}
-
-// Nombres de categorías para mostrar
-const CATEGORY_NAMES: Record<ClothingCategory, string> = {
-  upperBody: "Parte superior",
-  lowerBody: "Parte inferior",
-  fullBody: "Prenda completa",
-  outerwear: "Abrigo",
-  footwear: "Calzado",
-  accessories: "Accesorios",
-}
-
-export default function GalleryPage() {
-  const [items, setItems] = useState<ClothingItem[]>([])
-  const [isVirtualTryOn, setIsVirtualTryOn] = useState(false)
-  const [showDisposalDialog, setShowDisposalDialog] = useState(false)
-  const [itemToDelete, setItemToDelete] = useState<ClothingItem | null>(null)
-  const [disposalReason, setDisposalReason] = useState<DisposalReason>("donated")
-  const [showDisposalSuccessDialog, setShowDisposalSuccessDialog] = useState(false)
-  const [categoryFilter, setCategoryFilter] = useState<string>("todas")
-  const [showVirtualTryOnDialog, setShowVirtualTryOnDialog] = useState(false)
-  const [currentLook, setCurrentLook] = useState<Record<ClothingCategory, ClothingItem | null>>({
-    upperBody: null,
-    lowerBody: null,
-    fullBody: null,
-    outerwear: null,
-    footwear: null,
-    accessories: null,
-  })
-  const [savedLook, setSavedLook] = useState<Record<ClothingCategory, ClothingItem | null> | null>(null)
-  const [activeCategory, setActiveCategory] = useState<ClothingCategory>("upperBody")
-  const [compareMode, setCompareMode] = useState(false)
-  const [expandedImage, setExpandedImage] = useState<string | null>(null)
-
+export default function Gallery() {
   const router = useRouter()
   const { toast } = useToast()
 
+  const [items, setItems] = useState<ClothingItem[]>([])
+  const [filteredItems, setFilteredItems] = useState<ClothingItem[]>([])
+  const [selectedCategory, setSelectedCategory] = useState("all")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null)
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<ClothingItem | null>(null)
+  const [usageStats, setUsageStats] = useState<{ [itemId: string]: { count: number; lastUsed: string } }>({})
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Load items and usage stats
   useEffect(() => {
-    // Load items from localStorage
+    loadData()
+  }, [])
+
+  const loadData = () => {
+    setIsLoading(true)
+
+    // Load example items if none exist
+    loadExampleItems()
+
+    // Load clothing items
     const storedItems = localStorage.getItem("clothingItems")
-    if (storedItems) {
-      try {
-        const parsedItems = JSON.parse(storedItems)
-        setItems(parsedItems)
-      } catch (error) {
-        console.error("Error parsing stored items:", error)
-        setItems([])
+    const clothingItems: ClothingItem[] = storedItems ? JSON.parse(storedItems) : []
+
+    // Load usage statistics
+    const storedUsage = localStorage.getItem("clothingUsage")
+    const usage = storedUsage ? JSON.parse(storedUsage) : {}
+
+    setItems(clothingItems)
+    setUsageStats(usage)
+    setIsLoading(false)
+  }
+
+  // Filter items based on category and search
+  useEffect(() => {
+    let filtered = items
+
+    // Filter by category
+    if (selectedCategory !== "all") {
+      const categoryMap: { [key: string]: string[] } = {
+        tops: ["remera", "camisa", "blusa", "sweater", "buzo", "top", "musculosa"],
+        bottoms: ["pantalon", "jean", "falda", "short", "shorts"],
+        dresses: ["vestido", "enterito", "mono"],
+        outerwear: ["campera", "tapado", "blazer", "abrigo", "chaleco"],
+        shoes: ["zapatillas", "zapatos", "botas", "sandalias"],
+        accessories: ["bufanda", "gorro", "cinturon", "bolso", "cartera"],
+      }
+
+      if (categoryMap[selectedCategory]) {
+        filtered = filtered.filter((item) => categoryMap[selectedCategory].includes(item.type.toLowerCase()))
       }
     }
-  }, []) // Solo ejecutar una vez al montar el componente
 
-  const handleDelete = (item: ClothingItem) => {
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (item) =>
+          item.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.color.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          item.occasion.toLowerCase().includes(searchTerm.toLowerCase()),
+      )
+    }
+
+    setFilteredItems(filtered)
+  }, [items, selectedCategory, searchTerm])
+
+  const handleItemClick = (item: ClothingItem) => {
+    setSelectedItem(item)
+    setIsDetailDialogOpen(true)
+  }
+
+  const handleDeleteClick = (item: ClothingItem, e: React.MouseEvent) => {
+    e.stopPropagation()
     setItemToDelete(item)
-    setShowDisposalDialog(true)
+    setIsDeleteDialogOpen(true)
   }
 
   const confirmDelete = () => {
     if (!itemToDelete) return
 
-    // Registrar la eliminación
-    const disposalRecord: DisposalRecord = {
-      id: Date.now().toString(),
-      itemId: itemToDelete.id,
-      itemType: itemToDelete.type,
-      itemColor: itemToDelete.color,
-      reason: disposalReason,
-      date: new Date().toISOString(),
-    }
-
-    // Guardar en el historial de eliminaciones
-    const storedDisposals = localStorage.getItem("clothingDisposals")
-    const disposals: DisposalRecord[] = storedDisposals ? JSON.parse(storedDisposals) : []
-    localStorage.setItem("clothingDisposals", JSON.stringify([...disposals, disposalRecord]))
-
-    // Eliminar la prenda
     const updatedItems = items.filter((item) => item.id !== itemToDelete.id)
     setItems(updatedItems)
     localStorage.setItem("clothingItems", JSON.stringify(updatedItems))
 
-    // Cerrar el diálogo de confirmación
-    setShowDisposalDialog(false)
+    toast({
+      title: "Prenda eliminada",
+      description: "La prenda ha sido eliminada de tu armario.",
+    })
 
-    // Mostrar diálogo de éxito con sugerencias
-    setShowDisposalSuccessDialog(true)
+    setIsDeleteDialogOpen(false)
+    setItemToDelete(null)
   }
 
-  const getClimateLabel = (climate: string) => {
-    switch (climate) {
-      case "calor":
-        return "Calor"
-      case "templado":
-        return "Templado"
-      case "frio":
-        return "Frío"
-      default:
-        return climate
+  const handleCreateLookWithItem = (item: ClothingItem) => {
+    router.push(`/suggest?baseItem=${item.id}`)
+  }
+
+  const getUsageInfo = (itemId: string) => {
+    const usage = usageStats[itemId]
+    if (!usage || usage.count === 0) {
+      return { count: 0, status: "Sin usar", color: "text-gray-500" }
     }
-  }
 
-  const getOccasionLabel = (occasion: string) => {
-    switch (occasion) {
-      case "dia-casual":
-        return "Día a día / Casual"
-      case "trabajo":
-        return "Trabajo"
-      case "salidas-informales":
-        return "Salidas informales"
-      case "salidas-formales":
-        return "Salidas formales"
-      case "deporte":
-        return "Deporte"
-      default:
-        return occasion
+    if (usage.count === 1) {
+      return { count: 1, status: "Poco usado", color: "text-yellow-600" }
     }
+
+    if (usage.count <= 3) {
+      return { count: usage.count, status: "Uso moderado", color: "text-blue-600" }
+    }
+
+    return { count: usage.count, status: "Muy usado", color: "text-green-600" }
   }
 
-  // Obtener el número de usos de cada prenda
-  const getItemUsageCount = (itemId: string): number => {
-    const storedUsage = localStorage.getItem("clothingUsage")
-    if (!storedUsage) return 0
+  const getCategoryStats = () => {
+    const stats: { [category: string]: number } = {}
 
-    const usageRecord: UsageRecord = JSON.parse(storedUsage)
-    return usageRecord[itemId]?.count || 0
-  }
+    items.forEach((item) => {
+      const type = item.type.toLowerCase()
+      let category = "otros"
 
-  // Determinar a qué categoría pertenece una prenda
-  const getItemCategory = (item: ClothingItem): ClothingCategory | null => {
-    for (const [category, types] of Object.entries(CLOTHING_CATEGORIES)) {
-      if (types.includes(item.type) || (category === "outerwear" && item.isOuterwear)) {
-        return category as ClothingCategory
+      if (["remera", "camisa", "blusa", "sweater", "buzo", "top", "musculosa"].includes(type)) {
+        category = "tops"
+      } else if (["pantalon", "jean", "falda", "short", "shorts"].includes(type)) {
+        category = "bottoms"
+      } else if (["vestido", "enterito", "mono"].includes(type)) {
+        category = "vestidos"
+      } else if (["campera", "tapado", "blazer", "abrigo", "chaleco"].includes(type)) {
+        category = "abrigos"
+      } else if (["zapatillas", "zapatos", "botas", "sandalias"].includes(type)) {
+        category = "calzado"
+      } else if (["bufanda", "gorro", "cinturon", "bolso", "cartera"].includes(type)) {
+        category = "accesorios"
       }
-    }
-    return null
-  }
 
-  // Seleccionar una prenda para el look virtual
-  const selectItemForVirtualTryOn = (item: ClothingItem) => {
-    const category = getItemCategory(item)
-    if (!category) return
-
-    // Si es una prenda completa y ya hay seleccionadas prendas superiores o inferiores, preguntar
-    if (category === "fullBody" && (currentLook.upperBody || currentLook.lowerBody)) {
-      toast({
-        title: "Atención",
-        description: "Al seleccionar un vestido se eliminarán las prendas superiores e inferiores seleccionadas.",
-        variant: "default",
-      })
-
-      // Actualizar el look actual
-      setCurrentLook({
-        ...currentLook,
-        upperBody: null,
-        lowerBody: null,
-        fullBody: item,
-      })
-
-      return
-    }
-
-    // Si se selecciona una prenda superior o inferior y ya hay un vestido, eliminar el vestido
-    if ((category === "upperBody" || category === "lowerBody") && currentLook.fullBody) {
-      toast({
-        title: "Atención",
-        description: "Al seleccionar esta prenda se eliminará el vestido seleccionado.",
-        variant: "default",
-      })
-
-      // Actualizar el look actual
-      setCurrentLook({
-        ...currentLook,
-        fullBody: null,
-        [category]: item,
-      })
-
-      return
-    }
-
-    // Caso normal: actualizar la categoría correspondiente
-    setCurrentLook({
-      ...currentLook,
-      [category]: item,
+      stats[category] = (stats[category] || 0) + 1
     })
 
-    toast({
-      title: "Prenda seleccionada",
-      description: `${item.type} ${item.color} añadida a tu look virtual.`,
-    })
+    return stats
   }
 
-  // Remover una prenda del look virtual
-  const removeItemFromVirtualTryOn = (category: ClothingCategory) => {
-    setCurrentLook({
-      ...currentLook,
-      [category]: null,
-    })
+  const getUsageOverview = () => {
+    const totalItems = items.length
+    const usedItems = items.filter((item) => usageStats[item.id]?.count > 0).length
+    const neverUsed = totalItems - usedItems
+    const usagePercentage = totalItems > 0 ? Math.round((usedItems / totalItems) * 100) : 0
+
+    return { totalItems, usedItems, neverUsed, usagePercentage }
   }
 
-  // Iniciar el modo de prueba virtual
-  const startVirtualTryOn = () => {
-    setIsVirtualTryOn(true)
-    setShowVirtualTryOnDialog(true)
-
-    // Inicializar el look actual vacío
-    setCurrentLook({
-      upperBody: null,
-      lowerBody: null,
-      fullBody: null,
-      outerwear: null,
-      footwear: null,
-      accessories: null,
-    })
-
-    // Establecer la primera categoría como activa
-    setActiveCategory("upperBody")
-  }
-
-  // Cancelar el modo de prueba virtual
-  const cancelVirtualTryOn = () => {
-    setIsVirtualTryOn(false)
-    setShowVirtualTryOnDialog(false)
-    setCompareMode(false)
-  }
-
-  // Guardar el look actual para comparar
-  const saveCurrentLook = () => {
-    // Verificar si hay al menos una prenda en el look actual
-    const hasItems = Object.values(currentLook).some((item) => item !== null)
-
-    if (!hasItems) {
-      toast({
-        title: "Look vacío",
-        description: "Selecciona al menos una prenda para guardar el look.",
-        variant: "default",
-      })
-      return
-    }
-
-    // Guardar el look actual
-    setSavedLook({ ...currentLook })
-
-    toast({
-      title: "Look guardado",
-      description: "Ahora puedes crear otro look para comparar.",
-    })
-
-    // Limpiar el look actual para crear uno nuevo
-    setCurrentLook({
-      upperBody: null,
-      lowerBody: null,
-      fullBody: null,
-      outerwear: null,
-      footwear: null,
-      accessories: null,
-    })
-
-    // Activar el modo de comparación
-    setCompareMode(true)
-  }
-
-  // Intercambiar entre el look guardado y el actual
-  const swapLooks = () => {
-    if (!savedLook) return
-
-    const temp = { ...currentLook }
-    setCurrentLook({ ...savedLook })
-    setSavedLook(temp)
-  }
-
-  // Filtrar items por categoría para el modo normal
-  const filterItemsByCategory = (items: ClothingItem[]): ClothingItem[] => {
-    if (categoryFilter === "todas") {
-      return items
-    }
-
-    // Mapeo de categorías a tipos de prendas
-    const categoryMap: Record<string, string[]> = {
-      "parte-superior": CLOTHING_CATEGORIES.upperBody,
-      "parte-inferior": CLOTHING_CATEGORIES.lowerBody,
-      vestidos: CLOTHING_CATEGORIES.fullBody,
-      abrigos: CLOTHING_CATEGORIES.outerwear,
-      calzado: CLOTHING_CATEGORIES.footwear,
-      accesorios: CLOTHING_CATEGORIES.accessories,
-    }
-
-    return items.filter(
-      (item) => categoryMap[categoryFilter]?.includes(item.type) || (categoryFilter === "abrigos" && item.isOuterwear),
-    )
-  }
-
-  // Filtrar items por categoría activa para el modo de prueba virtual
-  const getItemsForActiveCategory = (): ClothingItem[] => {
-    // Si la categoría activa es fullBody y ya hay prendas en upperBody o lowerBody, no mostrar prendas completas
-    if (activeCategory === "fullBody" && (currentLook.upperBody || currentLook.lowerBody)) {
-      return []
-    }
-
-    // Si la categoría activa es upperBody o lowerBody y ya hay una prenda completa, no mostrar prendas
-    if ((activeCategory === "upperBody" || activeCategory === "lowerBody") && currentLook.fullBody) {
-      return []
-    }
-
-    return items.filter((item) => {
-      const category = getItemCategory(item)
-      return category === activeCategory
-    })
-  }
-
-  const getDisposalReasonText = (reason: DisposalReason): string => {
-    switch (reason) {
-      case "donated":
-        return "Donada o regalada"
-      case "broken":
-        return "Rota sin posibilidad de reparación"
-      case "dislike":
-        return "Ya no me gusta"
-      case "other":
-        return "Otro motivo"
-      default:
-        return reason
-    }
-  }
-
-  const getDisposalSuggestion = (reason: DisposalReason): string => {
-    switch (reason) {
-      case "donated":
-        return "¡Excelente decisión! Dar una segunda vida a tus prendas ayuda a reducir el desperdicio textil y beneficia a quienes más lo necesitan."
-      case "broken":
-        return "Considera reciclar los materiales. Muchas tiendas tienen programas de reciclaje textil, o puedes convertir la tela en trapos de limpieza."
-      case "dislike":
-        return "Antes de desechar, considera donarla, venderla en plataformas de segunda mano, o transformarla en algo nuevo con técnicas de upcycling."
-      case "other":
-        return "Sea cual sea el motivo, recuerda que la industria textil tiene un gran impacto ambiental. Intenta dar una segunda vida a tus prendas siempre que sea posible."
-    }
-  }
-
-  const handleImageClick = (imageUrl: string) => {
-    setExpandedImage(imageUrl)
-  }
-
-  const closeExpandedImage = () => {
-    setExpandedImage(null)
-  }
-
-  const renderVirtualLook = (look: Record<ClothingCategory, ClothingItem | null>, title: string): React.ReactNode => {
+  if (isLoading) {
     return (
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium">{title}</h3>
-        <Card>
-          <CardContent className="p-4 grid grid-cols-2 gap-4">
-            {Object.entries(look).map(([category, item]) => (
-              <div key={category} className="flex flex-col items-center justify-center">
-                <div className="relative w-24 h-24 rounded-full overflow-hidden">
-                  {item ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.image || "/placeholder.svg"}
-                      alt={item.type}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                      <span className="text-gray-500 dark:text-gray-400 text-xs">
-                        {CATEGORY_NAMES[category as ClothingCategory]}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs mt-2 text-center text-muted-foreground">
-                  {CATEGORY_NAMES[category as ClothingCategory]}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Cargando tu armario...</p>
+        </div>
+        <ArinChat />
       </div>
     )
   }
+
+  const categoryStats = getCategoryStats()
+  const usageOverview = getUsageOverview()
 
   return (
-    <div className="container py-8">
-      {/* Diálogo de prueba virtual */}
-      <Dialog
-        open={showVirtualTryOnDialog}
-        onOpenChange={(open) => {
-          if (!open) cancelVirtualTryOn()
-          setShowVirtualTryOnDialog(open)
-        }}
-      >
-        <DialogContent className="sm:max-w-[90%] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Prueba virtual de look</DialogTitle>
-            <DialogDescription>Selecciona una prenda de cada categoría para crear tu look virtual</DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4">
-            {/* Panel izquierdo: Categorías y prendas */}
-            <div className="md:col-span-2 space-y-4">
-              <Tabs value={activeCategory} onValueChange={(value) => setActiveCategory(value as ClothingCategory)}>
-                <TabsList className="grid grid-cols-3 md:grid-cols-6">
-                  <TabsTrigger value="upperBody">Parte superior</TabsTrigger>
-                  <TabsTrigger value="lowerBody">Parte inferior</TabsTrigger>
-                  <TabsTrigger value="fullBody">Vestidos</TabsTrigger>
-                  <TabsTrigger value="outerwear">Abrigos</TabsTrigger>
-                  <TabsTrigger value="footwear">Calzado</TabsTrigger>
-                  <TabsTrigger value="accessories">Accesorios</TabsTrigger>
-                </TabsList>
-
-                {Object.entries(CLOTHING_CATEGORIES).map(([category, _]) => (
-                  <TabsContent key={category} value={category} className="mt-4">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                      {getItemsForActiveCategory().map((item) => (
-                        <Card
-                          key={item.id}
-                          className={`overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary-300 transition-all ${
-                            currentLook[category as ClothingCategory]?.id === item.id ? "ring-2 ring-primary-500" : ""
-                          }`}
-                          onClick={() => selectItemForVirtualTryOn(item)}
-                        >
-                          <div className="relative w-full aspect-square">
-                            <img
-                              src={item.image || "/placeholder.svg"}
-                              alt={item.type}
-                              className="object-cover w-full h-full"
-                            />
-                          </div>
-                          <CardContent className="p-2">
-                            <p className="text-sm font-medium capitalize truncate">
-                              {item.type} {item.color}
-                            </p>
-                          </CardContent>
-                        </Card>
-                      ))}
-
-                      {getItemsForActiveCategory().length === 0 && (
-                        <div className="col-span-full p-8 text-center">
-                          <p className="text-muted-foreground">
-                            {activeCategory === "fullBody" && (currentLook.upperBody || currentLook.lowerBody)
-                              ? "No puedes seleccionar un vestido si ya tienes prendas superiores o inferiores seleccionadas."
-                              : (activeCategory === "upperBody" || activeCategory === "lowerBody") &&
-                                  currentLook.fullBody
-                                ? "No puedes seleccionar esta categoría si ya tienes un vestido seleccionado."
-                                : "No hay prendas disponibles en esta categoría."}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </div>
-
-            {/* Panel derecho: Visualización del look */}
-            <div className="space-y-4">
-              {compareMode ? (
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Look guardado */}
-                  <div className="space-y-4">{savedLook && renderVirtualLook(savedLook, "Look guardado")}</div>
-
-                  {/* Look actual */}
-                  <div className="space-y-4">{renderVirtualLook(currentLook, "Look actual")}</div>
-
-                  <Button onClick={swapLooks} variant="outline" className="col-span-2 gap-2">
-                    <ArrowLeftRight className="h-4 w-4" />
-                    Intercambiar looks
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  {renderVirtualLook(currentLook, "Tu look virtual")}
-
-                  {/* Selección actual */}
-                  <div className="space-y-2 mt-4">
-                    <h3 className="text-sm font-medium">Prendas seleccionadas:</h3>
-                    <div className="space-y-1">
-                      {Object.entries(currentLook).map(([category, item]) => (
-                        <div key={category} className="flex justify-between items-center text-sm">
-                          <span>{CATEGORY_NAMES[category as ClothingCategory]}:</span>
-                          {item ? (
-                            <div className="flex items-center gap-2">
-                              <span className="capitalize">
-                                {item.type} {item.color}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => removeItemFromVirtualTryOn(category as ClothingCategory)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">No seleccionada</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Button onClick={saveCurrentLook} variant="outline" className="w-full gap-2">
-                    <Save className="h-4 w-4" />
-                    Guardar look para comparar
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={cancelVirtualTryOn}>
-              Cerrar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showDisposalDialog} onOpenChange={setShowDisposalDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>¿Por qué eliminas esta prenda?</DialogTitle>
-            <DialogDescription>
-              Nos interesa saber qué sucede con tus prendas para ayudarte a tomar decisiones más sostenibles.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            {itemToDelete && (
-              <div className="flex items-center gap-4 mb-4 p-3 rounded-lg border">
-                <div className="w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={itemToDelete.image || "/placeholder.svg"}
-                    alt={itemToDelete.type}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div>
-                  <p className="font-medium capitalize">
-                    {itemToDelete.type} {itemToDelete.color}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {getItemUsageCount(itemToDelete.id) > 0
-                      ? `Usada ${getItemUsageCount(itemToDelete.id)} veces`
-                      : "Nunca usada"}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <RadioGroup value={disposalReason} onValueChange={(value) => setDisposalReason(value as DisposalReason)}>
-              <div className="flex items-center space-x-2 mb-3">
-                <RadioGroupItem value="donated" id="donated" />
-                <Label htmlFor="donated">La doné o regalé</Label>
-              </div>
-              <div className="flex items-center space-x-2 mb-3">
-                <RadioGroupItem value="broken" id="broken" />
-                <Label htmlFor="broken">Está rota sin posibilidad de reparación</Label>
-              </div>
-              <div className="flex items-center space-x-2 mb-3">
-                <RadioGroupItem value="dislike" id="dislike" />
-                <Label htmlFor="dislike">Ya no me gusta</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="other" id="other" />
-                <Label htmlFor="other">Otro motivo</Label>
-              </div>
-            </RadioGroup>
-          </div>
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setShowDisposalDialog(false)} className="sm:order-1">
-              Cancelar
-            </Button>
-            <Button onClick={confirmDelete} variant="default" className="sm:order-2">
-              Confirmar eliminación
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showDisposalSuccessDialog} onOpenChange={setShowDisposalSuccessDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Prenda eliminada</DialogTitle>
-            <DialogDescription>
-              La prenda ha sido eliminada de tu guardarropa y registrada como{" "}
-              {getDisposalReasonText(disposalReason).toLowerCase()}.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="rounded-lg bg-muted p-4 mb-4">
-              <h3 className="font-medium mb-2">Sugerencia sostenible</h3>
-              <p className="text-sm">{getDisposalSuggestion(disposalReason)}</p>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Podés ver el historial de prendas eliminadas en la sección "Estadísticas".
-            </p>
-          </div>
-          <DialogFooter>
-            <Link href="/stats">
-              <Button variant="outline">Ver estadísticas</Button>
-            </Link>
-            <Button onClick={() => setShowDisposalSuccessDialog(false)}>Cerrar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <div className="flex flex-col items-center justify-between gap-4 mb-8 md:flex-row">
-        <h1 className="text-2xl font-bold">Mi Armario</h1>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={startVirtualTryOn} className="gap-2">
-            <Eye className="w-4 h-4" />
-            Probar look virtual
-          </Button>
-          <Link href="/upload">
-            <Button variant="outline" className="gap-2">
-              <Plus className="w-4 h-4" />
-              Añadir prenda
-            </Button>
-          </Link>
-          <Link href="/stats">
-            <Button variant="outline" className="gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Estadísticas
-            </Button>
-          </Link>
-          {items.length >= 2 && (
-            <Link href="/suggest">
-              <Button className="gap-2">
-                <Wand2 className="w-4 h-4" />
-                Sugerir un look
-              </Button>
-            </Link>
-          )}
+    <div className="container mx-auto px-4 py-8 pb-20">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Mi Armario</h1>
+          <p className="text-muted-foreground mt-2">
+            {items.length === 0
+              ? "Tu armario está vacío"
+              : `${items.length} prenda${items.length !== 1 ? "s" : ""} en tu colección`}
+          </p>
         </div>
-      </div>
 
-      {/* Filtros */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2">
-          <Label htmlFor="category-filter" className="text-sm whitespace-nowrap">
-            Filtrar por categoría:
-          </Label>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[180px]" id="category-filter">
-              <SelectValue placeholder="Categoría" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas las prendas</SelectItem>
-              <SelectItem value="parte-superior">Parte superior</SelectItem>
-              <SelectItem value="parte-inferior">Parte inferior</SelectItem>
-              <SelectItem value="vestidos">Vestidos</SelectItem>
-              <SelectItem value="abrigos">Abrigos</SelectItem>
-              <SelectItem value="calzado">Calzado</SelectItem>
-              <SelectItem value="accesorios">Accesorios</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex gap-2 mt-4 md:mt-0">
+          <Button onClick={() => router.push("/upload")} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Añadir prenda
+          </Button>
+          <Button onClick={() => router.push("/suggest")} variant="outline" className="gap-2">
+            <Wand2 className="h-4 w-4" />
+            Crear look
+          </Button>
         </div>
       </div>
 
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 text-center bg-muted/30 rounded-lg border border-dashed animate-fade-in">
-          <div className="p-4 mb-4 rounded-full bg-primary-100 dark:bg-primary-900/30">
-            <Wand2 className="w-8 h-8 text-primary-600 dark:text-primary-400" />
-          </div>
-          <h2 className="text-xl font-semibold">Tu armario está vacío</h2>
-          <p className="mt-2 mb-6 text-muted-foreground">
-            Añadí algunas prendas para comenzar a crear looks increíbles
-          </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/upload">
-              <Button className="gap-2 btn-hover">
-                <Plus className="w-4 h-4" />
-                Añadir mi primera prenda
-              </Button>
-            </Link>
-            <Link href="/ejemplos">
-              <Button variant="outline" className="gap-2 btn-hover">
-                <Database className="w-4 h-4" />
-                Cargar prendas de ejemplo
-              </Button>
-            </Link>
-          </div>
-        </div>
+        <Card className="text-center py-12">
+          <CardContent>
+            <Shirt className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Tu armario está vacío</h3>
+            <p className="text-muted-foreground mb-6">
+              Empezá añadiendo algunas prendas para que ARIN pueda ayudarte a crear looks increíbles
+            </p>
+            <Button onClick={() => router.push("/upload")} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Añadir mi primera prenda
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {filterItemsByCategory(items).map((item) => (
-            <Card key={item.id} className="overflow-hidden card-hover">
-              <div
-                className="relative w-full aspect-square overflow-hidden rounded-md cursor-pointer"
-                onClick={() => handleImageClick(item.image || "/placeholder.svg")}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={item.image || "/placeholder.svg"}
-                  alt={item.type}
-                  className="object-contain w-full h-full bg-white"
-                />
-                {getItemUsageCount(item.id) > 0 && (
-                  <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
-                    {getItemUsageCount(item.id)} usos
-                  </div>
-                )}
-              </div>
-              <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-lg capitalize">{item.type}</CardTitle>
+        <>
+          {/* Search and Filters */}
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Buscar por tipo, color o ocasión..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-full md:w-48">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filtrar por categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las prendas</SelectItem>
+                <SelectItem value="tops">Tops</SelectItem>
+                <SelectItem value="bottoms">Pantalones y faldas</SelectItem>
+                <SelectItem value="dresses">Vestidos</SelectItem>
+                <SelectItem value="outerwear">Abrigos</SelectItem>
+                <SelectItem value="shoes">Calzado</SelectItem>
+                <SelectItem value="accessories">Accesorios</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Items Grid */}
+          {filteredItems.length === 0 ? (
+            <Card className="text-center py-8">
+              <CardContent>
+                <p className="text-muted-foreground">No se encontraron prendas que coincidan con tu búsqueda.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
+              {filteredItems.map((item) => {
+                const usageInfo = getUsageInfo(item.id)
+                return (
+                  <Card
+                    key={item.id}
+                    className="cursor-pointer hover:shadow-lg transition-shadow group"
+                    onClick={() => handleItemClick(item)}
+                  >
+                    <div className="relative">
+                      <div className="aspect-square bg-gray-50 rounded-t-lg overflow-hidden">
+                        <img
+                          src={item.image || "/placeholder.svg"}
+                          alt={`${item.type} ${item.color}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                      </div>
+
+                      {/* Actions overlay */}
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="h-8 w-8"
+                          onClick={(e) => handleDeleteClick(item, e)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      {/* Usage badge */}
+                      <div className="absolute bottom-2 left-2">
+                        <Badge variant="secondary" className={`text-xs ${usageInfo.color}`}>
+                          {usageInfo.count > 0 ? `${usageInfo.count} usos` : "Sin usar"}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <CardContent className="p-3">
+                      <h3 className="font-medium text-sm capitalize truncate">
+                        {item.type} {item.color}
+                      </h3>
+                      <p className="text-xs text-muted-foreground capitalize">{item.occasion}</p>
+
+                      <div className="flex gap-1 mt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 text-xs h-7"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleCreateLookWithItem(item)
+                          }}
+                        >
+                          <Wand2 className="h-3 w-3 mr-1" />
+                          Look
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Statistics Section */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Category Statistics */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Distribución por categoría
+                </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="capitalize" style={{ backgroundColor: `${item.color}20` }}>
-                    {item.color}
-                  </Badge>
-                  <Badge variant="outline" className="capitalize">
-                    {getOccasionLabel(item.occasion)}
-                  </Badge>
-                  <Badge variant="outline" className="capitalize">
-                    {getClimateLabel(item.climate)}
-                  </Badge>
-                  {item.isOuterwear && (
-                    <Badge variant="secondary" className="capitalize">
-                      Abrigo
-                    </Badge>
-                  )}
+              <CardContent>
+                <div className="space-y-3">
+                  {Object.entries(categoryStats).map(([category, count]) => (
+                    <div key={category} className="flex justify-between items-center">
+                      <span className="capitalize text-sm">{category}</span>
+                      <Badge variant="outline">{count}</Badge>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
-              <CardFooter className="p-4 pt-0 flex justify-center">
-                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(item)}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </CardFooter>
             </Card>
-          ))}
-        </div>
+
+            {/* Usage Statistics */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Estadísticas de uso
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{usageOverview.usagePercentage}%</div>
+                    <div className="text-sm text-muted-foreground">de tu armario en uso</div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Prendas usadas:</span>
+                      <span className="font-medium">{usageOverview.usedItems}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Sin usar:</span>
+                      <span className="font-medium text-orange-600">{usageOverview.neverUsed}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Total:</span>
+                      <span className="font-medium">{usageOverview.totalItems}</span>
+                    </div>
+                  </div>
+
+                  <Button onClick={() => router.push("/stats")} variant="outline" size="sm" className="w-full gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Ver estadísticas completas
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
       )}
-      {expandedImage && (
-        <Dialog open={!!expandedImage} onOpenChange={closeExpandedImage}>
-          <DialogContent className="sm:max-w-[80%] p-0 overflow-hidden bg-white">
-            <div className="relative">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={closeExpandedImage}
-                className="absolute top-2 right-2 z-10 bg-black/50 hover:bg-black/70 text-white"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-              <div className="max-h-[80vh] overflow-auto p-1">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={expandedImage || "/placeholder.svg"}
-                  alt="Prenda ampliada"
-                  className="w-full h-auto object-contain"
-                />
+
+      {/* Item Detail Dialog */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          {selectedItem && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="capitalize">
+                  {selectedItem.type} {selectedItem.color}
+                </DialogTitle>
+                <DialogDescription>Detalles de la prenda</DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="aspect-square bg-gray-50 rounded-lg overflow-hidden">
+                  <img
+                    src={selectedItem.image || "/placeholder.svg"}
+                    alt={`${selectedItem.type} ${selectedItem.color}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium">Tipo:</span>
+                    <span className="text-sm capitalize">{selectedItem.type}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium">Color:</span>
+                    <span className="text-sm capitalize">{selectedItem.color}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium">Ocasión:</span>
+                    <span className="text-sm capitalize">{selectedItem.occasion}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm font-medium">Clima:</span>
+                    <span className="text-sm capitalize">{selectedItem.climate}</span>
+                  </div>
+
+                  {usageStats[selectedItem.id] && (
+                    <div className="border-t pt-2 mt-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">Veces usado:</span>
+                        <span className="text-sm">{usageStats[selectedItem.id].count}</span>
+                      </div>
+                      {usageStats[selectedItem.id].lastUsed && (
+                        <div className="flex justify-between">
+                          <span className="text-sm font-medium">Último uso:</span>
+                          <span className="text-sm">
+                            {new Date(usageStats[selectedItem.id].lastUsed).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button onClick={() => handleCreateLookWithItem(selectedItem)} className="flex-1 gap-2" size="sm">
+                    <Wand2 className="h-4 w-4" />
+                    Crear look con esta prenda
+                  </Button>
+                </div>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-      <Toaster />
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Eliminar prenda</DialogTitle>
+            <DialogDescription>
+              ¿Estás segura de que querés eliminar esta prenda? Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Eliminar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <ArinChat />
     </div>
   )
 }

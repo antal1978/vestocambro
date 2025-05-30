@@ -1,240 +1,358 @@
 "use client"
 
-import { DialogFooter } from "@/components/ui/dialog"
-
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Trash2, Heart, Calendar, TrendingUp } from "lucide-react"
+import { ArinChat } from "@/components/arin-chat"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Trash2, Calendar, CheckCircle2 } from "lucide-react"
-import Link from "next/link"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
 
-type ClothingItem = {
+type SavedLook = {
   id: string
-  image: string
-  type: string
-  color: string
+  name: string
+  description?: string
+  items: any[]
   occasion: string
   climate: string
-  isOuterwear: boolean
+  style: string
+  dateCreated: string
+  timesUsed?: number
+  lastUsed?: string
+  isFavorite?: boolean
 }
 
-type Outfit = {
-  id: string
-  items: ClothingItem[]
-  date: string
-}
-
-type UsageRecord = {
-  [key: string]: {
-    count: number
-    lastUsed: string
-  }
-}
-
-export default function LooksPage() {
-  const [outfits, setOutfits] = useState<Outfit[]>([])
-  const [selectedOutfit, setSelectedOutfit] = useState<Outfit | null>(null)
-  const [showUsageDialog, setShowUsageDialog] = useState(false)
+const LooksPage = () => {
+  const router = useRouter()
+  const [savedLooks, setSavedLooks] = useState<SavedLook[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedLookId, setSelectedLookId] = useState<string | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
-    // Load outfits from localStorage
-    const storedOutfits = localStorage.getItem("savedOutfits")
-    if (storedOutfits) {
-      setOutfits(JSON.parse(storedOutfits))
-    }
+    fetchSavedLooks()
   }, [])
 
-  const handleDelete = (id: string) => {
-    const updatedOutfits = outfits.filter((outfit) => outfit.id !== id)
-    setOutfits(updatedOutfits)
-    localStorage.setItem("savedOutfits", JSON.stringify(updatedOutfits))
+  const fetchSavedLooks = () => {
+    try {
+      // Get saved looks from localStorage
+      const storedLooks = localStorage.getItem("savedLooks")
+      const looks: SavedLook[] = storedLooks ? JSON.parse(storedLooks) : []
 
-    toast({
-      title: "Look eliminado",
-      description: "El look ha sido eliminado de tus combinaciones guardadas",
-    })
-  }
+      // Get usage stats from localStorage
+      const storedUsage = localStorage.getItem("usedLooks")
+      const usageHistory = storedUsage ? JSON.parse(storedUsage) : []
 
-  const handleRecordUsage = (outfit: Outfit) => {
-    // Obtener el registro de usos actual
-    const storedUsage = localStorage.getItem("clothingUsage")
-    const usageRecord: UsageRecord = storedUsage ? JSON.parse(storedUsage) : {}
-    const today = new Date().toISOString().split("T")[0] // Formato YYYY-MM-DD
+      // Calculate usage stats for each look
+      const looksWithStats = looks.map((look) => {
+        const usageCount = usageHistory.filter((usage: any) =>
+          usage.items.every((item: any) => look.items.some((lookItem: any) => lookItem.id === item.id)),
+        ).length
 
-    // Incrementar el contador para cada prenda en el outfit
-    outfit.items.forEach((item) => {
-      if (!usageRecord[item.id]) {
-        usageRecord[item.id] = {
-          count: 0,
-          lastUsed: today,
+        const lastUsage = usageHistory
+          .filter((usage: any) =>
+            usage.items.every((item: any) => look.items.some((lookItem: any) => lookItem.id === item.id)),
+          )
+          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+
+        return {
+          ...look,
+          timesUsed: usageCount,
+          lastUsed: lastUsage?.date,
         }
+      })
+
+      setSavedLooks(looksWithStats)
+    } catch (error) {
+      console.error("Failed to fetch saved looks:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load saved looks.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleLogUsage = (look: SavedLook) => {
+    try {
+      // Get existing usage history
+      const storedUsage = localStorage.getItem("usedLooks")
+      const usageHistory = storedUsage ? JSON.parse(storedUsage) : []
+
+      // Add new usage record
+      const newUsage = {
+        id: Date.now().toString(),
+        items: look.items,
+        date: new Date().toISOString(),
+        occasion: look.occasion,
+        climate: look.climate,
+        style: look.style,
+        lookId: look.id,
       }
-      usageRecord[item.id].count += 1
-      usageRecord[item.id].lastUsed = today
-    })
 
-    // Guardar el registro actualizado
-    localStorage.setItem("clothingUsage", JSON.stringify(usageRecord))
+      usageHistory.push(newUsage)
+      localStorage.setItem("usedLooks", JSON.stringify(usageHistory))
 
-    // Mostrar diálogo de confirmación
-    setSelectedOutfit(outfit)
-    setShowUsageDialog(true)
+      // Also update clothing usage stats
+      const clothingUsage = localStorage.getItem("clothingUsage")
+      const usageRecord = clothingUsage ? JSON.parse(clothingUsage) : {}
 
-    // También mostrar un toast
-    toast({
-      title: "¡Uso registrado!",
-      description: "Has actualizado el contador de uso de estas prendas.",
+      look.items.forEach((item) => {
+        if (!usageRecord[item.id]) {
+          usageRecord[item.id] = { count: 0, lastUsed: "" }
+        }
+        usageRecord[item.id].count++
+        usageRecord[item.id].lastUsed = new Date().toISOString()
+      })
+
+      localStorage.setItem("clothingUsage", JSON.stringify(usageRecord))
+
+      toast({
+        title: "¡Genial!",
+        description: "Uso registrado correctamente. ARIN aprenderá de tus preferencias.",
+      })
+
+      // Refresh the looks to update usage stats
+      fetchSavedLooks()
+    } catch (error) {
+      console.error("Failed to log usage:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo registrar el uso.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleToggleFavorite = (lookId: string) => {
+    try {
+      const updatedLooks = savedLooks.map((look) =>
+        look.id === lookId ? { ...look, isFavorite: !look.isFavorite } : look,
+      )
+
+      setSavedLooks(updatedLooks)
+      localStorage.setItem("savedLooks", JSON.stringify(updatedLooks))
+
+      const look = updatedLooks.find((l) => l.id === lookId)
+      toast({
+        title: look?.isFavorite ? "💕 Añadido a favoritos" : "Removido de favoritos",
+        description: look?.isFavorite
+          ? "Este look ahora está en tus favoritos"
+          : "Este look ya no está en tus favoritos",
+      })
+    } catch (error) {
+      console.error("Failed to toggle favorite:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar favoritos.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteLook = (lookId: string) => {
+    try {
+      const updatedLooks = savedLooks.filter((look) => look.id !== lookId)
+      setSavedLooks(updatedLooks)
+      localStorage.setItem("savedLooks", JSON.stringify(updatedLooks))
+
+      toast({
+        title: "Look eliminado",
+        description: "El look ha sido eliminado de tu colección.",
+      })
+    } catch (error) {
+      console.error("Failed to delete look:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el look.",
+        variant: "destructive",
+      })
+    } finally {
+      closeDeleteDialog()
+    }
+  }
+
+  const openDeleteDialog = (lookId: string) => {
+    setSelectedLookId(lookId)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const closeDeleteDialog = () => {
+    setSelectedLookId(null)
+    setIsDeleteDialogOpen(false)
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     })
   }
 
-  // Obtener el número de usos de cada prenda
-  const getItemUsageCount = (itemId: string): number => {
-    const storedUsage = localStorage.getItem("clothingUsage")
-    if (!storedUsage) return 0
-
-    const usageRecord: UsageRecord = JSON.parse(storedUsage)
-    return usageRecord[itemId]?.count || 0
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Cargando tus looks...</p>
+        </div>
+        <ArinChat />
+      </div>
+    )
   }
 
   return (
-    <div className="container py-8">
-      <Dialog open={showUsageDialog} onOpenChange={setShowUsageDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>¡Uso registrado!</DialogTitle>
-            <DialogDescription>Has actualizado el contador de uso de estas prendas.</DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="rounded-lg bg-muted p-4 mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <h3 className="font-medium">Contador de usos actualizado</h3>
-              </div>
-              <ul className="space-y-2">
-                {selectedOutfit?.items.map((item) => (
-                  <li key={item.id} className="flex justify-between items-center">
-                    <span className="capitalize">
-                      {item.type} {item.color}
-                    </span>
-                    <Badge variant="secondary">{getItemUsageCount(item.id)} usos</Badge>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Podés ver estadísticas detalladas de uso en la sección "Estadísticas".
-            </p>
-          </div>
-          <DialogFooter>
-            <Link href="/stats">
-              <Button variant="outline">Ver estadísticas</Button>
-            </Link>
-            <Button onClick={() => setShowUsageDialog(false)}>Cerrar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <div className="flex flex-col items-center justify-between gap-4 mb-8 md:flex-row">
-        <h1 className="text-2xl font-bold">Mis Looks Guardados</h1>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/gallery">
-            <Button variant="outline" className="gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              Volver a Mi Armario
-            </Button>
-          </Link>
-          <Link href="/stats">
-            <Button variant="outline" className="gap-2">
-              <Calendar className="w-4 h-4" />
-              Ver estadísticas
-            </Button>
-          </Link>
+    <div className="container mx-auto px-4 py-8 pb-20">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Mis Looks Guardados</h1>
+          <p className="text-muted-foreground mt-2">
+            {savedLooks.length === 0
+              ? "Aún no tienes looks guardados"
+              : `${savedLooks.length} look${savedLooks.length !== 1 ? "s" : ""} en tu colección`}
+          </p>
         </div>
+
+        <Button onClick={() => router.push("/suggest")} className="gap-2">
+          <TrendingUp className="h-4 w-4" />
+          Crear nuevo look
+        </Button>
       </div>
 
-      {outfits.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 text-center">
-          <div className="p-4 mb-4 rounded-full bg-muted">
-            <Calendar className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <h2 className="text-xl font-semibold">No tenés looks guardados</h2>
-          <p className="mt-2 mb-6 text-muted-foreground">Generá algunas sugerencias y guardá tus looks favoritos</p>
-          <Link href="/suggest">
-            <Button className="gap-2">Generar sugerencias</Button>
-          </Link>
-        </div>
+      {savedLooks.length === 0 ? (
+        <Card className="text-center py-12">
+          <CardContent>
+            <Heart className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No tienes looks guardados</h3>
+            <p className="text-muted-foreground mb-6">
+              Empezá creando tu primer look con ARIN y guardalo para usarlo después
+            </p>
+            <Button onClick={() => router.push("/suggest")} className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Crear mi primer look
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid gap-6">
-          {outfits.map((outfit) => (
-            <Card key={outfit.id}>
-              <CardHeader className="flex flex-row items-center">
-                <div>
-                  <CardTitle>Look guardado</CardTitle>
-                  <p className="text-sm text-muted-foreground">Guardado el {outfit.date}</p>
-                </div>
-                <div className="ml-auto flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="text-green-600"
-                    onClick={() => handleRecordUsage(outfit)}
-                    title="Voy a usar este look hoy"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                  </Button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {savedLooks.map((look) => (
+            <Card key={look.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg line-clamp-1">{look.name || "Look sin nombre"}</CardTitle>
+                    <CardDescription className="mt-1">Creado el {formatDate(look.dateCreated)}</CardDescription>
+                  </div>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-destructive"
-                    onClick={() => handleDelete(outfit.id)}
-                    title="Eliminar look"
+                    onClick={() => handleToggleFavorite(look.id)}
+                    className="text-muted-foreground hover:text-red-500"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Heart className={`h-4 w-4 ${look.isFavorite ? "fill-red-500 text-red-500" : ""}`} />
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
-                  {outfit.items.map((item) => (
-                    <div key={item.id} className="flex flex-col items-center">
-                      <div className="relative w-full h-48 mb-2 overflow-hidden rounded-md">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={item.image || "/placeholder.svg"}
-                          alt={item.type}
-                          className="object-cover w-full h-full"
-                        />
-                        {getItemUsageCount(item.id) > 0 && (
-                          <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
-                            {getItemUsageCount(item.id)} usos
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge className="capitalize">{item.type}</Badge>
-                        <Badge variant="outline" className="capitalize" style={{ backgroundColor: `${item.color}20` }}>
-                          {item.color}
-                        </Badge>
-                        {item.isOuterwear && (
-                          <Badge variant="secondary" className="capitalize">
-                            Abrigo
-                          </Badge>
-                        )}
-                      </div>
+
+              <CardContent className="space-y-4">
+                {/* Look preview */}
+                <div className="grid grid-cols-3 gap-2">
+                  {look.items.slice(0, 3).map((item, index) => (
+                    <div key={index} className="aspect-square bg-gray-100 rounded-md overflow-hidden">
+                      <img
+                        src={item.image || "/placeholder.svg"}
+                        alt={item.type}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   ))}
+                  {look.items.length > 3 && (
+                    <div className="aspect-square bg-gray-100 rounded-md flex items-center justify-center text-sm text-muted-foreground">
+                      +{look.items.length - 3}
+                    </div>
+                  )}
+                </div>
+
+                {/* Look details */}
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    {look.occasion}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {look.climate}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    {look.style}
+                  </Badge>
+                </div>
+
+                {/* Usage stats */}
+                {(look.timesUsed || 0) > 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Usado {look.timesUsed} {look.timesUsed === 1 ? "vez" : "veces"}
+                    </div>
+                    {look.lastUsed && <div className="text-xs">Última vez: {formatDate(look.lastUsed)}</div>}
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={() => handleLogUsage(look)} size="sm" className="flex-1">
+                    Usar hoy
+                  </Button>
+                  <Button
+                    onClick={() => openDeleteDialog(look.id)}
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
-      <Toaster />
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Eliminar Look</DialogTitle>
+            <DialogDescription>
+              ¿Estás segura de que querés eliminar este look? Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDeleteDialog}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={() => selectedLookId && handleDeleteLook(selectedLookId)}>
+              Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ArinChat />
     </div>
   )
 }
+
+export default LooksPage

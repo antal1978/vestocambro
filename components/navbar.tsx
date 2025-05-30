@@ -5,7 +5,7 @@ import type React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Shirt, Home, Wand2, Heart, BarChart3, BookOpen, Menu } from "lucide-react"
+import { Shirt, Wand2, Heart, BarChart3, Menu } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { useState } from "react"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -13,12 +13,10 @@ import { MobileNav } from "@/components/mobile-nav"
 import { ArinHelpDialog } from "@/components/arin-help-dialog"
 
 const navigation = [
-  { name: "Inicio", href: "/", icon: Home, helpContext: "inicio" },
-  { name: "Mi Armario", href: "/gallery", icon: Shirt, helpContext: "mi-armario" },
-  { name: "Sugerir Look", href: "/suggest", icon: Wand2, helpContext: "sugerir-look" },
-  { name: "Looks", href: "/looks", icon: Heart, helpContext: "looks" },
+  { name: "Armario", href: "/gallery", icon: Shirt, helpContext: "mi-armario" },
+  { name: "Look", href: "/suggest", icon: Wand2, helpContext: "sugerir-look" },
+  { name: "Guardados", href: "/looks", icon: Heart, helpContext: "looks" },
   { name: "Estadísticas", href: "/stats", icon: BarChart3, helpContext: "estadisticas" },
-  { name: "Guía", href: "/guia", icon: BookOpen, helpContext: "guia" },
 ]
 
 export function Navbar() {

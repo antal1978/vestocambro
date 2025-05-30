@@ -36,6 +36,7 @@ type UserProfile = {
   lifestyle?: string
   personalityTraits?: string[]
   onboardingCompleted: boolean
+  firstVisit: boolean
 }
 
 const ArinChat: React.FC<{ autoOpen?: boolean }> = ({ autoOpen = false }) => {
@@ -45,23 +46,25 @@ const ArinChat: React.FC<{ autoOpen?: boolean }> = ({ autoOpen = false }) => {
   const [isOpen, setIsOpen] = useState(autoOpen)
   const [isMinimized, setIsMinimized] = useState(!autoOpen)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [conversationState, setConversationState] = useState<string>("initial")
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
-  // Cargar perfil del usuario
+  // Cargar perfil del usuario y detectar si es primera visita
   useEffect(() => {
     const storedPreferences = localStorage.getItem("userFashionPreferences")
-    if (storedPreferences) {
-      setUserProfile(JSON.parse(storedPreferences))
+    const hasVisitedBefore = localStorage.getItem("hasVisitedBefore")
 
-      // Si autoOpen es true, abrir el chat automáticamente
-      if (autoOpen) {
-        openChat()
-      }
+    if (storedPreferences) {
+      const profile = JSON.parse(storedPreferences)
+      setUserProfile({
+        ...profile,
+        firstVisit: !hasVisitedBefore,
+      })
     } else {
-      // Si no hay perfil, usar valores por defecto
+      // Usuario completamente nuevo
       const defaultProfile: UserProfile = {
-        userName: "Usuario",
+        userName: "",
         favoriteColors: [],
         dislikedColors: [],
         preferredStyle: "",
@@ -69,12 +72,14 @@ const ArinChat: React.FC<{ autoOpen?: boolean }> = ({ autoOpen = false }) => {
         likedOutfits: [],
         dislikedOutfits: [],
         onboardingCompleted: false,
+        firstVisit: true,
       }
       setUserProfile(defaultProfile)
+    }
 
-      if (autoOpen) {
-        openChat()
-      }
+    // Si autoOpen es true, abrir el chat automáticamente
+    if (autoOpen) {
+      openChat()
     }
   }, [autoOpen])
 
@@ -92,38 +97,38 @@ const ArinChat: React.FC<{ autoOpen?: boolean }> = ({ autoOpen = false }) => {
       setIsLoading(true)
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      // Mensaje inicial de ARIN con presentación completa
-      const greeting: Message = {
-        id: Date.now().toString(),
-        role: "assistant",
-        content: userProfile
-          ? `¡Hola ${userProfile.userName}! 💕 Soy ARIN, tu asistente personal de moda.
+      let greeting: Message
 
-Mi misión es ayudarte a optimizar el uso de todas las prendas que tenés en tu armario para crear looks increíbles, revalorizando cada pieza que ya tenés.
+      if (userProfile?.firstVisit || !userProfile?.userName) {
+        // Usuario nuevo o sin nombre
+        greeting = {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: `¡Hola! 💕 Soy ARIN, tu asistente de moda personal.
 
-Creo firmemente que no necesitás comprar más ropa para verte espectacular - solo necesitás aprender a combinar mejor lo que ya tenés. Paulatinamente, también te voy a enseñar cómo tomar buenas decisiones de compra para que tu ropa sea funcional, dure más y nada quede olvidado en el fondo del armario. ✨
+Te ayudo a crear looks increíbles con la ropa que ya tenés. Mi objetivo es que aproveches al máximo tu armario. ✨
 
-¿En qué puedo ayudarte hoy?
+¿Cómo te gusta que te llamen?`,
+          timestamp: new Date(),
+        }
+        setConversationState("asking_name")
+      } else {
+        // Usuario recurrente
+        greeting = {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: `¡Hola ${userProfile.userName}! 💕 
 
-• Subir una nueva prenda
-• Ver tu colección
-• Crear un look nuevo
-• Ver tus looks guardados
-• Revisar estadísticas`
-          : `¡Hola! 💕 Soy ARIN, tu asistente personal de moda.
+¿Qué hacemos hoy?
 
-Mi misión es ayudarte a optimizar el uso de todas las prendas que tenés en tu armario para crear looks increíbles, revalorizando cada pieza que ya tenés.
-
-Creo firmemente que no necesitás comprar más ropa para verte espectacular - solo necesitás aprender a combinar mejor lo que ya tenés. Paulatinamente, también te voy a enseñar cómo tomar buenas decisiones de compra para que tu ropa sea funcional, dure más y nada quede olvidado en el fondo del armario. ✨
-
-¿En qué puedo ayudarte hoy?
-
-• Subir una nueva prenda
-• Ver tu colección
-• Crear un look nuevo
-• Ver tus looks guardados
-• Revisar estadísticas`,
-        timestamp: new Date(),
+• Ver tu armario
+• Crear un look  
+• Revisar guardados
+• Ver estadísticas
+• Subir prenda`,
+          timestamp: new Date(),
+        }
+        setConversationState("main_menu")
       }
 
       setMessages([greeting])
@@ -141,28 +146,51 @@ Creo firmemente que no necesitás comprar más ropa para verte espectacular - so
     setIsMinimized(!isMinimized)
   }
 
+  // Guardar nombre del usuario
+  const saveUserName = (name: string) => {
+    const updatedProfile = {
+      ...userProfile,
+      userName: name,
+      firstVisit: false,
+    } as UserProfile
+
+    setUserProfile(updatedProfile)
+    localStorage.setItem("userFashionPreferences", JSON.stringify(updatedProfile))
+    localStorage.setItem("hasVisitedBefore", "true")
+  }
+
   // Generar respuesta de ARIN
   const generateArinResponse = async (userMessage: string): Promise<string> => {
+    const message = userMessage.toLowerCase().trim()
+
+    // Si estamos pidiendo el nombre
+    if (conversationState === "asking_name") {
+      const name = userMessage.trim()
+      if (name.length > 0) {
+        saveUserName(name)
+        setConversationState("main_menu")
+
+        return `¡Encantada, ${name}! 😊
+
+¿Por dónde empezamos?
+
+• **Armario** - Ver tus prendas
+• **Look** - Crear combinaciones
+• **Subir** - Añadir prendas nuevas
+• **Estadísticas** - Ver uso de ropa`
+      } else {
+        return "Me gustaría saber tu nombre para poder ayudarte mejor. ¿Cómo te gusta que te llamen?"
+      }
+    }
+
     // Palabras clave para detectar intenciones de navegación
     const navigationKeywords = {
       upload: ["subir", "cargar", "agregar", "nueva prenda", "añadir ropa", "foto", "fotografía", "imagen"],
-      gallery: ["galería", "ver prendas", "mis prendas", "armario", "guardarropa", "ropa", "prendas"],
-      suggest: ["sugerir", "look", "outfit", "combinación", "vestir", "combinar", "crear look", "generar look"],
-      looks: ["mis looks", "looks guardados", "favoritos", "combinaciones guardadas"],
+      gallery: ["armario", "ver prendas", "mis prendas", "guardarropa", "ropa", "prendas", "colección"],
+      suggest: ["look", "outfit", "combinación", "vestir", "combinar", "crear look", "generar look"],
+      looks: ["guardados", "looks guardados", "favoritos", "combinaciones guardadas"],
       stats: ["estadísticas", "stats", "uso", "análisis", "datos"],
-      guide: ["guía", "ayuda", "tutorial", "cómo", "instrucciones", "manual"],
     }
-
-    // Palabras clave para detectar intenciones generales
-    const keywords = {
-      suggestLook: ["look", "outfit", "vestir", "ropa", "sugerencia", "sugerir", "crear", "generar", "armario"],
-      askStyle: ["estilo", "combinar", "combina", "color", "colores", "moda", "tendencia"],
-      greeting: ["hola", "buenas", "hey", "saludos", "qué tal", "como estas", "cómo estás"],
-      thanks: ["gracias", "genial", "excelente", "perfecto", "buenísimo"],
-      help: ["ayuda", "ayudame", "no sé", "opciones", "qué puedo hacer", "funciones", "qué hacés"],
-    }
-
-    const message = userMessage.toLowerCase()
 
     // Detectar intención de navegación
     for (const [section, words] of Object.entries(navigationKeywords)) {
@@ -173,67 +201,46 @@ Creo firmemente que no necesitás comprar más ropa para verte espectacular - so
         }, 1000)
 
         const responses = {
-          upload: "¡Vamos a subir una nueva prenda! Te llevo a la sección de carga...",
-          gallery: "¡Perfecto! Vamos a ver tu colección de prendas...",
-          suggest: "¡Genial! Vamos a crear un look nuevo juntas...",
-          looks: "Te llevo a ver tus looks guardados...",
-          stats: "Vamos a revisar las estadísticas de tu armario...",
-          guide: "Te muestro la guía de uso para que aproveches al máximo la app...",
+          upload: `¡Perfecto! Vamos a subir una prenda...`,
+          gallery: `¡Genial! Te llevo a tu armario...`,
+          suggest: `¡Dale! Creemos un look juntas...`,
+          looks: `Te muestro tus guardados...`,
+          stats: `Vamos a ver las estadísticas...`,
         }
 
         return responses[section as keyof typeof responses]
       }
     }
 
-    // Detectar intención de ayuda/opciones
-    if (keywords.help.some((word) => message.includes(word))) {
-      return `${userProfile?.userName ? `${userProfile.userName}, ` : ""}soy ARIN, tu asistente de armario personal. Puedo ayudarte con:
-
-• Subir una nueva prenda a tu armario
-• Ver tu colección de prendas
-• Crear un look nuevo
-• Ver tus looks guardados
-• Revisar estadísticas de uso
-• Mostrarte la guía de uso
-
-¿Qué te gustaría hacer?`
-    }
-
-    // Resto de la lógica existente
-    if (keywords.suggestLook.some((word) => message.includes(word))) {
-      return userProfile
-        ? `¡Claro ${userProfile.userName}! Me encantaría ayudarte a crear un look. ¿Para qué ocasión lo necesitás? ¿Casual, trabajo, salida...?`
-        : "¡Claro! Me encantaría ayudarte a crear un look. ¿Para qué ocasión lo necesitás? ¿Casual, trabajo, salida...?"
-    }
-
-    if (keywords.askStyle.some((word) => message.includes(word))) {
-      if (userProfile && userProfile.favoriteColors.length > 0) {
-        return `Sobre estilos y colores, recordá que tus favoritos son ${userProfile.favoriteColors.join(", ")}. Estos combinan muy bien con tonos neutros como blanco, negro o beige. ¿Querés que te muestre algunas combinaciones específicas?`
-      }
-      return "Los colores neutros como negro, blanco y gris combinan con todo. Para un look más interesante, podés añadir un toque de color con accesorios. ¿Te gustaría que te muestre algunas combinaciones?"
+    // Respuestas contextuales
+    const keywords = {
+      greeting: ["hola", "buenas", "hey", "saludos", "qué tal", "como estas", "cómo estás"],
+      thanks: ["gracias", "genial", "excelente", "perfecto", "buenísimo"],
+      help: ["ayuda", "ayudame", "no sé", "opciones", "qué puedo hacer", "funciones", "qué hacés"],
     }
 
     if (keywords.greeting.some((word) => message.includes(word))) {
-      return userProfile
-        ? `¡Hola ${userProfile.userName}! 💕 ¿En qué puedo ayudarte hoy? Puedo mostrarte tus prendas, crear un look, o lo que necesites.`
-        : "¡Hola! 💕 ¿En qué puedo ayudarte hoy? Puedo mostrarte tus prendas, crear un look, o lo que necesites."
+      return `¡Hola ${userProfile?.userName}! 💕 ¿En qué puedo ayudarte hoy?`
     }
 
     if (keywords.thanks.some((word) => message.includes(word))) {
-      return "¡De nada! 😊 Siempre es un placer ayudarte. ¿Hay algo más en lo que pueda asistirte?"
+      return `¡De nada, ${userProfile?.userName}! 😊 Siempre es un placer ayudarte. ¿Hay algo más en lo que pueda asistirte?`
+    }
+
+    if (keywords.help.some((word) => message.includes(word))) {
+      return `Te puedo ayudar con:
+
+• **Armario** - Ver prendas
+• **Look** - Crear outfits  
+• **Guardados** - Tus favoritos
+• **Estadísticas** - Análisis de uso
+• **Subir** - Añadir prendas
+
+¿Qué necesitás?`
     }
 
     // Respuesta genérica
-    const genericResponses = [
-      userProfile
-        ? `${userProfile.userName}, soy tu asistente de armario personal. ¿Querés que te ayude a navegar por la app? Puedo mostrarte tus prendas, crear un look, o lo que necesites.`
-        : "Soy tu asistente de armario personal. ¿Querés que te ayude a navegar por la app? Puedo mostrarte tus prendas, crear un look, o lo que necesites.",
-      "Como tu asistente de armario, puedo ayudarte a explorar tu colección o crear un nuevo look.",
-      "Estoy aquí para ser tu asistente de armario. ¿Necesitás ayuda para encontrar algo específico?",
-      "Soy tu asistente personal de armario. ¿Querés ver tus prendas o crear una combinación nueva?",
-    ]
-
-    return genericResponses[Math.floor(Math.random() * genericResponses.length)]
+    return `¿En qué te ayudo, ${userProfile?.userName}? Puedo mostrarte tu armario, crear un look, o lo que necesites 😊`
   }
 
   // Enviar mensaje
@@ -289,12 +296,21 @@ Creo firmemente que no necesitás comprar más ropa para verte espectacular - so
   // Si no está abierto, mostrar botón flotante
   if (!isOpen) {
     return (
-      <Button
-        onClick={openChat}
-        className="fixed bottom-6 right-6 rounded-full w-14 h-14 shadow-lg flex items-center justify-center bg-primary hover:bg-primary/90 z-50"
-      >
-        <Bot className="h-6 w-6" />
-      </Button>
+      <div className="fixed bottom-6 right-6 z-50">
+        {/* Botón principal más grande y destacado */}
+        <Button
+          onClick={openChat}
+          className="relative rounded-full w-16 h-16 shadow-2xl flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-110"
+        >
+          <Bot className="h-7 w-7 text-white" />
+        </Button>
+
+        {/* Tooltip/etiqueta flotante */}
+        <div className="absolute bottom-20 right-0 bg-white dark:bg-gray-800 text-gray-800 dark:text-white px-3 py-2 rounded-lg shadow-lg text-sm font-medium whitespace-nowrap animate-bounce">
+          💬 ¡Hola! Soy ARIN
+          <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white dark:border-t-gray-800"></div>
+        </div>
+      </div>
     )
   }
 
