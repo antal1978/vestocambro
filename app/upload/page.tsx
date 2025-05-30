@@ -10,9 +10,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip" // Importar Tooltip
 import { ArinChat } from "@/components/arin-chat"
 import { COLORS } from "@/lib/color-config"
-import { findClosestColor } from "@/lib/color-utils" // Importar desde color-utils
+import { findClosestColor } from "@/lib/color-utils"
 import type { ClothingItem } from "@/types/ClothingItem"
 
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
@@ -39,15 +40,35 @@ const occasionOptions = [
   "Para hacer deporte",
 ]
 
+// Lista de los 15 materiales más usados en la industria textil
+const materialOptions = [
+  "Algodón",
+  "Poliéster",
+  "Lana",
+  "Viscosa",
+  "Nylon",
+  "Lino",
+  "Seda",
+  "Elastano / Spandex",
+  "Acrílico",
+  "Rayón",
+  "Denim", // Aunque es un tejido, se usa comúnmente como material
+  "Cuero",
+  "Cuero Ecológico / Vegano",
+  "Cachemira",
+  "Modal",
+]
+
 export default function UploadPage() {
   const [image, setImage] = useState<string | null>(null)
   const [cameraImage, setCameraImage] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [category, setCategory] = useState("")
-  const [color, setColor] = useState("") // Este estado seguirá guardando el HEX
+  const [color, setColor] = useState("")
   const [climate, setClimate] = useState("")
   const [occasion, setOccasion] = useState("")
+  const [material, setMaterial] = useState("") // Estado para material
   const [showCamera, setShowCamera] = useState(false)
   const cameraRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -186,7 +207,7 @@ export default function UploadPage() {
     if (!category || !color || !climate || !occasion) {
       toast({
         title: "Error",
-        description: "Por favor, completa todos los campos (categoría, color, clima y ocasión).",
+        description: "Por favor, completa los campos obligatorios (categoría, color, clima y ocasión).",
         variant: "destructive",
       })
       return
@@ -205,7 +226,7 @@ export default function UploadPage() {
         id: Date.now().toString(),
         image: image,
         type: category,
-        color: color, // Guardamos el HEX del color
+        color: color,
         occasion: occasion
           .toLowerCase()
           .replace(/ /g, "-")
@@ -225,6 +246,7 @@ export default function UploadPage() {
           .replace(/ú/g, "u")
           .replace(/\//g, ""),
         isOuterwear: category.includes("Campera") || category.includes("Abrigo") || category.includes("Chaleco"),
+        ...(material && { material }), // Añadir material solo si no está vacío
       }
 
       const existingItems = localStorage.getItem("clothingItems")
@@ -244,6 +266,7 @@ export default function UploadPage() {
       setColor("")
       setClimate("")
       setOccasion("")
+      setMaterial("")
 
       router.push("/armario")
     } catch (error: any) {
@@ -331,6 +354,51 @@ export default function UploadPage() {
               </SelectTrigger>
               <SelectContent>
                 {occasionOptions.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Campo opcional para Material con Select y Tooltip */}
+          <div className="flex flex-col space-y-1.5">
+            <Label htmlFor="material">
+              Material (opcional)
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4 ml-1 inline-block"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" x2="12" y1="8" y2="16" />
+                      <line x1="8" x2="16" y1="12" y2="12" />
+                    </svg>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    Si la prenda tiene varios materiales, selecciona el que tenga mayor porcentaje. Por ejemplo, si es
+                    60% Poliéster y 40% Nylon, elige Poliéster.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </Label>
+            <Select onValueChange={setMaterial} value={material}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona el material principal" />
+              </SelectTrigger>
+              <SelectContent>
+                {materialOptions.map((option) => (
                   <SelectItem key={option} value={option}>
                     {option}
                   </SelectItem>

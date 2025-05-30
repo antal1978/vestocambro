@@ -31,20 +31,29 @@ export default function Stats() {
   const [lookUsage, setLookUsage] = useState<{ [lookId: string]: { count: number; lastUsed: string } }>({})
   const [isLoading, setIsLoading] = useState(true)
 
+  const loadStatsData = () => {
+    loadData()
+  }
+
   useEffect(() => {
     loadStatsData()
   }, [])
 
-  const loadStatsData = () => {
+  const loadData = () => {
     setIsLoading(true)
     const storedItems = localStorage.getItem("clothingItems")
     const storedClothingUsage = localStorage.getItem("clothingUsage")
-    const storedLooks = localStorage.getItem("savedLooks") // Assuming you save looks
-    const storedLookUsage = localStorage.getItem("lookUsage") // Assuming you track look usage
+    const storedLooks = localStorage.getItem("savedLooks")
+    const storedLookUsage = localStorage.getItem("lookUsage")
 
-    setClothingItems(storedItems ? JSON.parse(storedItems) : [])
+    // Ensure items are filtered for valid 'type' and 'material' on load
+    const parsedItems: ClothingItem[] = storedItems
+      ? JSON.parse(storedItems).filter((item: any) => item && typeof item.type === "string")
+      : []
+
+    setClothingItems(parsedItems)
     setClothingUsage(storedClothingUsage ? JSON.parse(storedClothingUsage) : {})
-    setLookUsage(storedLookUsage ? JSON.parse(storedLookUsage) : {}) // Load look usage
+    setLookUsage(storedLookUsage ? JSON.parse(storedLookUsage) : {})
     setIsLoading(false)
   }
 
@@ -95,6 +104,21 @@ export default function Stats() {
     return { totalItems, usedItemsCount, neverUsedCount, usagePercentage, mostUsed, leastUsed, unusedItems }
   }
 
+  // --- Material Statistics ---
+  const getMaterialStats = () => {
+    const stats: { [material: string]: number } = {}
+    clothingItems.forEach((item) => {
+      if (item.material && typeof item.material === "string") {
+        // Ensure material exists and is a string
+        const materialName = item.material.toLowerCase()
+        stats[materialName] = (stats[materialName] || 0) + 1
+      }
+    })
+    return Object.entries(stats)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+  }
+
   // --- Look Statistics ---
   const getLookUsageStats = () => {
     const totalLooks = Object.keys(lookUsage).length
@@ -124,6 +148,7 @@ export default function Stats() {
 
   const clothingCategoryStats = getClothingCategoryStats()
   const clothingUsageStats = getClothingUsageOverview()
+  const materialStats = getMaterialStats() // Call the function here
   const lookStats = getLookUsageStats()
 
   return (
@@ -175,6 +200,23 @@ export default function Stats() {
                 <SimpleBarChart data={clothingCategoryStats} />
               ) : (
                 <p className="text-muted-foreground text-center">No hay datos de categorías.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Material Statistics */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart className="h-5 w-5" />
+                Materiales Predominantes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {materialStats.length > 0 ? (
+                <SimpleBarChart data={materialStats} />
+              ) : (
+                <p className="text-muted-foreground text-center">No hay datos de materiales registrados.</p>
               )}
             </CardContent>
           </Card>

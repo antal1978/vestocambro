@@ -6,4 +6,5 @@ export type ClothingItem = {
   occasion: string
   climate: string
   isOuterwear: boolean
+  material?: string // Añadido como opcional
 }
