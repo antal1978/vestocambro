@@ -10,110 +10,33 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ArinChat } from "@/components/arin-chat"
+import { COLORS } from "@/lib/color-config"
+import { findClosestColor } from "@/lib/color-utils" // Importar desde color-utils
+import type { ClothingItem } from "@/types/ClothingItem"
 
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
 
-const categories = [
-  "Tops",
-  "T-Shirts",
-  "Shirts",
-  "Blouses",
-  "Knitwear",
-  "Sweaters",
-  "Cardigans",
-  "Jackets",
-  "Coats",
-  "Blazers",
-  "Dresses",
-  "Skirts",
-  "Pants",
-  "Jeans",
-  "Shorts",
-  "Jumpsuits",
-  "Suits",
-  "Underwear",
-  "Socks",
-  "Swimwear",
-  "Lingerie",
-  "Loungewear",
-  "Activewear",
-  "Shoes",
-  "Accessories",
-  "Bags",
-  "Jewelry",
-  "Hats",
-  "Scarves",
-  "Gloves",
-  "Belts",
-  "Wallets",
-  "Sunglasses",
-  "Watches",
+const clothingTypes = [
+  {
+    group: "Parte superior",
+    items: ["Remera", "Blusa", "Camisa", "Top", "Musculosa", "Sweater / Buzo", "Campera / Abrigo", "Chaleco"],
+  },
+  { group: "Parte inferior", items: ["Pantalón", "Jean", "Short", "Falda / Pollera"] },
+  { group: "Prendas de una pieza", items: ["Vestido", "Enterito / Mono"] },
+  { group: "Calzado", items: ["Zapatillas", "Zapatos", "Sandalias", "Botas"] },
+  { group: "Accesorios", items: ["Gorro / Gorra", "Bufanda", "Cinturón", "Bolso / Mochila / Cartera"] },
 ]
 
-function hexToRgb(hex: string): [number, number, number] | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result
-    ? [Number.parseInt(result[1], 16), Number.parseInt(result[2], 16), Number.parseInt(result[3], 16)]
-    : null
-}
+const climateOptions = ["Calor", "Frío", "Intermedio / entretiempo"]
 
-function calculateColorDifference(color1: [number, number, number], color2: [number, number, number]): number {
-  const [r1, g1, b1] = color1
-  const [r2, g2, b2] = color2
-  return Math.sqrt((r2 - r1) ** 2 + (g2 - g1) ** 2 + (b2 - b1) ** 2)
-}
-
-function findClosestColor(inputColor: string, colors: { name: string; hex: string }[]): { name: string; hex: string } {
-  const rgbInput = hexToRgb(inputColor)
-  if (!rgbInput) {
-    return { name: "Unknown", hex: "#000000" }
-  }
-
-  let closestColor = colors[0]
-  let minDifference = Number.POSITIVE_INFINITY
-
-  for (const color of colors) {
-    const rgbColor = hexToRgb(color.hex)
-    if (rgbColor) {
-      const difference = calculateColorDifference(rgbInput, rgbColor)
-      if (difference < minDifference) {
-        minDifference = difference
-        closestColor = color
-      }
-    }
-  }
-
-  return closestColor
-}
-
-const colors = [
-  { name: "Red", hex: "#FF0000" },
-  { name: "Green", hex: "#00FF00" },
-  { name: "Blue", hex: "#0000FF" },
-  { name: "Yellow", hex: "#FFFF00" },
-  { name: "Cyan", hex: "#00FFFF" },
-  { name: "Magenta", hex: "#FF00FF" },
-  { name: "Black", hex: "#000000" },
-  { name: "White", hex: "#FFFFFF" },
-  { name: "Gray", hex: "#808080" },
-  { name: "Silver", hex: "#C0C0C0" },
-  { name: "Maroon", hex: "#800000" },
-  { name: "Olive", hex: "#808000" },
-  { name: "Lime", hex: "#00FF00" },
-  { name: "Aqua", hex: "#00FFFF" },
-  { name: "Teal", hex: "#008080" },
-  { name: "Navy", hex: "#000080" },
-  { name: "Fuchsia", hex: "#FF00FF" },
-  { name: "Purple", hex: "#800080" },
-  { name: "Orange", hex: "#FFA500" },
-  { name: "Brown", hex: "#A52A2A" },
-  { name: "Pink", hex: "#FFC0CB" },
-  { name: "Gold", hex: "#FFD700" },
-  { name: "Beige", hex: "#F5F5DC" },
-  { name: "Lavender", hex: "#E6E6FA" },
+const occasionOptions = [
+  "Para el día a día / uso casual",
+  "Para trabajar",
+  "Para salidas informales",
+  "Para salidas formales",
+  "Para hacer deporte",
 ]
 
 export default function UploadPage() {
@@ -122,10 +45,9 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [category, setCategory] = useState("")
-  const [color, setColor] = useState("")
-  const [description, setDescription] = useState("")
-  const [price, setPrice] = useState("")
-  const [name, setName] = useState("")
+  const [color, setColor] = useState("") // Este estado seguirá guardando el HEX
+  const [climate, setClimate] = useState("")
+  const [occasion, setOccasion] = useState("")
   const [showCamera, setShowCamera] = useState(false)
   const cameraRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -141,10 +63,10 @@ export default function UploadPage() {
           })
           cameraRef.current.srcObject = stream
         } catch (error) {
-          console.error("Error accessing camera:", error)
+          console.error("Error al acceder a la cámara:", error)
           toast({
             title: "Error",
-            description: "Error accessing camera. Please check permissions.",
+            description: "Error al acceder a la cámara. Por favor, revisa los permisos.",
             variant: "destructive",
           })
           setShowCamera(false)
@@ -174,7 +96,7 @@ export default function UploadPage() {
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "Error",
-        description: "Image size must be less than 5MB.",
+        description: "El tamaño de la imagen debe ser menor a 5MB.",
         variant: "destructive",
       })
       return
@@ -188,10 +110,10 @@ export default function UploadPage() {
       }
       reader.readAsDataURL(compressedFile)
     } catch (error) {
-      console.error("Error compressing image:", error)
+      console.error("Error al comprimir la imagen:", error)
       toast({
         title: "Error",
-        description: "Error processing image. Please try again.",
+        description: "Error al procesar la imagen. Por favor, inténtalo de nuevo.",
         variant: "destructive",
       })
     }
@@ -219,7 +141,7 @@ export default function UploadPage() {
                 })
                 resolve(compressedFile)
               } else {
-                reject(new Error("Failed to compress image"))
+                reject(new Error("Fallo al comprimir la imagen"))
               }
             },
             "image/jpeg",
@@ -255,16 +177,16 @@ export default function UploadPage() {
     if (!image) {
       toast({
         title: "Error",
-        description: "Please select or capture an image.",
+        description: "Por favor, selecciona o captura una imagen.",
         variant: "destructive",
       })
       return
     }
 
-    if (!name || !description || !price || !category || !color) {
+    if (!category || !color || !climate || !occasion) {
       toast({
         title: "Error",
-        description: "Please fill in all fields.",
+        description: "Por favor, completa todos los campos (categoría, color, clima y ocasión).",
         variant: "destructive",
       })
       return
@@ -274,52 +196,61 @@ export default function UploadPage() {
     setUploadProgress(0)
 
     try {
-      // Simular progreso de upload
       for (let i = 0; i <= 100; i += 10) {
         setUploadProgress(i)
         await new Promise((resolve) => setTimeout(resolve, 100))
       }
 
-      // Guardar en localStorage en lugar de Cloudinary
-      const productData = {
+      const newClothingItem: ClothingItem = {
         id: Date.now().toString(),
-        name,
-        description,
-        price: Number.parseFloat(price),
-        category,
-        color,
-        imageUrl: image, // Usar la imagen base64 directamente
-        dateAdded: new Date().toISOString(),
+        image: image,
+        type: category,
+        color: color, // Guardamos el HEX del color
+        occasion: occasion
+          .toLowerCase()
+          .replace(/ /g, "-")
+          .replace(/á/g, "a")
+          .replace(/é/g, "e")
+          .replace(/í/g, "i")
+          .replace(/ó/g, "o")
+          .replace(/ú/g, "u")
+          .replace(/\//g, ""),
+        climate: climate
+          .toLowerCase()
+          .replace(/ /g, "-")
+          .replace(/á/g, "a")
+          .replace(/é/g, "e")
+          .replace(/í/g, "i")
+          .replace(/ó/g, "o")
+          .replace(/ú/g, "u")
+          .replace(/\//g, ""),
+        isOuterwear: category.includes("Campera") || category.includes("Abrigo") || category.includes("Chaleco"),
       }
 
-      // Obtener productos existentes
-      const existingProducts = localStorage.getItem("clothingItems")
-      const products = existingProducts ? JSON.parse(existingProducts) : []
+      const existingItems = localStorage.getItem("clothingItems")
+      const items: ClothingItem[] = existingItems ? JSON.parse(existingItems) : []
 
-      // Agregar nuevo producto
-      products.push(productData)
-      localStorage.setItem("clothingItems", JSON.stringify(products))
+      items.push(newClothingItem)
+      localStorage.setItem("clothingItems", JSON.stringify(items))
 
       toast({
-        title: "Success",
-        description: "Product uploaded successfully!",
+        title: "Éxito",
+        description: "¡Prenda subida exitosamente!",
       })
 
-      // Limpiar formulario
       setImage(null)
       setCameraImage(null)
-      setName("")
-      setDescription("")
-      setPrice("")
       setCategory("")
       setColor("")
+      setClimate("")
+      setOccasion("")
 
-      router.push("/gallery")
-    } catch (error) {
-      console.error("Error uploading image:", error)
+      router.push("/armario")
+    } catch (error: any) {
+      console.error("Error al subir la imagen:", error)
       toast({
         title: "Error",
-        description: error.message || "Failed to upload product.",
+        description: error.message || "Fallo al subir la prenda.",
         variant: "destructive",
       })
     } finally {
@@ -328,95 +259,38 @@ export default function UploadPage() {
     }
   }
 
-  const dataURLtoFile = (dataurl: string, filename: string): File => {
-    const arr = dataurl.split(",")
-    const mime = arr[0].match(/:(.*?);/)?.[1]
-    const bstr = atob(arr[1])
-    let n = bstr.length
-    const u8arr = new Uint8Array(n)
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n)
-    }
-    return new File([u8arr], filename, { type: mime })
-  }
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-2">
-      <h1 className="text-4xl font-bold mb-4">Upload a Garment</h1>
+      <h1 className="text-4xl font-bold mb-4">Subir Prenda</h1>
 
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Garment Details</CardTitle>
-          <CardDescription>Enter the details of the garment you want to upload.</CardDescription>
+          <CardTitle>Detalles de la Prenda</CardTitle>
+          <CardDescription>Ingresa los detalles de la prenda que quieres subir.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="name">Name</Label>
-            <Input id="name" placeholder="Garment Name" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="description">Description</Label>
-            <Input
-              id="description"
-              placeholder="Garment Description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="price">Price</Label>
-            <Input
-              id="price"
-              placeholder="Garment Price"
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="category">Category</Label>
-            <Select onValueChange={setCategory}>
+            <Label htmlFor="category">Categoría</Label>
+            <Select onValueChange={setCategory} value={category}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a category" />
+                <SelectValue placeholder="Selecciona una categoría" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
+                {clothingTypes.map((group, index) => (
+                  <div key={index}>
+                    <p className="px-2 py-1 text-sm font-semibold text-muted-foreground">{group.group}</p>
+                    {group.items.map((item) => (
+                      <SelectItem key={item} value={item}>
+                        {item}
+                      </SelectItem>
+                    ))}
+                  </div>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="color">
-              Color
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-4 w-4 ml-1 inline-block"
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="12" x2="12" y1="8" y2="16" />
-                      <line x1="8" x2="16" y1="12" y2="12" />
-                    </svg>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    The color of the garment. We'll try to match it to the closest named color.
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </Label>
+            <Label htmlFor="color">Color</Label>
             <Input
               type="color"
               id="color"
@@ -427,15 +301,50 @@ export default function UploadPage() {
               }}
             />
             {color && (
-              <Badge variant="secondary">Closest Color: {findClosestColor(color, colors).name || "Unknown"}</Badge>
+              <Badge variant="secondary">
+                Color más cercano: {findClosestColor(color, COLORS).name || "Desconocido"}
+              </Badge>
             )}
           </div>
 
           <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="image">Image</Label>
+            <Label htmlFor="climate">Clima</Label>
+            <Select onValueChange={setClimate} value={climate}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona un clima" />
+              </SelectTrigger>
+              <SelectContent>
+                {climateOptions.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col space-y-1.5">
+            <Label htmlFor="occasion">Ocasión</Label>
+            <Select onValueChange={setOccasion} value={occasion}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona una ocasión" />
+              </SelectTrigger>
+              <SelectContent>
+                {occasionOptions.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col space-y-1.5">
+            <Label htmlFor="image">Imagen</Label>
             {image ? (
               <div className="relative w-full h-64 rounded-md overflow-hidden">
-                <img src={image || "/placeholder.svg"} alt="Uploaded Garment" className="object-cover w-full h-full" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={image || "/placeholder.svg"} alt="Prenda Subida" className="object-cover w-full h-full" />
                 <Button
                   variant="destructive"
                   size="sm"
@@ -445,13 +354,13 @@ export default function UploadPage() {
                     setCameraImage(null)
                   }}
                 >
-                  Remove
+                  Eliminar
                 </Button>
               </div>
             ) : (
               <>
                 <Input type="file" id="image" onChange={handleImageChange} />
-                <Button onClick={() => setShowCamera(true)}>Open Camera</Button>
+                <Button onClick={() => setShowCamera(true)}>Abrir Cámara</Button>
               </>
             )}
           </div>
@@ -462,21 +371,23 @@ export default function UploadPage() {
               <canvas ref={canvasRef} style={{ display: "none" }} width="0" height="0"></canvas>
               <div className="absolute top-2 left-2 flex space-x-2">
                 <Button variant="secondary" onClick={() => setShowCamera(false)}>
-                  Close Camera
+                  Cerrar Cámara
                 </Button>
                 <Button variant="outline" onClick={handleCapture}>
-                  Capture
+                  Capturar
                 </Button>
               </div>
               <div className="absolute bottom-2 left-2 right-2 bg-black bg-opacity-50 text-white p-2 rounded-md">
-                <p className="text-sm">Position the garment within the frame. Ensure good lighting for best results.</p>
+                <p className="text-sm">
+                  Posiciona la prenda dentro del encuadre. Asegura buena iluminación para mejores resultados.
+                </p>
               </div>
             </div>
           )}
         </CardContent>
         <CardFooter>
           <Button disabled={uploading} onClick={handleUpload}>
-            {uploading ? "Uploading..." : "Upload Garment"}
+            {uploading ? "Subiendo..." : "Subir Prenda"}
           </Button>
         </CardFooter>
         {uploading && <Progress value={uploadProgress} className="mt-2" />}

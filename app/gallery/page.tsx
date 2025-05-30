@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/components/ui/use-toast"
 import { ArinChat } from "@/components/arin-chat"
 import { loadExampleItems } from "@/lib/example-items"
+import { COLORS } from "@/lib/color-config" // Importar COLORS
+import { findClosestColor } from "@/lib/color-utils" // Importar findClosestColor
 import type { ClothingItem } from "@/types/ClothingItem"
 import { Search, Filter, Plus, Trash2, Wand2, BarChart3, Shirt, TrendingUp } from "lucide-react"
 
@@ -44,7 +46,10 @@ export default function Gallery() {
 
     // Load clothing items
     const storedItems = localStorage.getItem("clothingItems")
-    const clothingItems: ClothingItem[] = storedItems ? JSON.parse(storedItems) : []
+    // Filter out any malformed items that don't have a 'type' property or it's not a string
+    const clothingItems: ClothingItem[] = storedItems
+      ? JSON.parse(storedItems).filter((item: any) => item && typeof item.type === "string")
+      : []
 
     // Load usage statistics
     const storedUsage = localStorage.getItem("clothingUsage")
@@ -57,17 +62,18 @@ export default function Gallery() {
 
   // Filter items based on category and search
   useEffect(() => {
-    let filtered = items
+    // Ensure all items have a valid 'type' before filtering
+    let filtered = items.filter((item) => item.type && typeof item.type === "string")
 
     // Filter by category
     if (selectedCategory !== "all") {
       const categoryMap: { [key: string]: string[] } = {
-        tops: ["remera", "camisa", "blusa", "sweater", "buzo", "top", "musculosa"],
-        bottoms: ["pantalon", "jean", "falda", "short", "shorts"],
-        dresses: ["vestido", "enterito", "mono"],
-        outerwear: ["campera", "tapado", "blazer", "abrigo", "chaleco"],
-        shoes: ["zapatillas", "zapatos", "botas", "sandalias"],
-        accessories: ["bufanda", "gorro", "cinturon", "bolso", "cartera"],
+        tops: ["remera", "blusa", "camisa", "top", "musculosa", "sweater / buzo", "campera / abrigo", "chaleco"],
+        bottoms: ["pantalon", "jean", "short", "falda / pollera"],
+        dresses: ["vestido", "enterito / mono"],
+        outerwear: ["campera / abrigo", "chaleco"], // Ajustado para coincidir con los tipos de prenda
+        shoes: ["zapatillas", "zapatos", "sandalias", "botas"],
+        accessories: ["gorro / gorra", "bufanda", "cinturon", "bolso / mochila / cartera"],
       }
 
       if (categoryMap[selectedCategory]) {
@@ -80,8 +86,8 @@ export default function Gallery() {
       filtered = filtered.filter(
         (item) =>
           item.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.color.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.occasion.toLowerCase().includes(searchTerm.toLowerCase()),
+          findClosestColor(item.color, COLORS).name.toLowerCase().includes(searchTerm.toLowerCase()) || // Buscar por nombre de color
+          (item.occasion && item.occasion.toLowerCase().includes(searchTerm.toLowerCase())),
       )
     }
 
@@ -139,26 +145,28 @@ export default function Gallery() {
   const getCategoryStats = () => {
     const stats: { [category: string]: number } = {}
 
-    items.forEach((item) => {
-      const type = item.type.toLowerCase()
-      let category = "otros"
+    items
+      .filter((item) => item.type && typeof item.type === "string")
+      .forEach((item) => {
+        const type = item.type.toLowerCase()
+        let category = "otros"
 
-      if (["remera", "camisa", "blusa", "sweater", "buzo", "top", "musculosa"].includes(type)) {
-        category = "tops"
-      } else if (["pantalon", "jean", "falda", "short", "shorts"].includes(type)) {
-        category = "bottoms"
-      } else if (["vestido", "enterito", "mono"].includes(type)) {
-        category = "vestidos"
-      } else if (["campera", "tapado", "blazer", "abrigo", "chaleco"].includes(type)) {
-        category = "abrigos"
-      } else if (["zapatillas", "zapatos", "botas", "sandalias"].includes(type)) {
-        category = "calzado"
-      } else if (["bufanda", "gorro", "cinturon", "bolso", "cartera"].includes(type)) {
-        category = "accesorios"
-      }
+        if (["remera", "blusa", "camisa", "top", "musculosa", "sweater / buzo"].includes(type)) {
+          category = "tops"
+        } else if (["pantalon", "jean", "short", "falda / pollera"].includes(type)) {
+          category = "bottoms"
+        } else if (["vestido", "enterito / mono"].includes(type)) {
+          category = "vestidos"
+        } else if (["campera / abrigo", "chaleco"].includes(type)) {
+          category = "abrigos"
+        } else if (["zapatillas", "zapatos", "sandalias", "botas"].includes(type)) {
+          category = "calzado"
+        } else if (["gorro / gorra", "bufanda", "cinturon", "bolso / mochila / cartera"].includes(type)) {
+          category = "accesorios"
+        }
 
-      stats[category] = (stats[category] || 0) + 1
-    })
+        stats[category] = (stats[category] || 0) + 1
+      })
 
     return stats
   }
@@ -192,7 +200,7 @@ export default function Gallery() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Mi Armario</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Armario</h1>
           <p className="text-muted-foreground mt-2">
             {items.length === 0
               ? "Tu armario está vacío"
@@ -268,6 +276,7 @@ export default function Gallery() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
               {filteredItems.map((item) => {
                 const usageInfo = getUsageInfo(item.id)
+                const colorName = findClosestColor(item.color, COLORS).name // Obtener el nombre del color
                 return (
                   <Card
                     key={item.id}
@@ -278,7 +287,7 @@ export default function Gallery() {
                       <div className="aspect-square bg-gray-50 rounded-t-lg overflow-hidden">
                         <img
                           src={item.image || "/placeholder.svg"}
-                          alt={`${item.type} ${item.color}`}
+                          alt={`${item.type} ${colorName}`}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                         />
                       </div>
@@ -305,7 +314,7 @@ export default function Gallery() {
 
                     <CardContent className="p-3">
                       <h3 className="font-medium text-sm capitalize truncate">
-                        {item.type} {item.color}
+                        {item.type} {colorName}
                       </h3>
                       <p className="text-xs text-muted-foreground capitalize">{item.occasion}</p>
 
@@ -400,7 +409,7 @@ export default function Gallery() {
             <>
               <DialogHeader>
                 <DialogTitle className="capitalize">
-                  {selectedItem.type} {selectedItem.color}
+                  {selectedItem.type} {findClosestColor(selectedItem.color, COLORS).name}
                 </DialogTitle>
                 <DialogDescription>Detalles de la prenda</DialogDescription>
               </DialogHeader>
@@ -409,7 +418,7 @@ export default function Gallery() {
                 <div className="aspect-square bg-gray-50 rounded-lg overflow-hidden">
                   <img
                     src={selectedItem.image || "/placeholder.svg"}
-                    alt={`${selectedItem.type} ${selectedItem.color}`}
+                    alt={`${selectedItem.type} ${findClosestColor(selectedItem.color, COLORS).name}`}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -421,7 +430,7 @@ export default function Gallery() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm font-medium">Color:</span>
-                    <span className="text-sm capitalize">{selectedItem.color}</span>
+                    <span className="text-sm capitalize">{findClosestColor(selectedItem.color, COLORS).name}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm font-medium">Ocasión:</span>
