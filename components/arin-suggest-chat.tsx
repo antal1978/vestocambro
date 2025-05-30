@@ -1,16 +1,18 @@
 "use client"
 
+import { CardTitle } from "@/components/ui/card"
+
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Sparkles } from "lucide-react"
+import { Bot, User, Loader2 } from "lucide-react" // Importar Bot, User y Loader2
 import { getSuggestedLooks } from "@/lib/outfit-suggestion-algorithm"
 import type { ClothingItem } from "@/types/ClothingItem"
 
 export interface ArinSuggestChatProps {
   isOpen: boolean
   onClose: () => void
-  onDecision: () => void
+  onDecision: (outfit: ClothingItem[], occasion: string, climate: string) => void // Actualizar tipo de onDecision
   items: any[]
   baseItem: any | null
   startWithPresentation: boolean
@@ -23,6 +25,7 @@ interface Message {
   type?: "text" | "options" | "look"
   options?: string[]
   look?: ClothingItem[]
+  timestamp: Date
 }
 
 export function ArinSuggestChat({
@@ -43,6 +46,7 @@ export function ArinSuggestChat({
   const [currentLookIndex, setCurrentLookIndex] = useState(0)
   const [currentLook, setCurrentLook] = useState<ClothingItem[] | null>(null)
   const [isResetting, setIsResetting] = useState(false)
+  const [isLoadingArinResponse, setIsLoadingArinResponse] = useState(false) // Nuevo estado para el loader de ARIN
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Auto-scroll al final de los mensajes
@@ -56,48 +60,49 @@ export function ArinSuggestChat({
 
   useEffect(() => {
     if (startWithPresentation && messages.length === 0 && !isResetting) {
-      // Obtener el nombre del usuario del localStorage
-      const userData = localStorage.getItem("arinUserData")
-      const userName = userData ? JSON.parse(userData).name : null
+      const userData = localStorage.getItem("userFashionPreferences")
+      const userName = userData ? JSON.parse(userData).userName : null
 
-      let initialMessage = ""
+      setIsLoadingArinResponse(true)
+      setTimeout(() => {
+        let initialMessage = ""
+        if (userName) {
+          const greetings = [
+            `¡Hola ${userName}! ¿Cómo andás? 😊`,
+            `¡Ey ${userName}! ¡Qué bueno verte de nuevo! ✨`,
+            `¡${userName}! ¡Hola amiga! ¿Qué vamos a armar hoy?`,
+            `¡${userName}! ¿Lista para crear un look increíble? 💫`,
+            `¡Hola ${userName}! ¿Qué tal? ¡Vamos a vestirte divina! ✨`,
+          ]
+          initialMessage = greetings[Math.floor(Math.random() * greetings.length)]
+        } else {
+          const introductions = [
+            "¡Hola! Soy ARIN, tu nueva amiga fashionista. 👗✨ ¡Vamos a armar looks increíbles juntas!",
+            "¡Hola! Soy ARIN y me encanta la moda. 💕 ¡Vamos a crear algo hermoso para vos!",
+            "¡Hola! Soy ARIN, tu asesora de estilo personal. ✨ ¡Preparate para verte increíble!",
+          ]
+          initialMessage = introductions[Math.floor(Math.random() * introductions.length)]
+        }
 
-      if (userName) {
-        // Si ya conocemos al usuario, conversación personalizada
-        const greetings = [
-          `¡Hola ${userName}! ¿Cómo andás? 😊`,
-          `¡Ey ${userName}! ¡Qué bueno verte de nuevo! ✨`,
-          `¡${userName}! ¡Hola amiga! ¿Qué vamos a armar hoy?`,
-          `¡${userName}! ¿Lista para crear un look increíble? 💫`,
-          `¡Hola ${userName}! ¿Qué tal? ¡Vamos a vestirte divina! ✨`,
+        const dayNightQuestions = [
+          "¡Dale! ¿Estás buscando algo para el día o para la noche?",
+          "Contame, ¿necesitás un look para el día o para la noche?",
+          "¿Qué vamos a armar? ¿Algo para el día o para la noche?",
+          "¿Para cuándo es el look? ¿Día o noche?",
         ]
-        initialMessage = greetings[Math.floor(Math.random() * greetings.length)]
-      } else {
-        // Si no conocemos al usuario, presentación completa
-        const introductions = [
-          "¡Hola! Soy ARIN, tu nueva amiga fashionista. 👗✨ ¡Vamos a armar looks increíbles juntas!",
-          "¡Hola! Soy ARIN y me encanta la moda. 💕 ¡Vamos a crear algo hermoso para vos!",
-          "¡Hola! Soy ARIN, tu asesora de estilo personal. ✨ ¡Preparate para verte increíble!",
-        ]
-        initialMessage = introductions[Math.floor(Math.random() * introductions.length)]
-      }
 
-      const dayNightQuestions = [
-        "¡Dale! ¿Estás buscando algo para el día o para la noche?",
-        "Contame, ¿necesitás un look para el día o para la noche?",
-        "¿Qué vamos a armar? ¿Algo para el día o para la noche?",
-        "¿Para cuándo es el look? ¿Día o noche?",
-      ]
-
-      setMessages([
-        {
-          id: "1",
-          sender: "arin",
-          content: `${initialMessage} ${dayNightQuestions[Math.floor(Math.random() * dayNightQuestions.length)]}`,
-          type: "options",
-          options: ["🌅 Día", "🌙 Noche"],
-        },
-      ])
+        setMessages([
+          {
+            id: "1",
+            sender: "arin",
+            content: `${initialMessage} ${dayNightQuestions[Math.floor(Math.random() * dayNightQuestions.length)]}`,
+            type: "options",
+            options: ["🌅 Día", "🌙 Noche"],
+            timestamp: new Date(),
+          },
+        ])
+        setIsLoadingArinResponse(false)
+      }, 1000)
     }
   }, [startWithPresentation, messages.length, isResetting])
 
@@ -115,6 +120,7 @@ export function ArinSuggestChat({
       type,
       options,
       look,
+      timestamp: new Date(),
     }
     setMessages((prev) => [...prev, newMessage])
   }
@@ -128,6 +134,7 @@ export function ArinSuggestChat({
     const selectedChoice = dayNightMap[choice]
     setSelectedDayNight(selectedChoice)
     addMessage("user", choice)
+    setIsLoadingArinResponse(true)
 
     setTimeout(() => {
       if (selectedChoice === "dia") {
@@ -155,6 +162,7 @@ export function ArinSuggestChat({
         ])
       }
       setCurrentStep("activity")
+      setIsLoadingArinResponse(false)
     }, 1000)
   }
 
@@ -170,6 +178,7 @@ export function ArinSuggestChat({
     const selectedActivityKey = activityMap[activity]
     setSelectedActivity(selectedActivityKey)
     addMessage("user", activity)
+    setIsLoadingArinResponse(true)
 
     setTimeout(() => {
       const climateQuestions = [
@@ -184,6 +193,7 @@ export function ArinSuggestChat({
         "❄️ Frío",
       ])
       setCurrentStep("climate")
+      setIsLoadingArinResponse(false)
     }, 1000)
   }
 
@@ -197,6 +207,7 @@ export function ArinSuggestChat({
     const selectedClimateKey = climateMap[climate]
     setSelectedClimate(selectedClimateKey)
     addMessage("user", climate)
+    setIsLoadingArinResponse(true)
 
     setTimeout(() => {
       const styleQuestions = [
@@ -212,6 +223,7 @@ export function ArinSuggestChat({
         "🎲 Sorprendeme",
       ])
       setCurrentStep("style")
+      setIsLoadingArinResponse(false)
     }, 1000)
   }
 
@@ -226,6 +238,7 @@ export function ArinSuggestChat({
     const selectedStyleKey = styleMap[style]
     setSelectedStyle(selectedStyleKey)
     addMessage("user", style)
+    setIsLoadingArinResponse(true)
 
     setTimeout(() => {
       const generatingMessages = [
@@ -240,11 +253,9 @@ export function ArinSuggestChat({
   }
 
   const generateLooks = (activity: string, climate: string, style: string) => {
-    // Obtener prendas del localStorage
     const storedItems = localStorage.getItem("clothingItems")
     const wardrobeItems: ClothingItem[] = storedItems ? JSON.parse(storedItems) : []
 
-    // Si no hay prendas, usar datos de ejemplo
     const itemsToUse =
       wardrobeItems.length > 0
         ? wardrobeItems
@@ -257,6 +268,7 @@ export function ArinSuggestChat({
               occasion: "dia-casual",
               climate: "templado",
               image: "/white-tshirt.png",
+              isOuterwear: false,
             },
             {
               id: "2",
@@ -266,6 +278,7 @@ export function ArinSuggestChat({
               occasion: "dia-casual",
               climate: "templado",
               image: "/blue-jeans.png",
+              isOuterwear: false,
             },
             {
               id: "3",
@@ -275,6 +288,7 @@ export function ArinSuggestChat({
               occasion: "dia-casual",
               climate: "templado",
               image: "/white-sneakers.png",
+              isOuterwear: false,
             },
           ]
 
@@ -300,6 +314,7 @@ export function ArinSuggestChat({
           undefined,
           firstLook,
         )
+        setIsLoadingArinResponse(false) // Desactivar loader después de mostrar el look
 
         setTimeout(() => {
           const feedbackQuestions = [
@@ -321,12 +336,14 @@ export function ArinSuggestChat({
           "options",
           ["➕ Añadir prendas", "🎯 Cambiar criterios"],
         )
+        setIsLoadingArinResponse(false)
       }
     }, 2000)
   }
 
   const handleLookFeedback = (feedback: string) => {
     addMessage("user", feedback)
+    setIsLoadingArinResponse(true)
 
     if (feedback === "💕 ¡Me encanta!") {
       setTimeout(() => {
@@ -341,6 +358,7 @@ export function ArinSuggestChat({
           "🤔 Me gusta pero no ahora",
         ])
         setCurrentStep("usageFeedback")
+        setIsLoadingArinResponse(false)
       }, 1000)
     } else {
       setTimeout(() => {
@@ -355,12 +373,14 @@ export function ArinSuggestChat({
           "🎯 Cambiar criterios",
         ])
         setCurrentStep("nextAction")
+        setIsLoadingArinResponse(false)
       }, 1000)
     }
   }
 
   const handleUsageFeedback = (usage: string) => {
     addMessage("user", usage)
+    setIsLoadingArinResponse(true)
 
     if (usage === "✨ ¡Sí, me lo pongo!") {
       setTimeout(() => {
@@ -372,6 +392,8 @@ export function ArinSuggestChat({
         ]
         addMessage("arin", confirmationMessages[Math.floor(Math.random() * confirmationMessages.length)])
         saveUsageStats(currentLook)
+        setIsLoadingArinResponse(false)
+        onDecision(currentLook!, selectedActivity, selectedClimate) // Llamar onDecision aquí
       }, 1000)
     } else {
       setTimeout(() => {
@@ -386,12 +408,14 @@ export function ArinSuggestChat({
           "🎯 Cambiar criterios",
         ])
         setCurrentStep("nextAction")
+        setIsLoadingArinResponse(false)
       }, 1000)
     }
   }
 
   const handleNextAction = (action: string) => {
     addMessage("user", action)
+    setIsLoadingArinResponse(true)
 
     if (action === "🔄 Ver otro look") {
       const nextIndex = currentLookIndex + 1
@@ -414,6 +438,7 @@ export function ArinSuggestChat({
             undefined,
             nextLook,
           )
+          setIsLoadingArinResponse(false)
           setTimeout(() => {
             const feedbackQuestions = [
               "¿Qué te parece? ¿Te copa este look?",
@@ -440,13 +465,11 @@ export function ArinSuggestChat({
             "🎲 Generar nuevos looks",
             "🎯 Cambiar criterios",
           ])
+          setIsLoadingArinResponse(false)
         }, 1000)
       }
     } else if (action === "🎯 Cambiar criterios") {
-      // Marcar que estamos reseteando para evitar el bucle
       setIsResetting(true)
-
-      // Limpiar todos los estados
       setCurrentStep("dayOrNight")
       setSelectedDayNight("")
       setSelectedActivity("")
@@ -456,13 +479,11 @@ export function ArinSuggestChat({
       setCurrentLookIndex(0)
       setCurrentLook(null)
 
-      // Limpiar mensajes anteriores y añadir nuevo mensaje inicial
       setTimeout(() => {
         setMessages([])
         setTimeout(() => {
-          // Obtener el nombre del usuario del localStorage
-          const userData = localStorage.getItem("arinUserData")
-          const userName = userData ? JSON.parse(userData).name : null
+          const userData = localStorage.getItem("userFashionPreferences")
+          const userName = userData ? JSON.parse(userData).userName : null
 
           const restartMessages = [
             "¡Dale! Empecemos de nuevo.",
@@ -492,11 +513,11 @@ export function ArinSuggestChat({
               content: initialMessage,
               type: "options",
               options: ["🌅 Día", "🌙 Noche"],
+              timestamp: new Date(),
             },
           ])
-
-          // Desmarcar el reseteo después de completar
           setIsResetting(false)
+          setIsLoadingArinResponse(false)
         }, 500)
       }, 1000)
     } else if (action === "🎲 Generar nuevos looks") {
@@ -516,13 +537,9 @@ export function ArinSuggestChat({
   const saveUsageStats = (look: ClothingItem[] | null) => {
     if (!look) return
 
-    console.log("💾 Guardando estadísticas de uso para:", look)
-
-    // Obtener estadísticas existentes
     const existingUsage = localStorage.getItem("clothingUsage")
     const usageRecord = existingUsage ? JSON.parse(existingUsage) : {}
 
-    // Actualizar estadísticas para cada prenda del look
     look.forEach((item) => {
       if (!usageRecord[item.id]) {
         usageRecord[item.id] = {
@@ -532,15 +549,10 @@ export function ArinSuggestChat({
       }
       usageRecord[item.id].count++
       usageRecord[item.id].lastUsed = new Date().toISOString()
-
-      console.log(`📊 Prenda ${item.name} (${item.id}): ${usageRecord[item.id].count} usos`)
     })
 
-    // Guardar en localStorage
     localStorage.setItem("clothingUsage", JSON.stringify(usageRecord))
-    console.log("✅ Estadísticas guardadas correctamente")
 
-    // También guardar el look completo usado
     const usedLooks = localStorage.getItem("usedLooks")
     const lookHistory = usedLooks ? JSON.parse(usedLooks) : []
 
@@ -554,7 +566,6 @@ export function ArinSuggestChat({
     })
 
     localStorage.setItem("usedLooks", JSON.stringify(lookHistory))
-    console.log("✅ Look guardado en historial")
   }
 
   const handleOptionClick = (option: string) => {
@@ -581,16 +592,13 @@ export function ArinSuggestChat({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <Card className="w-full max-w-2xl max-h-[80vh] overflow-hidden">
         <CardContent className="p-0">
-          {/* Header */}
-          <div className="bg-purple-600 text-white p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <Sparkles className="h-6 w-6 text-purple-600" />
+          {/* Header - Unificado con ArinChat */}
+          <div className="border-b p-3 flex flex-row items-center justify-between bg-purple-600 text-white">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                <Bot className="h-4 w-4 text-purple-600" /> {/* Usar Bot icon */}
               </div>
-              <div>
-                <h3 className="font-bold">ARIN</h3>
-                <p className="text-sm opacity-90">Tu asesora de armario</p>
-              </div>
+              <CardTitle className="text-sm text-white">ARIN</CardTitle>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose} className="text-white hover:bg-purple-700">
               ✕
@@ -602,11 +610,30 @@ export function ArinSuggestChat({
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                    message.sender === "user" ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-800"
+                  className={`rounded-lg p-3 max-w-[85%] ${
+                    message.sender === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
                   }`}
                 >
-                  <p className="text-sm">{message.content}</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    {message.sender === "user" ? (
+                      <>
+                        <span className="text-xs font-medium">Tú</span>
+                        <User className="h-3 w-3" />
+                      </>
+                    ) : (
+                      <>
+                        <Bot className="h-3 w-3" />
+                        <span className="text-xs font-medium">ARIN</span>
+                      </>
+                    )}
+                    <span className="text-xs opacity-70">
+                      {new Date(message.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <div className="whitespace-pre-wrap text-sm">{message.content}</div>
 
                   {/* Options */}
                   {message.type === "options" && message.options && (
@@ -653,6 +680,14 @@ export function ArinSuggestChat({
                 </div>
               </div>
             ))}
+            {isLoadingArinResponse && (
+              <div className="flex justify-start">
+                <div className="rounded-lg p-3 bg-muted flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Escribiendo...</span>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
         </CardContent>

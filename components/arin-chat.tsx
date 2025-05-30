@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar } from "@/components/ui/avatar"
-import { Loader2, Send, Bot, X, Maximize2, Minimize2 } from "lucide-react"
+import { Loader2, Send, Bot, X, Maximize2, Minimize2, User } from "lucide-react" // Importar User
 import { useRouter } from "next/navigation"
 
 interface ChatMessage {
@@ -121,11 +121,11 @@ Te ayudo a crear looks increíbles con la ropa que ya tenés. Mi objetivo es que
 
 ¿Qué hacemos hoy?
 
-• Ver tu armario
-• Crear un look  
-• Revisar guardados
-• Ver estadísticas
-• Subir prenda`,
+• Armario
+• Look  
+• Guardados
+• Estadísticas
+• Subir`,
           timestamp: new Date(),
         }
         setConversationState("main_menu")
@@ -356,6 +356,25 @@ Te ayudo a crear looks increíbles con la ropa que ya tenés. Mi objetivo es que
                         message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
                       }`}
                     >
+                      <div className="flex items-center gap-2 mb-1">
+                        {message.role === "user" ? (
+                          <>
+                            <span className="text-xs font-medium">Tú</span>
+                            <User className="h-3 w-3" />
+                          </>
+                        ) : (
+                          <>
+                            <Bot className="h-3 w-3" />
+                            <span className="text-xs font-medium">ARIN</span>
+                          </>
+                        )}
+                        <span className="text-xs opacity-70">
+                          {new Date(message.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
                       <div className="whitespace-pre-wrap text-sm">{message.content}</div>
                     </div>
                   </div>
