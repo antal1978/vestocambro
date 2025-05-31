@@ -11,6 +11,9 @@ import { Loader2, Send, Bot, X, Maximize2, Minimize2, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+// Eliminamos las importaciones directas de 'ai' y '@ai-sdk/openai' aquí
+// import { generateText } from "ai"
+// import { openai } from "@ai-sdk/openai"
 
 interface ChatMessage {
   id: string
@@ -143,11 +146,28 @@ Aquí podés ver todas tus prendas, filtrarlas, buscar y hasta crear looks direc
     const hasVisitedBefore = localStorage.getItem("hasVisitedBefore")
 
     if (storedPreferences) {
-      const profile = JSON.parse(storedPreferences)
-      setUserProfile({
-        ...profile,
-        firstVisit: !hasVisitedBefore,
-      })
+      try {
+        const profile = JSON.parse(storedPreferences)
+        setUserProfile({
+          ...profile,
+          firstVisit: !hasVisitedBefore,
+        })
+      } catch (e) {
+        console.error("Error parsing userFashionPreferences from localStorage:", e)
+        // Fallback to default profile if parsing fails
+        const defaultProfile: UserProfile = {
+          userName: "",
+          favoriteColors: [],
+          dislikedColors: [],
+          preferredStyle: "",
+          occasions: [],
+          likedOutfits: [],
+          dislikedOutfits: [],
+          onboardingCompleted: false,
+          firstVisit: true,
+        }
+        setUserProfile(defaultProfile)
+      }
     } else {
       // Usuario completamente nuevo
       const defaultProfile: UserProfile = {
@@ -328,7 +348,8 @@ Aquí podés ver todas tus prendas, filtrarlas, buscar y hasta crear looks direc
         newSuggestions = undefined
         break
       default:
-        arinResponse = `Entendido: "${suggestion}". ¿Hay algo más en lo que pueda ayudarte?`
+        // Si no es una sugerencia predefinida, usar el LLM a través de la API Route
+        arinResponse = await generateArinResponse(suggestion)
         break
     }
 
@@ -343,7 +364,7 @@ Aquí podés ver todas tus prendas, filtrarlas, buscar y hasta crear looks direc
     setIsLoading(false)
   }
 
-  // Generar respuesta de ARIN
+  // Generar respuesta de ARIN (ahora llama a la API Route)
   const generateArinResponse = async (userMessage: string): Promise<string> => {
     const normalizedUserMessage = normalizeText(userMessage) // Normalizar el mensaje del usuario
 
@@ -373,7 +394,7 @@ Aquí podés ver todas tus prendas, filtrarlas, buscar y hasta crear looks direc
 
 • **Armario** - Ver tus prendas
 • **Look** - Crear combinaciones
-• **Subir** - Añadir prendas nuevas
+• • **Subir** - Añadir prendas nuevas
 • **Estadísticas** - Ver uso de ropa`
       } else {
         return "Me gustaría saber tu nombre para poder ayudarte mejor. ¿Cómo te gusta que te llamen?"
@@ -400,59 +421,32 @@ Aquí podés ver todas tus prendas, filtrarlas, buscar y hasta crear looks direc
       }
     }
 
-    // Detectar intención de sostenibilidad (normalizadas)
-    const sustainabilityKeywords = ["sostenibilidad", "sustentabilidad", "ecologia", "medio ambiente", "impacto"].map(
-      normalizeText,
-    )
-    if (sustainabilityKeywords.some((word) => normalizedUserMessage.includes(word))) {
-      const randomTip = sustainabilityTips[Math.floor(Math.random() * sustainabilityTips.length)]
-      return `¡Claro! Me encanta hablar de eso. Aquí tienes un consejo: **${randomTip}**`
+    // --- Llamada a la API Route para respuestas dinámicas ---
+    try {
+      const currentMessagesForAPI = messages.map((msg) => ({ role: msg.role, content: msg.content }))
+      const response = await fetch("/api/arin-chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [...currentMessagesForAPI, { role: "user", content: userMessage }],
+          userProfile: userProfile, // Pasamos el perfil del usuario para que el LLM tenga contexto
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Error al comunicarse con la API de ARIN.")
+      }
+
+      const data = await response.json()
+      return data.text
+    } catch (error) {
+      console.error("Error al generar respuesta con OpenAI (via API Route):", error)
+      return "Lo siento, no pude generar una respuesta en este momento. ¿Podrías intentar de nuevo o reformular tu pregunta?"
     }
-
-    // Respuestas contextuales (normalizadas)
-    const generalKeywords = {
-      greeting: ["hola", "buenas", "hey", "saludos", "que tal", "como estas", "como estas"].map(normalizeText),
-      thanks: ["gracias", "genial", "excelente", "perfecto", "buenisimo"].map(normalizeText),
-      help: ["ayuda", "ayudame", "no se", "opciones", "que puedo hacer", "funciones", "que haces"].map(normalizeText),
-    }
-
-    if (generalKeywords.greeting.some((word) => normalizedUserMessage.includes(word))) {
-      return `¡Hola **${userProfile?.userName}**! 💕 ¿En qué puedo ayudarte hoy?`
-    }
-
-    if (generalKeywords.thanks.some((word) => normalizedUserMessage.includes(word))) {
-      return `¡De nada, **${userProfile?.userName}**! 😊 Siempre es un placer ayudarte. ¿Hay algo más en lo que pueda asistirte?`
-    }
-
-    if (generalKeywords.help.some((word) => normalizedUserMessage.includes(word))) {
-      return `Te puedo ayudar con:
-
-• **Armario** - Ver prendas
-• **Look** - Crear outfits  
-• **Guardados** - Tus favoritos
-• **Estadísticas** - Análisis de uso
-• **Subir** - Añadir prendas
-
-¿Qué necesitás?`
-    }
-
-    // Respuesta genérica
-    const genericResponses = [
-      `¿En qué te ayudo, **${userProfile?.userName}**? Puedo mostrarte tu armario, crear un look, o lo que necesites 😊`,
-      `Estoy aquí para ayudarte a sacar el máximo provecho de tu armario, **${userProfile?.userName}**. ¿Qué te gustaría hacer?`,
-      `¡Hola de nuevo, **${userProfile?.userName}**! ¿Listo/a para explorar tu estilo?`,
-      `Siempre es un placer verte por aquí, **${userProfile?.userName}**. ¿Qué tienes en mente hoy?`,
-    ]
-
-    let finalResponse = genericResponses[Math.floor(Math.random() * genericResponses.length)]
-
-    // Añadir un tip de sostenibilidad de forma proactiva (20% de probabilidad)
-    if (Math.random() < 0.2) {
-      const randomTip = sustainabilityTips[Math.floor(Math.random() * sustainabilityTips.length)]
-      finalResponse += `\n\n✨ **Un pequeño tip de ARIN:** ${randomTip}`
-    }
-
-    return finalResponse
+    // --- Fin de la llamada a la API Route ---
   }
 
   // Enviar mensaje
@@ -473,7 +467,7 @@ Aquí podés ver todas tus prendas, filtrarlas, buscar y hasta crear looks direc
     setIsLoading(true)
 
     // Simular delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    await new Promise((resolve) => setTimeout(resolve, 500)) // Reducir el delay inicial
 
     try {
       // Generar respuesta
