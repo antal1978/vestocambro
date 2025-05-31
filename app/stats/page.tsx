@@ -141,7 +141,8 @@ export default function Stats() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Cargando estadísticas...</p>
         </div>
-        <ArinChat />
+        {/* Pasar el contexto a ArinChat */}
+        <ArinChat context="stats-page" />
       </div>
     )
   }
@@ -366,7 +367,8 @@ export default function Stats() {
         </TabsContent>
       </Tabs>
 
-      <ArinChat />
+      {/* Pasar el contexto a ArinChat */}
+      <ArinChat context="stats-page" />
     </div>
   )
 }

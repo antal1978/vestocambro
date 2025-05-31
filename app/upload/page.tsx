@@ -461,7 +461,7 @@ export default function UploadPage() {
         {uploading && <Progress value={uploadProgress} className="mt-2" />}
       </Card>
 
-      <ArinChat />
+      <ArinChat context="upload-item" />
     </div>
   )
 }

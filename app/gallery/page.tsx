@@ -492,7 +492,7 @@ export default function Gallery() {
         </DialogContent>
       </Dialog>
 
-      <ArinChat />
+      <ArinChat context="gallery-page" />
     </div>
   )
 }

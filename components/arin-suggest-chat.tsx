@@ -1,18 +1,22 @@
 "use client"
 
-import { CardTitle } from "@/components/ui/card"
+import type React from "react"
 
+import { CardTitle, CardHeader } from "@/components/ui/card"
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Bot, User, Loader2 } from "lucide-react" // Importar Bot, User y Loader2
+import { Bot, User, Loader2, X, Send } from "lucide-react" // Importar Send icon
 import { getSuggestedLooks } from "@/lib/outfit-suggestion-algorithm"
 import type { ClothingItem } from "@/types/ClothingItem"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import { Input } from "@/components/ui/input" // Importar Input
 
 export interface ArinSuggestChatProps {
   isOpen: boolean
   onClose: () => void
-  onDecision: (outfit: ClothingItem[], occasion: string, climate: string) => void // Actualizar tipo de onDecision
+  onDecision: (outfit: ClothingItem[], occasion: string, climate: string) => void
   items: any[]
   baseItem: any | null
   startWithPresentation: boolean
@@ -46,8 +50,17 @@ export function ArinSuggestChat({
   const [currentLookIndex, setCurrentLookIndex] = useState(0)
   const [currentLook, setCurrentLook] = useState<ClothingItem[] | null>(null)
   const [isResetting, setIsResetting] = useState(false)
-  const [isLoadingArinResponse, setIsLoadingArinResponse] = useState(false) // Nuevo estado para el loader de ARIN
+  const [isLoadingArinResponse, setIsLoadingArinResponse] = useState(false)
+  const [userInput, setUserInput] = useState("") // Nuevo estado para el input del usuario
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Función para normalizar texto (sin tildes, minúsculas)
+  const normalizeText = (text: string) => {
+    return text
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+  }
 
   // Auto-scroll al final de los mensajes
   const scrollToBottom = () => {
@@ -68,18 +81,18 @@ export function ArinSuggestChat({
         let initialMessage = ""
         if (userName) {
           const greetings = [
-            `¡Hola ${userName}! ¿Cómo andás? 😊`,
-            `¡Ey ${userName}! ¡Qué bueno verte de nuevo! ✨`,
-            `¡${userName}! ¡Hola amiga! ¿Qué vamos a armar hoy?`,
-            `¡${userName}! ¿Lista para crear un look increíble? 💫`,
-            `¡Hola ${userName}! ¿Qué tal? ¡Vamos a vestirte divina! ✨`,
+            `¡Hola **${userName}**! ¿Cómo andás? 😊`,
+            `¡Ey **${userName}**! ¡Qué bueno verte de nuevo! ✨`,
+            `¡**${userName}**! ¡Hola amiga! ¿Qué vamos a armar hoy?`,
+            `¡**${userName}**! ¿Lista para crear un look increíble? 💫`,
+            `¡Hola **${userName}**! ¿Qué tal? ¡Vamos a vestirte divina! ✨`,
           ]
           initialMessage = greetings[Math.floor(Math.random() * greetings.length)]
         } else {
           const introductions = [
-            "¡Hola! Soy ARIN, tu nueva amiga fashionista. 👗✨ ¡Vamos a armar looks increíbles juntas!",
-            "¡Hola! Soy ARIN y me encanta la moda. 💕 ¡Vamos a crear algo hermoso para vos!",
-            "¡Hola! Soy ARIN, tu asesora de estilo personal. ✨ ¡Preparate para verte increíble!",
+            "¡Hola! Soy **ARIN**, tu nueva amiga fashionista. 👗✨ ¡Vamos a armar looks increíbles juntas!",
+            "¡Hola! Soy **ARIN** y me encanta la moda. 💕 ¡Vamos a crear algo hermoso para vos!",
+            "¡Hola! Soy **ARIN**, tu asesora de estilo personal. ✨ ¡Preparate para verte increíble!",
           ]
           initialMessage = introductions[Math.floor(Math.random() * introductions.length)]
         }
@@ -501,7 +514,7 @@ export function ArinSuggestChat({
 
           let initialMessage = ""
           if (userName) {
-            initialMessage = `${restartMessages[Math.floor(Math.random() * restartMessages.length)]} ${userName}, ${dayNightQuestions[Math.floor(Math.random() * dayNightQuestions.length)]}`
+            initialMessage = `${restartMessages[Math.floor(Math.random() * restartMessages.length)]} **${userName}**, ${dayNightQuestions[Math.floor(Math.random() * dayNightQuestions.length)]}`
           } else {
             initialMessage = `${restartMessages[Math.floor(Math.random() * restartMessages.length)]} ${dayNightQuestions[Math.floor(Math.random() * dayNightQuestions.length)]}`
           }
@@ -586,26 +599,64 @@ export function ArinSuggestChat({
     }
   }
 
+  const handleUserInput = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!userInput.trim()) return
+
+    const normalizedInput = normalizeText(userInput)
+    addMessage("user", userInput)
+    setUserInput("")
+    setIsLoadingArinResponse(true)
+
+    setTimeout(() => {
+      if (
+        normalizedInput.includes("volver al inicio") ||
+        normalizedInput.includes("ir al inicio") ||
+        normalizedInput.includes("empezar de nuevo") ||
+        normalizedInput.includes("resetear") ||
+        normalizedInput.includes("salir")
+      ) {
+        addMessage("arin", "¡Entendido! Reiniciando la conversación para que puedas empezar de nuevo. ✨")
+        handleNextAction("🎯 Cambiar criterios") // Reutilizamos la lógica de "Cambiar criterios" para resetear
+      } else if (
+        normalizedInput.includes("ayuda") ||
+        normalizedInput.includes("que puedo hacer") ||
+        normalizedInput.includes("opciones")
+      ) {
+        addMessage(
+          "arin",
+          "Estoy aquí para ayudarte a encontrar el look perfecto. Puedes elegir una de las opciones que te ofrezco o pedirme que **cambie los criterios** si no te convence el look actual. También puedes decirme **'volver al inicio'** para empezar de nuevo.",
+        )
+      } else {
+        addMessage(
+          "arin",
+          "Disculpa, no entendí tu mensaje. Por favor, elige una de las opciones o intenta con **'volver al inicio'** si quieres empezar de nuevo.",
+        )
+      }
+      setIsLoadingArinResponse(false)
+    }, 1000)
+  }
+
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <Card className="w-full max-w-2xl max-h-[80vh] overflow-hidden">
-        <CardContent className="p-0">
-          {/* Header - Unificado con ArinChat */}
-          <div className="border-b p-3 flex flex-row items-center justify-between bg-purple-600 text-white">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                <Bot className="h-4 w-4 text-purple-600" /> {/* Usar Bot icon */}
-              </div>
-              <CardTitle className="text-sm text-white">ARIN</CardTitle>
+        {/* Header - Ahora usa CardHeader para consistencia */}
+        <CardHeader className="border-b p-3 flex flex-row items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+              <Bot className="h-4 w-4 text-primary" /> {/* Usar Bot icon y color primario */}
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose} className="text-white hover:bg-purple-700">
-              ✕
-            </Button>
+            <CardTitle className="text-sm">ARIN</CardTitle>
           </div>
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-muted-foreground">
+            <X className="h-4 w-4" /> {/* Usar el ícono X para cerrar */}
+          </Button>
+        </CardHeader>
 
-          {/* Messages */}
+        {/* Messages */}
+        <CardContent className="p-0">
           <div className="h-96 overflow-y-auto p-4 space-y-4">
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
@@ -633,7 +684,10 @@ export function ArinSuggestChat({
                       })}
                     </span>
                   </div>
-                  <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                  {/* Renderizar contenido con ReactMarkdown */}
+                  <div className="whitespace-pre-wrap text-sm">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                  </div>
 
                   {/* Options */}
                   {message.type === "options" && message.options && (
@@ -690,6 +744,21 @@ export function ArinSuggestChat({
             )}
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Input de texto para el usuario */}
+          <form onSubmit={handleUserInput} className="p-4 border-t flex items-center gap-2">
+            <Input
+              type="text"
+              placeholder="Escribe un mensaje..."
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              className="flex-1"
+              disabled={isLoadingArinResponse}
+            />
+            <Button type="submit" size="icon" disabled={isLoadingArinResponse || !userInput.trim()}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>
