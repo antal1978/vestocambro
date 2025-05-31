@@ -73,8 +73,15 @@ export function ArinSuggestChat({
 
   useEffect(() => {
     if (startWithPresentation && messages.length === 0 && !isResetting) {
-      const userData = localStorage.getItem("userFashionPreferences")
-      const userName = userData ? JSON.parse(userData).userName : null
+      const userName = (() => {
+        try {
+          const userData = localStorage.getItem("userFashionPreferences")
+          return userData ? JSON.parse(userData).userName : null
+        } catch (e) {
+          console.error("Error parsing userFashionPreferences from localStorage:", e)
+          return null
+        }
+      })()
 
       setIsLoadingArinResponse(true)
       setTimeout(() => {
