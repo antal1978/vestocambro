@@ -1,5 +1,3 @@
-import { ArinChat } from "@/components/arin-chat"
-
 export default function Guia() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-2">
@@ -57,7 +55,6 @@ export default function Guia() {
           </div>
         </section>
       </div>
-      <ArinChat />
     </div>
   )
 }

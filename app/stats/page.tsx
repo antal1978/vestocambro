@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BarChart, PieChart, LineChart } from "lucide-react"
-import { ArinChat } from "@/components/arin-chat"
 import type { ClothingItem } from "@/types/ClothingItem"
 
 // Placeholder for a simple chart component (replace with a proper charting library if needed)
@@ -141,8 +140,6 @@ export default function Stats() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Cargando estadísticas...</p>
         </div>
-        {/* Pasar el contexto a ArinChat */}
-        <ArinChat context="stats-page" />
       </div>
     )
   }
@@ -366,9 +363,6 @@ export default function Stats() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Pasar el contexto a ArinChat */}
-      <ArinChat context="stats-page" />
     </div>
   )
 }

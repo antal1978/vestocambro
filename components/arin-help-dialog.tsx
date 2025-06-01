@@ -29,39 +29,29 @@ const helpContexts = {
   "mi-armario": {
     title: "Mi Armario",
     introduction: `¡Hola! 💕 Soy ARIN, tu asistente personal de moda.
+Mi misión es ayudarte a optimizar tu armario y crear looks increíbles con lo que ya tenés. ✨
 
-Mi misión es ayudarte a optimizar el uso de todas las prendas que tenés en tu armario para crear looks increíbles, revalorizando cada pieza que ya tenés.
+En "Mi Armario" podés:
+📸 **Subir prendas**
+👗 **Ver tu colección**
+🏷️ **Organizar por categorías**
+✨ **Generar looks desde una prenda**
 
-Creo firmemente que no necesitás comprar más ropa para verte espectacular - solo necesitás aprender a combinar mejor lo que ya tenés. Paulatinamente, también te voy a enseñar cómo tomar buenas decisiones de compra para que tu ropa sea funcional, dure más y nada quede olvidado en el fondo del armario. ✨
-
-En la sección "Mi Armario" podés:
-
-📸 **Subir nuevas prendas** - Tomá fotos de tu ropa y categorizalas
-👗 **Ver tu colección** - Explorá todas las prendas que ya cargaste
-🏷️ **Organizar por categorías** - Filtrá por tipo, color, ocasión o clima
-✨ **Generar looks desde una prenda** - Creá outfits usando una prenda específica
-
-¿Querés que te guíe paso a paso o preferís explorar por tu cuenta?`,
+¿Querés que te guíe o preferís explorar?`,
     suggestions: ["Guíame paso a paso", "Subir mi primera prenda", "Ver ejemplos", "Explorar por mi cuenta"],
   },
   "sugerir-look": {
     title: "Sugerir Look",
     introduction: `¡Perfecto! Esta es una de mis funciones favoritas 💫
 
-En "Sugerir Look" voy a conversar con vos para entender:
+En "Sugerir Look" te ayudaré a crear combinaciones increíbles. Necesito saber:
+🎯 **Ocasión** (trabajo, casual, fiesta, etc.)
+🌤️ **Clima** (caluroso, templado, frío)
+👗 **Prenda específica** (si querés usar una)
 
-🎯 **¿Para qué ocasión necesitás vestirte?** (trabajo, casual, fiesta, etc.)
-🌤️ **¿Cómo está el clima?** (caluroso, templado, frío)
-👗 **¿Tenés alguna prenda específica que querés usar?**
+Mi objetivo es que redescubras prendas y veas tu armario con ojos nuevos.
 
-Después voy a crear combinaciones increíbles usando las prendas que ya tenés en tu armario, priorizando:
-• Prendas que hace tiempo no usás
-• Combinaciones que nunca probaste
-• Looks que se adapten perfectamente a la ocasión y clima
-
-Mi objetivo es que redescubras prendas olvidadas y veas tu armario con ojos nuevos.
-
-¿Empezamos a crear tu look perfecto?`,
+¿Empezamos a crear tu look?`,
     suggestions: ["¡Sí, crear mi look!", "Ver ejemplos de looks", "Consejos de combinación", "Volver"],
   },
   looks: {
@@ -69,16 +59,15 @@ Mi objetivo es que redescubras prendas olvidadas y veas tu armario con ojos nuev
     introduction: `¡Aquí están todos tus looks guardados! 💕
 
 En esta sección podés:
+💾 **Ver looks**
+📅 **Registrar uso**
+⭐ **Marcar favoritos**
+🔄 **Recrear looks**
+📊 **Ver estadísticas**
 
-💾 **Ver looks guardados** - Todos los outfits que creaste y te gustaron
-📅 **Registrar uso** - Marcá cuando usaste un look
-⭐ **Marcar favoritos** - Destacá tus combinaciones preferidas
-🔄 **Recrear looks** - Volver a usar combinaciones que te funcionaron
-📊 **Ver estadísticas** - Qué looks usás más y cuáles menos
+Cada look es parte de tu biblioteca de estilo personal.
 
-Cada vez que guardás un look, estás creando tu propia biblioteca de estilo personal. Con el tiempo, vas a poder identificar patrones en lo que te gusta y funciona para vos.
-
-¿Querés que te ayude a organizar tus looks o preferís explorar?`,
+¿Querés que te ayude a organizar o preferís explorar?`,
     suggestions: ["Ayúdame a organizar", "Ver mis favoritos", "Crear un look nuevo", "Ver estadísticas"],
   },
   estadisticas: {
@@ -86,18 +75,12 @@ Cada vez que guardás un look, estás creando tu propia biblioteca de estilo per
     introduction: `¡Las estadísticas son súper útiles para optimizar tu armario! 📊
 
 Acá podés ver:
+👗 **Prendas más usadas**
+😴 **Prendas olvidadas**
+🎯 **Ocasiones frecuentes**
+💡 **Sugerencias de optimización**
 
-👗 **Prendas más usadas** - Cuáles son tus favoritas reales
-😴 **Prendas olvidadas** - Qué tenés que no estás aprovechando
-🎯 **Ocasiones frecuentes** - Para qué te vestís más seguido
-🌤️ **Climas habituales** - Qué tipo de ropa necesitás más
-💡 **Sugerencias de optimización** - Qué podrías donar, vender o usar más
-
-Esta información te ayuda a:
-• Identificar qué prendas realmente necesitás
-• Descubrir tesoros olvidados en tu armario
-• Tomar mejores decisiones de compra futuras
-• Crear un guardarropa más funcional y consciente
+Esta info te ayuda a tomar mejores decisiones y tener un guardarropa más funcional.
 
 ¿Querés que analicemos juntas tus datos?`,
     suggestions: ["Analizar mis datos", "Ver prendas olvidadas", "Consejos de optimización", "Volver"],
@@ -107,19 +90,12 @@ Esta información te ayuda a:
     introduction: `¡Bienvenida a la guía completa de ARIN! 📚
 
 Podés elegir entre:
+📖 **Leer la guía completa**
+⚡ **Resumen rápido**
+🎯 **Guía específica**
+💬 **Preguntarme directamente**
 
-📖 **Leer la guía completa** - Toda la información detallada paso a paso
-⚡ **Resumen rápido** - Los puntos más importantes en 2 minutos
-🎯 **Guía específica** - Solo la sección que te interesa
-💬 **Preguntarme directamente** - Haceme cualquier consulta
-
-La guía incluye:
-• Cómo subir y organizar prendas
-• Crear looks perfectos
-• Interpretar estadísticas
-• Consejos de moda sostenible
-• Trucos para optimizar tu armario
-• Solución de problemas comunes
+La guía te ayudará a usar ARIN al máximo.
 
 ¿Qué preferís?`,
     suggestions: ["Resumen rápido", "Leer guía completa", "Pregunta específica", "Empezar a usar la app"],

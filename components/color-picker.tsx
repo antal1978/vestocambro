@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Check, ChevronDown, Palette } from "lucide-react"
+import { Check, ChevronDown, Palette } from "lucide-react" // Asegúrate de que Palette esté importado
 import { cn } from "@/lib/utils"
 
 // Lista completa y equilibrada de colores basada en moda y reconocimiento común
@@ -122,18 +122,24 @@ export function ColorPicker({ value, onChange, placeholder = "Seleccionar color"
 
   return (
     <div className="relative w-full">
-      <Button type="button" variant="outline" onClick={() => setIsOpen(!isOpen)} className="w-full justify-between">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full justify-between"
+        aria-label={selectedColor ? `Color seleccionado: ${selectedColor.name}` : placeholder}
+      >
+        <span className="sr-only">Selector de color</span>
         <div className="flex items-center gap-2">
+          {/* ESTA ES LA LÍNEA CLAVE: El ícono Palette está aquí, FUERA del condicional */}
+          <Palette className="w-4 h-4 text-muted-foreground" />
           {selectedColor ? (
             <>
               {renderColorSwatch(selectedColor)}
-              <span>{selectedColor.name}</span>
+              <span className="text-foreground">{selectedColor.name}</span>
             </>
           ) : (
-            <>
-              <Palette className="w-4 h-4 text-muted-foreground" />
-              <span className="text-muted-foreground">{placeholder}</span>
-            </>
+            <span className="text-muted-foreground">{placeholder}</span>
           )}
         </div>
         <ChevronDown className={cn("ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform", isOpen && "rotate-180")} />

@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip" // Importar Tooltip
-import { ArinChat } from "@/components/arin-chat"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Camera, Upload } from "lucide-react" // Importar Camera y Upload
 import { COLORS } from "@/lib/color-config"
 import { findClosestColor } from "@/lib/color-utils"
 import type { ClothingItem } from "@/types/ClothingItem"
@@ -72,6 +72,7 @@ export default function UploadPage() {
   const [showCamera, setShowCamera] = useState(false)
   const cameraRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null) // Ref para el input de archivo
   const router = useRouter()
   const { toast } = useToast()
 
@@ -292,6 +293,64 @@ export default function UploadPage() {
           <CardDescription>Ingresa los detalles de la prenda que quieres subir.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
+          {/* Sección de Imagen y Cámara - Rediseñada */}
+          <div className="flex flex-col space-y-1.5">
+            <Label htmlFor="image">Imagen</Label>
+            {image ? (
+              <div className="relative w-full h-64 rounded-md overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={image || "/placeholder.svg"} alt="Prenda Subida" className="object-cover w-full h-full" />
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="absolute top-2 right-2"
+                  onClick={() => {
+                    setImage(null)
+                    setCameraImage(null)
+                  }}
+                >
+                  Eliminar
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-md min-h-[150px] space-y-4">
+                <p className="text-sm text-muted-foreground">Selecciona una imagen o usa la cámara</p>
+                <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
+                  <Button onClick={() => fileInputRef.current?.click()} className="w-full sm:w-auto">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Seleccionar archivo
+                  </Button>
+                  <Input type="file" id="image" onChange={handleImageChange} className="hidden" ref={fileInputRef} />
+                  <Button onClick={() => setShowCamera(true)} className="w-full sm:w-auto">
+                    <Camera className="mr-2 h-4 w-4" />
+                    Abrir Cámara
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {showCamera && (
+            <div className="relative">
+              <video ref={cameraRef} autoPlay playsInline className="w-full h-64 object-cover rounded-md"></video>
+              <canvas ref={canvasRef} style={{ display: "none" }} width="0" height="0"></canvas>
+              <div className="absolute top-2 left-2 flex space-x-2">
+                <Button variant="secondary" onClick={() => setShowCamera(false)}>
+                  Cerrar Cámara
+                </Button>
+                <Button variant="outline" onClick={handleCapture}>
+                  Capturar
+                </Button>
+              </div>
+              <div className="absolute bottom-2 left-2 right-2 bg-black bg-opacity-50 text-white p-2 rounded-md">
+                <p className="text-sm">
+                  Posiciona la prenda dentro del encuadre. Asegura buena iluminación para mejores resultados.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Campos de Categoría, Color, Clima, Ocasión, Material - Ahora debajo de la imagen */}
           <div className="flex flex-col space-y-1.5">
             <Label htmlFor="category">Categoría</Label>
             <Select onValueChange={setCategory} value={category}>
@@ -406,52 +465,6 @@ export default function UploadPage() {
               </SelectContent>
             </Select>
           </div>
-
-          <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="image">Imagen</Label>
-            {image ? (
-              <div className="relative w-full h-64 rounded-md overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={image || "/placeholder.svg"} alt="Prenda Subida" className="object-cover w-full h-full" />
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="absolute top-2 right-2"
-                  onClick={() => {
-                    setImage(null)
-                    setCameraImage(null)
-                  }}
-                >
-                  Eliminar
-                </Button>
-              </div>
-            ) : (
-              <>
-                <Input type="file" id="image" onChange={handleImageChange} />
-                <Button onClick={() => setShowCamera(true)}>Abrir Cámara</Button>
-              </>
-            )}
-          </div>
-
-          {showCamera && (
-            <div className="relative">
-              <video ref={cameraRef} autoPlay playsInline className="w-full h-64 object-cover rounded-md"></video>
-              <canvas ref={canvasRef} style={{ display: "none" }} width="0" height="0"></canvas>
-              <div className="absolute top-2 left-2 flex space-x-2">
-                <Button variant="secondary" onClick={() => setShowCamera(false)}>
-                  Cerrar Cámara
-                </Button>
-                <Button variant="outline" onClick={handleCapture}>
-                  Capturar
-                </Button>
-              </div>
-              <div className="absolute bottom-2 left-2 right-2 bg-black bg-opacity-50 text-white p-2 rounded-md">
-                <p className="text-sm">
-                  Posiciona la prenda dentro del encuadre. Asegura buena iluminación para mejores resultados.
-                </p>
-              </div>
-            </div>
-          )}
         </CardContent>
         <CardFooter>
           <Button disabled={uploading} onClick={handleUpload}>
@@ -460,8 +473,6 @@ export default function UploadPage() {
         </CardFooter>
         {uploading && <Progress value={uploadProgress} className="mt-2" />}
       </Card>
-
-      <ArinChat context="upload-item" />
     </div>
   )
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Trash2, Heart, Calendar, TrendingUp } from "lucide-react"
-import { ArinChat } from "@/components/arin-chat"
+// REMOVED: import { ArinChat } from "@/components/arin-chat"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -209,7 +209,7 @@ const LooksPage = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Cargando tus looks...</p>
         </div>
-        <ArinChat />
+        {/* REMOVED: <ArinChat /> */}
       </div>
     )
   }
@@ -349,8 +349,6 @@ const LooksPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <ArinChat />
     </div>
   )
 }

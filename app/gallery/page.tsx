@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
-import { ArinChat } from "@/components/arin-chat"
+// REMOVED: import { ArinChat } from "@/components/arin-chat"
 import { loadExampleItems } from "@/lib/example-items"
 import { COLORS } from "@/lib/color-config" // Importar COLORS
 import { findClosestColor } from "@/lib/color-utils" // Importar findClosestColor
@@ -187,7 +187,7 @@ export default function Gallery() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Cargando tu armario...</p>
         </div>
-        <ArinChat />
+        {/* REMOVED: <ArinChat /> */}
       </div>
     )
   }
@@ -492,7 +492,7 @@ export default function Gallery() {
         </DialogContent>
       </Dialog>
 
-      <ArinChat context="gallery-page" />
+      {/* REMOVED: <ArinChat context="gallery-page" /> */}
     </div>
   )
 }

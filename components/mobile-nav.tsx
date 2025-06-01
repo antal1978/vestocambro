@@ -1,6 +1,6 @@
 "use client"
 
-import { Shirt, Wand2, Heart, BarChart3 } from "lucide-react"
+import { Shirt, Wand2, Upload, BarChart3 } from "lucide-react" // Importar Upload
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -15,7 +15,8 @@ export function MobileNav() {
   const navItems = [
     { path: "/gallery", icon: Shirt, label: "Armario" },
     { path: "/suggest", icon: Wand2, label: "Look" },
-    { path: "/looks", icon: Heart, label: "Guardados" },
+    // Eliminamos "Guardados" y agregamos "Subir"
+    { path: "/upload", icon: Upload, label: "Subir" }, // Cambiado de Heart a Upload
     { path: "/stats", icon: BarChart3, label: "Estadísticas" },
   ]
 

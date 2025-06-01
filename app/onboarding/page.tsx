@@ -1,11 +1,11 @@
-import { ArinChat } from "@/components/arin-chat"
+// REMOVED: import { ArinChat } from "@/components/arin-chat"
 
 export default function OnboardingPage() {
   return (
     <div>
       <h1>Onboarding Page</h1>
       <p>Welcome to the onboarding process!</p>
-      <ArinChat />
+      {/* REMOVED: <ArinChat /> */}
     </div>
   )
 }

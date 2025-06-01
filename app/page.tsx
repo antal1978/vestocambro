@@ -4,16 +4,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Shirt, Wand2, BarChart3, ArrowRight, Sparkles } from "lucide-react"
 import Link from "next/link"
-import { ArinChat } from "@/components/arin-chat"
-import { useState } from "react"
 
 export default function Home() {
-  const [showArinChat, setShowArinChat] = useState(false)
-
-  const handleComenzar = () => {
-    setShowArinChat(true)
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white">
       {/* Hero Section */}
@@ -27,19 +19,20 @@ export default function Home() {
                 <span className="block text-primary-600">reinventado</span>
               </h1>
               <p className="text-xl text-gray-600 leading-relaxed">
-                Descubrí nuevas combinaciones y sacale el máximo partido a tu ropa con la ayuda de ARIN, tu asistente
-                personal de moda.
+                Descubrí nuevas combinaciones y optimizá tu armario con ARIN, tu asistente personal de moda.
               </p>
             </div>
 
             <div className="flex justify-center lg:justify-start">
               <Button
-                onClick={handleComenzar}
+                asChild
                 size="lg"
                 className="text-lg px-12 py-6 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 shadow-lg hover:shadow-xl transition-all duration-300"
               >
-                <Sparkles className="mr-2 h-5 w-5" />
-                Comenzar
+                <Link href="/suggest">
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Comenzar
+                </Link>
               </Button>
             </div>
           </div>
@@ -68,7 +61,7 @@ export default function Home() {
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">¿Qué podés hacer con ARIN?</h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Tu asistente personal de moda te ayuda a optimizar tu armario y crear looks increíbles
+            ARIN te ayuda a optimizar tu armario y crear looks increíbles
           </p>
         </div>
 
@@ -83,8 +76,7 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <CardDescription className="text-base leading-relaxed">
-                Subí fotos de tus prendas y creá tu armario virtual. ARIN te ayuda a categorizar y organizar todo de
-                manera inteligente.
+                Subí tus prendas, creá tu armario virtual y organizalo inteligentemente con ARIN.
               </CardDescription>
               <Button asChild variant="ghost" className="mt-4 group">
                 <Link href="/upload">
@@ -105,8 +97,7 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <CardDescription className="text-base leading-relaxed">
-                ARIN combina tus prendas de manera inteligente según la ocasión, clima y tu estilo personal para crear
-                outfits perfectos.
+                ARIN combina tus prendas según ocasión, clima y estilo para crear outfits perfectos.
               </CardDescription>
               <Button asChild variant="ghost" className="mt-4 group">
                 <Link href="/suggest">
@@ -127,8 +118,7 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <CardDescription className="text-base leading-relaxed">
-                Descubrí qué prendas usás más, cuáles están olvidadas y recibí consejos para aprovechar mejor tu
-                armario.
+                Descubrí qué usás más, qué está olvidado y recibí consejos para optimizar tu armario.
               </CardDescription>
               <Button asChild variant="ghost" className="mt-4 group">
                 <Link href="/stats">
@@ -153,9 +143,11 @@ export default function Home() {
             </div>
 
             <div className="flex justify-center">
-              <Button onClick={handleComenzar} size="lg" variant="secondary" className="text-lg px-8 py-6">
-                <Sparkles className="mr-2 h-5 w-5" />
-                Comenzar con ARIN
+              <Button asChild size="lg" variant="secondary" className="text-lg px-8 py-6">
+                <Link href="/suggest">
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Comenzar con ARIN
+                </Link>
               </Button>
             </div>
           </div>
@@ -175,9 +167,6 @@ export default function Home() {
           </div>
         </div>
       </footer>
-
-      {/* ARIN Chat - Se abre automáticamente cuando showArinChat es true */}
-      <ArinChat autoOpen={showArinChat} />
     </div>
   )
 }

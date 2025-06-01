@@ -5,7 +5,7 @@ import type React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Shirt, Wand2, Heart, BarChart3, Menu } from "lucide-react"
+import { Shirt, Wand2, Upload, BarChart3, Menu } from "lucide-react" // Importar Upload
 import { Logo } from "@/components/logo"
 import { useState } from "react"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -15,7 +15,8 @@ import { ArinHelpDialog } from "@/components/arin-help-dialog"
 const navigation = [
   { name: "Armario", href: "/gallery", icon: Shirt, helpContext: "mi-armario" },
   { name: "Look", href: "/suggest", icon: Wand2, helpContext: "sugerir-look" },
-  { name: "Guardados", href: "/looks", icon: Heart, helpContext: "looks" },
+  // Eliminamos "Guardados" y agregamos "Subir Prendas"
+  { name: "Subir", href: "/upload", icon: Upload, helpContext: "subir-prenda" }, // Cambiado de Heart a Upload
   { name: "Estadísticas", href: "/stats", icon: BarChart3, helpContext: "estadisticas" },
 ]
 
