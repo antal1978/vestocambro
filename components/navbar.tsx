@@ -3,18 +3,17 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Shirt, Wand2, Upload, BarChart3, Menu } from "lucide-react" // Eliminar MessageSquareText
+import { Shirt, Wand2, Camera, BarChart3, Menu } from "lucide-react" // Importar Camera, eliminar Upload
 import { Logo } from "@/components/logo"
 import { useState } from "react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { MobileNav } from "@/components/mobile-nav"
 
 const navigation = [
+  { name: "Subir", href: "/upload", icon: Camera }, // Cambiado a Camera y movido al inicio
   { name: "Armario", href: "/gallery", icon: Shirt },
   { name: "Look", href: "/suggest", icon: Wand2 },
-  { name: "Subir", href: "/upload", icon: Upload },
   { name: "Estadísticas", href: "/stats", icon: BarChart3 },
-  // Eliminamos "Chat ARIN"
 ]
 
 export function Navbar() {

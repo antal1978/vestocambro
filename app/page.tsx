@@ -23,7 +23,8 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="flex justify-center lg:justify-start">
+            {/* Eliminamos el botón "Comenzar" */}
+            {/* <div className="flex justify-center lg:justify-start">
               <Button
                 asChild
                 size="lg"
@@ -34,7 +35,7 @@ export default function Home() {
                   Comenzar
                 </Link>
               </Button>
-            </div>
+            </div> */}
           </div>
 
           {/* Right Column - Illustration */}
