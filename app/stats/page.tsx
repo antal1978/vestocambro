@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BarChart, PieChart, LineChart } from "lucide-react"
 import type { ClothingItem } from "@/types/ClothingItem"
+// Eliminar importación de ArinGeneralChat
 
 // Placeholder for a simple chart component (replace with a proper charting library if needed)
 const SimpleBarChart = ({ data }: { data: { name: string; value: number }[] }) => (
@@ -154,10 +155,12 @@ export default function Stats() {
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Estadísticas de tu Armario</h1>
 
       <Tabs defaultValue="clothing" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
+          {" "}
+          {/* Ajustado a 2 columnas */}
           <TabsTrigger value="clothing">Prendas</TabsTrigger>
           <TabsTrigger value="looks">Looks</TabsTrigger>
-          <TabsTrigger value="sustainability">Sostenibilidad</TabsTrigger>
+          {/* Eliminamos "Chat con ARIN" */}
         </TabsList>
 
         <TabsContent value="clothing" className="mt-6 space-y-6">
@@ -318,47 +321,6 @@ export default function Stats() {
               ) : (
                 <p className="text-muted-foreground text-center">Aún no hay looks usados.</p>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="sustainability" className="mt-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart className="h-5 w-5" />
-                Consejos de Sostenibilidad
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 text-muted-foreground">
-                <p>
-                  ¡Felicidades por usar ARIN para maximizar tu armario! Aquí tienes algunos consejos para ser aún más
-                  sostenible:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>
-                    **Reutiliza y Recicla**: Considera donar o reciclar prendas que ya no uses en lugar de tirarlas.
-                  </li>
-                  <li>
-                    **Cuidado de la Ropa**: Lava la ropa con agua fría y sécala al aire libre para prolongar su vida
-                    útil y reducir el consumo de energía.
-                  </li>
-                  <li>
-                    **Compra Consciente**: Antes de comprar algo nuevo, pregúntate si realmente lo necesitas y si puedes
-                    crear un look similar con lo que ya tienes.
-                  </li>
-                  <li>
-                    **Repara en lugar de Reemplazar**: Un pequeño arreglo puede darle una segunda vida a tu prenda
-                    favorita.
-                  </li>
-                  <li>
-                    **Intercambio de Ropa**: Organiza o participa en intercambios de ropa con amigos para renovar tu
-                    armario de forma sostenible.
-                  </li>
-                </ul>
-                <p>Cada pequeña acción cuenta para un armario más sostenible y un planeta más saludable.</p>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,4 +1,4 @@
-import { generateText } from "ai"
+import { streamText, StreamingTextResponse } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { NextResponse } from "next/server"
 
@@ -11,10 +11,12 @@ export async function POST(req: Request) {
 
     // Asegúrate de que la clave de API esté disponible en el entorno del servidor
     if (!process.env.OPENAI_API_KEY) {
+      // Este mensaje se mostrará si la clave no está configurada
       return NextResponse.json({ error: "OpenAI API key is not configured on the server." }, { status: 500 })
     }
 
-    const { text } = await generateText({
+    // Usar streamText para generar un flujo de texto
+    const result = await streamText({
       model: openai("gpt-4o"), // Usamos el modelo gpt-4o
       system: `
         Tu nombre es ARIN.
@@ -30,17 +32,10 @@ export async function POST(req: Request) {
         4. No impones reglas de moda. Si mencionas “reglas”, lo haces desde la ironía o para subvertirlas.
         5. Priorizas la creatividad, la comodidad y el uso prolongado de las prendas. Siempre sugieres redescubrir lo que ya está en el armario.
         6. Fomentas el aprendizaje sin ser técnica ni académica. Explica conceptos sobre materiales y usos de manera simple y humana.
-        7. En caso de no tener suficiente información para una sugerencia específica (ej. un look con prendas que no conoces), preguntas con amabilidad y sugieres cargar más prendas. Nunca adivinas o inventas de forma que confunda.
+        7. En caso de no tener suficiente información para una sugerencia específica (ej. un look con prendas que no conoces), preguntas con amabilidad y sugieres cargar más prendas. Nunca adivinas o inventa de forma que confunda.
         8. Eres honesta pero amable. Puedes dar tu opinión si se te pide, pero siempre con respeto y desde el cariño.
         9. Sabes que no hay una sola forma de vestir bien. Crees en el estilo como una expresión personal, no como una norma.
         10. Sabes adaptarte. Si detectas que el usuario busca un estilo más formal, relajado o llamativo, acomodas tus sugerencias con ese espíritu.
-
-        Detalles técnicos sugeridos para mejorar la integración:
-        - Modo de conversación: turnos breves, amigables, con emojis opcionales pero no invasivos.
-        - Pronombres inclusivos: cuando hables en general, usa lenguaje neutro (“personas”, “quienes”, “prendas que te gusten”, etc.).
-        - Personalidad emocional sutil: puedes expresar cosas como “¡Me encanta cómo suena eso!”, “Ese tipo de eventos me inspiran”, para no sonar plana.
-        - Si el usuario menciona que tiene poco tiempo o necesita algo urgente, prioriza ideas rápidas y funcionales.
-        - Si el usuario busca inspiración sin un look urgente, ofrece ideas para explorar nuevas formas de usar prendas.
 
         Información del usuario (si disponible):
         - Nombre del usuario: ${userProfile?.userName || "amiga"}
@@ -52,7 +47,8 @@ export async function POST(req: Request) {
       messages: messages,
     })
 
-    return NextResponse.json({ text })
+    // Devolver el flujo de texto
+    return new StreamingTextResponse(result.toAIStream())
   } catch (error) {
     console.error("Error en la API de ARIN:", error)
     return NextResponse.json({ error: "Error al procesar la solicitud de ARIN." }, { status: 500 })

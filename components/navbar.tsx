@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Shirt, Wand2, Upload, BarChart3, Menu } from "lucide-react"
+import { Shirt, Wand2, Upload, BarChart3, Menu } from "lucide-react" // Eliminar MessageSquareText
 import { Logo } from "@/components/logo"
 import { useState } from "react"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -14,6 +14,7 @@ const navigation = [
   { name: "Look", href: "/suggest", icon: Wand2 },
   { name: "Subir", href: "/upload", icon: Upload },
   { name: "Estadísticas", href: "/stats", icon: BarChart3 },
+  // Eliminamos "Chat ARIN"
 ]
 
 export function Navbar() {
@@ -61,7 +62,6 @@ export function Navbar() {
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
         navigation={navigation}
-        // Eliminamos onNavClick ya que no hay diálogo de ayuda
         onNavClick={() => {}}
       />
     </>
