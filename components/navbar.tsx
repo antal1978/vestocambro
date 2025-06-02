@@ -1,58 +1,24 @@
 "use client"
 
-import type React from "react"
-
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Shirt, Wand2, Upload, BarChart3, Menu } from "lucide-react" // Importar Upload
+import { Shirt, Wand2, Upload, BarChart3, Menu } from "lucide-react"
 import { Logo } from "@/components/logo"
 import { useState } from "react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { MobileNav } from "@/components/mobile-nav"
-import { ArinHelpDialog } from "@/components/arin-help-dialog"
 
 const navigation = [
-  { name: "Armario", href: "/gallery", icon: Shirt, helpContext: "mi-armario" },
-  { name: "Look", href: "/suggest", icon: Wand2, helpContext: "sugerir-look" },
-  // Eliminamos "Guardados" y agregamos "Subir Prendas"
-  { name: "Subir", href: "/upload", icon: Upload, helpContext: "subir-prenda" }, // Cambiado de Heart a Upload
-  { name: "Estadísticas", href: "/stats", icon: BarChart3, helpContext: "estadisticas" },
+  { name: "Armario", href: "/gallery", icon: Shirt },
+  { name: "Look", href: "/suggest", icon: Wand2 },
+  { name: "Subir", href: "/upload", icon: Upload },
+  { name: "Estadísticas", href: "/stats", icon: BarChart3 },
 ]
 
 export function Navbar() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [helpDialogOpen, setHelpDialogOpen] = useState(false)
-  const [currentHelpContext, setCurrentHelpContext] = useState("")
-
-  const handleNavClick = (helpContext: string, href: string, e: React.MouseEvent) => {
-    // Si es la página actual, mostrar ayuda en lugar de navegar
-    if (pathname === href) {
-      e.preventDefault()
-      setCurrentHelpContext(helpContext)
-      setHelpDialogOpen(true)
-    }
-  }
-
-  const handleHelpAction = (action: string) => {
-    // Manejar acciones específicas basadas en el contexto
-    console.log("Acción de ayuda:", action, "Contexto:", currentHelpContext)
-
-    // Aquí puedes agregar lógica específica para cada acción
-    switch (action) {
-      case "Guíame paso a paso":
-        // Iniciar tutorial guiado
-        break
-      case "Subir mi primera prenda":
-        window.location.href = "/upload"
-        break
-      case "¡Sí, crear mi look!":
-        // Continuar con el flujo normal de sugerencias
-        break
-      // Agregar más casos según necesites
-    }
-  }
 
   return (
     <>
@@ -68,7 +34,6 @@ export function Navbar() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  onClick={(e) => handleNavClick(item.helpContext, item.href, e)}
                   className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-accent hover:text-accent-foreground ${
                     isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground"
                   }`}
@@ -96,15 +61,8 @@ export function Navbar() {
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
         navigation={navigation}
-        onNavClick={handleNavClick}
-      />
-
-      {/* Help Dialog */}
-      <ArinHelpDialog
-        isOpen={helpDialogOpen}
-        onClose={() => setHelpDialogOpen(false)}
-        helpContext={currentHelpContext}
-        onAction={handleHelpAction}
+        // Eliminamos onNavClick ya que no hay diálogo de ayuda
+        onNavClick={() => {}}
       />
     </>
   )

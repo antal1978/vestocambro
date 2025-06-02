@@ -7,14 +7,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Camera, Upload } from "lucide-react" // Importar Camera y Upload
-import { COLORS } from "@/lib/color-config"
-import { findClosestColor } from "@/lib/color-utils"
 import type { ClothingItem } from "@/types/ClothingItem"
+import { ColorPicker } from "@/components/color-picker" // Importar ColorPicker
 
 const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
@@ -269,7 +267,7 @@ export default function UploadPage() {
       setOccasion("")
       setMaterial("")
 
-      router.push("/armario")
+      router.push("/gallery") // Corregido para redirigir a /gallery
     } catch (error: any) {
       console.error("Error al subir la imagen:", error)
       toast({
@@ -373,20 +371,8 @@ export default function UploadPage() {
           </div>
           <div className="flex flex-col space-y-1.5">
             <Label htmlFor="color">Color</Label>
-            <Input
-              type="color"
-              id="color"
-              value={color}
-              onChange={(e) => {
-                const selectedColor = e.target.value
-                setColor(selectedColor)
-              }}
-            />
-            {color && (
-              <Badge variant="secondary">
-                Color más cercano: {findClosestColor(color, COLORS).name || "Desconocido"}
-              </Badge>
-            )}
+            {/* Reemplazado Input type="color" por ColorPicker */}
+            <ColorPicker value={color} onChange={setColor} placeholder="Seleccionar color de la prenda" />
           </div>
 
           <div className="flex flex-col space-y-1.5">

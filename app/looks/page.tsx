@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Trash2, Heart, Calendar, TrendingUp } from "lucide-react"
-// REMOVED: import { ArinChat } from "@/components/arin-chat"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -16,6 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge"
+// REMOVED: import { ArinLooksChat } from "@/components/arin-looks-chat"
 
 type SavedLook = {
   id: string
@@ -45,15 +45,12 @@ const LooksPage = () => {
 
   const fetchSavedLooks = () => {
     try {
-      // Get saved looks from localStorage
       const storedLooks = localStorage.getItem("savedLooks")
       const looks: SavedLook[] = storedLooks ? JSON.parse(storedLooks) : []
 
-      // Get usage stats from localStorage
       const storedUsage = localStorage.getItem("usedLooks")
       const usageHistory = storedUsage ? JSON.parse(storedUsage) : []
 
-      // Calculate usage stats for each look
       const looksWithStats = looks.map((look) => {
         const usageCount = usageHistory.filter((usage: any) =>
           usage.items.every((item: any) => look.items.some((lookItem: any) => lookItem.id === item.id)),
@@ -87,11 +84,9 @@ const LooksPage = () => {
 
   const handleLogUsage = (look: SavedLook) => {
     try {
-      // Get existing usage history
       const storedUsage = localStorage.getItem("usedLooks")
       const usageHistory = storedUsage ? JSON.parse(storedUsage) : []
 
-      // Add new usage record
       const newUsage = {
         id: Date.now().toString(),
         items: look.items,
@@ -105,7 +100,6 @@ const LooksPage = () => {
       usageHistory.push(newUsage)
       localStorage.setItem("usedLooks", JSON.stringify(usageHistory))
 
-      // Also update clothing usage stats
       const clothingUsage = localStorage.getItem("clothingUsage")
       const usageRecord = clothingUsage ? JSON.parse(clothingUsage) : {}
 
@@ -124,7 +118,6 @@ const LooksPage = () => {
         description: "Uso registrado correctamente. ARIN aprenderá de tus preferencias.",
       })
 
-      // Refresh the looks to update usage stats
       fetchSavedLooks()
     } catch (error) {
       console.error("Failed to log usage:", error)
@@ -190,7 +183,7 @@ const LooksPage = () => {
   }
 
   const closeDeleteDialog = () => {
-    setSelectedLookId(null)
+    setSelectedLookId(null) // Corregido a null para consistencia de tipo
     setIsDeleteDialogOpen(false)
   }
 
@@ -209,7 +202,6 @@ const LooksPage = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Cargando tus looks...</p>
         </div>
-        {/* REMOVED: <ArinChat /> */}
       </div>
     )
   }
@@ -330,7 +322,9 @@ const LooksPage = () => {
         </div>
       )}
 
-      {/* Delete confirmation dialog */}
+      {/* REMOVED: <ArinLooksChat /> */}
+
+      {/* Diálogo de confirmación de eliminación */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>

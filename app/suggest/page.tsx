@@ -4,33 +4,36 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Wand2, Shirt, Sparkles, ArrowRight } from "lucide-react"
-import { ArinSuggestChat } from "@/components/arin-suggest-chat"
 import { OutfitVisualization } from "@/components/outfit-visualization"
-import { ArinPostOutfitChat } from "@/components/arin-post-outfit-chat"
 import { useRouter } from "next/navigation"
 import { useSearchParams } from "next/navigation"
 import { loadExampleItems } from "@/lib/example-items"
+import { getSuggestedLooks } from "@/lib/outfit-suggestion-algorithm"
 import type { ClothingItem } from "@/types/ClothingItem"
+import { Loader2 } from "lucide-react"
 
 const SuggestPage = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
   const baseItemId = searchParams.get("baseItem")
 
-  const [isChatOpen, setIsChatOpen] = useState(false)
   const [wardrobeItems, setWardrobeItems] = useState<ClothingItem[]>([])
   const [baseItem, setBaseItem] = useState<ClothingItem | null>(null)
   const [generatedOutfit, setGeneratedOutfit] = useState<ClothingItem[]>([])
   const [isOutfitDialogOpen, setIsOutfitDialogOpen] = useState(false)
   const [usageUpdated, setUsageUpdated] = useState(false)
   const [outfitSaved, setOutfitSaved] = useState(false)
-  const [currentStep, setCurrentStep] = useState<"chat" | "visualization" | "post-chat">("chat")
-  const [occasion, setOccasion] = useState("casual")
-  const [climate, setClimate] = useState("templado")
+  const [currentStep, setCurrentStep] = useState<
+    "initial" | "dayOrNight" | "activity" | "climate" | "style" | "visualization" | "post-chat" | "no-results"
+  >("initial") // Añadido 'no-results'
+  const [selectedDayNight, setSelectedDayNight] = useState<"day" | "night" | "both" | "">("")
+  const [selectedActivity, setSelectedActivity] = useState("")
+  const [selectedClimate, setSelectedClimate] = useState("")
+  const [selectedStyle, setSelectedStyle] = useState("")
+  const [isLoadingOutfit, setIsLoadingOutfit] = useState(false)
+  const [noOutfitReason, setNoOutfitReason] = useState<string | null>(null) // Nuevo estado para el mensaje
 
-  // Load wardrobe items from localStorage
   useEffect(() => {
-    // Load example items if none exist
     loadExampleItems()
 
     const storedItems = localStorage.getItem("clothingItems")
@@ -38,7 +41,6 @@ const SuggestPage = () => {
       const items = JSON.parse(storedItems)
       setWardrobeItems(items)
 
-      // If baseItemId is provided, find the item
       if (baseItemId) {
         const item = items.find((item: ClothingItem) => item.id === baseItemId)
         if (item) {
@@ -48,35 +50,29 @@ const SuggestPage = () => {
     }
   }, [baseItemId])
 
-  // Start chat automatically if we have items
   useEffect(() => {
-    if (wardrobeItems.length > 0) {
-      setIsChatOpen(true)
+    if (wardrobeItems.length > 0 && currentStep === "initial") {
+      setCurrentStep("dayOrNight")
     }
-  }, [wardrobeItems])
+  }, [wardrobeItems, currentStep])
 
-  // Handle outfit generation from the chat
-  const handleOutfitGenerated = (outfit: ClothingItem[], selectedOccasion: string, selectedClimate: string) => {
+  const handleOutfitGenerated = (outfit: ClothingItem[], occasion: string, climate: string) => {
     setGeneratedOutfit(outfit)
-    setOccasion(selectedOccasion)
-    setClimate(selectedClimate)
     setIsOutfitDialogOpen(true)
     setCurrentStep("visualization")
+    setIsLoadingOutfit(false)
+    setNoOutfitReason(null) // Resetear el mensaje de no resultados
   }
 
-  // Handle outfit dialog close
   const handleOutfitDialogClose = () => {
     setIsOutfitDialogOpen(false)
     setCurrentStep("post-chat")
   }
 
-  // Handle recording outfit usage
   const handleRecordUsage = () => {
-    // Get existing usage stats
     const clothingUsage = localStorage.getItem("clothingUsage")
     const usageRecord = clothingUsage ? JSON.parse(clothingUsage) : {}
 
-    // Update usage for each item in the outfit
     generatedOutfit.forEach((item) => {
       if (!usageRecord[item.id]) {
         usageRecord[item.id] = { count: 0, lastUsed: "" }
@@ -85,10 +81,8 @@ const SuggestPage = () => {
       usageRecord[item.id].lastUsed = new Date().toISOString()
     })
 
-    // Save updated usage stats
     localStorage.setItem("clothingUsage", JSON.stringify(usageRecord))
 
-    // Also save to usedLooks
     const usedLooks = localStorage.getItem("usedLooks")
     const lookHistory = usedLooks ? JSON.parse(usedLooks) : []
 
@@ -96,49 +90,79 @@ const SuggestPage = () => {
       id: Date.now().toString(),
       items: generatedOutfit,
       date: new Date().toISOString(),
-      occasion: occasion,
-      climate: climate,
+      occasion: selectedActivity,
+      climate: selectedClimate,
     })
 
     localStorage.setItem("usedLooks", JSON.stringify(lookHistory))
     setUsageUpdated(true)
   }
 
-  // Handle saving outfit
   const handleSaveOutfit = () => {
-    // Get existing saved looks
     const savedLooks = localStorage.getItem("savedLooks")
     const looks = savedLooks ? JSON.parse(savedLooks) : []
 
-    // Create new look
     const newLook = {
       id: Date.now().toString(),
-      name: `Look para ${occasion} (${climate})`,
+      name: `Look para ${selectedActivity} (${selectedClimate})`,
       items: generatedOutfit,
-      occasion: occasion,
-      climate: climate,
-      style: "casual", // Default style
+      occasion: selectedActivity,
+      climate: selectedClimate,
+      style: selectedStyle,
       dateCreated: new Date().toISOString(),
       isFavorite: false,
     }
 
-    // Add to saved looks
     looks.push(newLook)
     localStorage.setItem("savedLooks", JSON.stringify(looks))
     setOutfitSaved(true)
   }
 
-  // Handle regenerating outfit
   const handleRegenerateOutfit = () => {
-    setCurrentStep("chat")
-    setIsChatOpen(true)
+    setCurrentStep("dayOrNight")
     setGeneratedOutfit([])
     setIsOutfitDialogOpen(false)
     setUsageUpdated(false)
     setOutfitSaved(false)
+    setSelectedDayNight("")
+    setSelectedActivity("")
+    setSelectedClimate("")
+    setSelectedStyle("")
+    setNoOutfitReason(null) // Resetear el mensaje de no resultados
   }
 
-  // If no items in wardrobe, show empty state
+  const handleDayNightSelection = (choice: "day" | "night" | "both") => {
+    setSelectedDayNight(choice)
+    setCurrentStep("activity")
+  }
+
+  const handleActivitySelection = (activity: string) => {
+    setSelectedActivity(activity)
+    setCurrentStep("climate")
+  }
+
+  const handleClimateSelection = (climate: string) => {
+    setSelectedClimate(climate)
+    setCurrentStep("style")
+  }
+
+  const handleStyleSelection = (style: string) => {
+    setSelectedStyle(style)
+    setIsLoadingOutfit(true)
+    const looks = getSuggestedLooks(wardrobeItems, selectedActivity, selectedClimate, style, 1)
+    if (looks.length > 0) {
+      handleOutfitGenerated(looks[0], selectedActivity, selectedClimate)
+    } else {
+      // Si no se generó ningún look, mostrar mensaje de no resultados
+      setGeneratedOutfit([])
+      setIsLoadingOutfit(false)
+      setNoOutfitReason(
+        "¡Ups! No pudimos encontrar un look que cumpla con todas las condiciones. Intenta con otras opciones o añade más prendas a tu armario.",
+      )
+      setCurrentStep("no-results") // Cambiar a un paso de no resultados
+    }
+  }
+
   if (wardrobeItems.length === 0) {
     return (
       <div className="container mx-auto px-4 py-12">
@@ -179,42 +203,111 @@ const SuggestPage = () => {
           </p>
         </div>
 
-        {currentStep === "chat" && (
+        {currentStep === "dayOrNight" && (
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Wand2 className="h-5 w-5 text-primary" />
-                Creación de Look
+                ¿Para cuándo es el look?
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p>
-                ARIN te hará algunas preguntas para entender qué tipo de look necesitas y luego te sugerirá
-                combinaciones perfectas usando las prendas de tu armario.
+              <p>¡Dale! ¿Estás buscando algo para el día o para la noche?</p>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => handleDayNightSelection("day")}>🌅 Día</Button>
+                <Button onClick={() => handleDayNightSelection("night")}>🌙 Noche</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {currentStep === "activity" && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wand2 className="h-5 w-5 text-primary" />
+                ¿Qué vas a hacer?
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p>¡Perfecto! Contame, ¿qué tenés planeado?</p>
+              <div className="flex flex-wrap gap-2">
+                {selectedDayNight === "day" && (
+                  <>
+                    <Button onClick={() => handleActivitySelection("trabajo")}>💼 Trabajar en oficina</Button>
+                    <Button onClick={() => handleActivitySelection("dia-casual")}>
+                      🏠 Trabajar desde casa o estar en casa
+                    </Button>
+                    <Button onClick={() => handleActivitySelection("salidas-informales")}>🚶‍♀️ Salir a pasear</Button>
+                  </>
+                )}
+                {selectedDayNight === "night" && (
+                  <>
+                    <Button onClick={() => handleActivitySelection("salidas-formales")}>
+                      🍷 Evento formal (cena elegante, fiesta)
+                    </Button>
+                    <Button onClick={() => handleActivitySelection("salidas-informales")}>
+                      🎬 Salida informal (bar, cine, juntada)
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {currentStep === "climate" && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wand2 className="h-5 w-5 text-primary" />
+                ¿Cómo está el clima?
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p>¡Genial! ¿Cómo está el clima por donde andás?</p>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => handleClimateSelection("calor")}>☀️ Caluroso</Button>
+                <Button onClick={() => handleClimateSelection("templado")}>🌤️ Templado</Button>
+                <Button onClick={() => handleClimateSelection("frio")}>❄️ Frío</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {currentStep === "style" && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wand2 className="h-5 w-5 text-primary" />
+                ¿Qué estilo buscás?
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p>¡Perfecto! Ahora contame, ¿cómo te gusta vestirte?</p>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => handleStyleSelection("comodo")}>😌 Cómodo</Button>
+                <Button onClick={() => handleStyleSelection("arreglado")}>✨ Arreglado</Button>
+                <Button onClick={() => handleStyleSelection("creativo")}>🎨 Creativo</Button>
+                <Button onClick={() => handleStyleSelection("sorpresa")}>🎲 Sorprendeme</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {isLoadingOutfit && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                Generando tu look...
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+              <p className="text-muted-foreground">
+                Estamos combinando tus prendas para crear algo increíble. ¡Un momento por favor!
               </p>
-
-              {baseItem && (
-                <div className="bg-primary/5 p-4 rounded-lg flex items-center gap-4">
-                  <div className="w-16 h-16 bg-white rounded-md overflow-hidden">
-                    <img
-                      src={baseItem.image || "/placeholder.svg"}
-                      alt={baseItem.type}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-medium">Prenda base seleccionada:</p>
-                    <p className="text-sm text-muted-foreground capitalize">
-                      {baseItem.type} {baseItem.color}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <Button onClick={() => setIsChatOpen(true)} className="w-full gap-2" size="lg">
-                <Sparkles className="h-4 w-4" />
-                {baseItem ? "Crear look con esta prenda" : "Empezar a crear mi look"}
-              </Button>
+              <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary/50" />
             </CardContent>
           </Card>
         )}
@@ -255,27 +348,43 @@ const SuggestPage = () => {
                 </Button>
               </div>
 
-              <ArinPostOutfitChat
-                outfit={generatedOutfit}
-                onRegenerateOutfit={handleRegenerateOutfit}
-                onRecordUsage={handleRecordUsage}
-                onSaveOutfit={handleSaveOutfit}
-                usageUpdated={usageUpdated}
-              />
+              <div className="mt-4 text-sm text-muted-foreground">
+                <p>¡Look generado! Puedes registrar su uso o guardarlo para más tarde.</p>
+                <div className="flex gap-2 mt-2">
+                  <Button onClick={handleRecordUsage} disabled={usageUpdated}>
+                    {usageUpdated ? "Uso registrado" : "Registrar uso"}
+                  </Button>
+                  <Button onClick={handleSaveOutfit} disabled={outfitSaved}>
+                    {outfitSaved ? "Look guardado" : "Guardar look"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {currentStep === "no-results" && noOutfitReason && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                No se pudo generar un look
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">{noOutfitReason}</p>
+              <div className="flex flex-wrap gap-2 mt-4">
+                <Button onClick={handleRegenerateOutfit} className="gap-2">
+                  Intentar con otras opciones
+                </Button>
+                <Button onClick={() => router.push("/upload")} variant="outline" className="gap-2">
+                  Añadir más prendas
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
       </div>
-
-      {/* ARIN Suggest Chat Dialog */}
-      <ArinSuggestChat
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        onDecision={handleOutfitGenerated}
-        items={wardrobeItems}
-        baseItem={baseItem}
-        startWithPresentation={true}
-      />
 
       {/* Outfit Visualization Dialog */}
       {generatedOutfit.length > 0 && (
@@ -283,8 +392,8 @@ const SuggestPage = () => {
           items={generatedOutfit}
           isOpen={isOutfitDialogOpen}
           onClose={handleOutfitDialogClose}
-          climate={climate}
-          occasion={occasion}
+          climate={selectedClimate}
+          occasion={selectedActivity}
         />
       )}
     </div>

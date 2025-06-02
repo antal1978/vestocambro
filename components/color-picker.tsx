@@ -131,7 +131,6 @@ export function ColorPicker({ value, onChange, placeholder = "Seleccionar color"
       >
         <span className="sr-only">Selector de color</span>
         <div className="flex items-center gap-2">
-          {/* ESTA ES LA LÍNEA CLAVE: El ícono Palette está aquí, FUERA del condicional */}
           <Palette className="w-4 h-4 text-muted-foreground" />
           {selectedColor ? (
             <>
@@ -139,7 +138,17 @@ export function ColorPicker({ value, onChange, placeholder = "Seleccionar color"
               <span className="text-foreground">{selectedColor.name}</span>
             </>
           ) : (
-            <span className="text-muted-foreground">{placeholder}</span>
+            // NUEVO: Mostrar degradado cuando no hay color seleccionado
+            <>
+              <div
+                className="w-6 h-6 rounded-full border border-gray-300 shadow-sm"
+                style={{
+                  background:
+                    "linear-gradient(to right, #FF0000, #FFA500, #FFD700, #50C878, #318CE7, #8A2BE2, #800080)",
+                }}
+              />
+              <span className="text-muted-foreground">{placeholder}</span>
+            </>
           )}
         </div>
         <ChevronDown className={cn("ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform", isOpen && "rotate-180")} />
